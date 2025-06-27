@@ -72,9 +72,26 @@ config = get_config()
 app.config.from_object(config)
 
 # Configurar WhiteNoise para archivos estáticos en producción
-if os.environ.get('FLASK_ENV') == 'production':
-    from whitenoise import WhiteNoise
-    app.wsgi_app = WhiteNoise(app.wsgi_app, root='static/', prefix='static/')
+# Railway detecta automáticamente producción
+is_production = (
+    os.environ.get('FLASK_ENV') == 'production' or 
+    os.environ.get('RAILWAY_ENVIRONMENT') == 'production' or
+    os.environ.get('PORT') is not None  # Railway siempre define PORT
+)
+
+if is_production:
+    try:
+        from whitenoise import WhiteNoise
+        app.wsgi_app = WhiteNoise(
+            app.wsgi_app, 
+            root=os.path.join(app.root_path, 'static'),
+            prefix='/static/'
+        )
+        logger.info("✅ WhiteNoise configurado para archivos estáticos")
+    except Exception as e:
+        logger.error(f"❌ Error configurando WhiteNoise: {e}")
+else:
+    logger.info("🔧 Modo desarrollo - usando servidor Flask para archivos estáticos")
 
 # Configurar CORS
 CORS(app, origins=config.CORS_ORIGINS)
@@ -1362,6 +1379,48 @@ def health_check():
         'version': '1.0.0'
     })
 
+@app.route('/debug-static')
+def debug_static():
+    """Endpoint para debuggear archivos estáticos"""
+    try:
+        static_path = os.path.join(app.root_path, 'static')
+        debug_info = {
+            'static_directory': static_path,
+            'static_exists': os.path.exists(static_path),
+            'app_root_path': app.root_path,
+            'whitenoise_active': hasattr(app, 'wsgi_app') and 'WhiteNoise' in str(type(app.wsgi_app)),
+            'environment': {
+                'FLASK_ENV': os.environ.get('FLASK_ENV'),
+                'RAILWAY_ENVIRONMENT': os.environ.get('RAILWAY_ENVIRONMENT'),
+                'PORT': os.environ.get('PORT')
+            },
+            'files': []
+        }
+        
+        # Listar archivos críticos
+        critical_files = [
+            'css/styles.css',
+            'js/app.js', 
+            'images/logo.png'
+        ]
+        
+        for file_rel_path in critical_files:
+            file_path = os.path.join(static_path, file_rel_path)
+            debug_info['files'].append({
+                'path': file_rel_path,
+                'full_path': file_path,
+                'exists': os.path.exists(file_path),
+                'size': os.path.getsize(file_path) if os.path.exists(file_path) else 0
+            })
+        
+        return jsonify(debug_info)
+        
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'status': 'error'
+        }), 500
+
 # Ruta para favicon
 @app.route('/favicon.ico')
 def favicon():
@@ -1375,10 +1434,22 @@ def favicon():
 def serve_static(filename):
     """Servir archivos estáticos en producción (CSS, JS, imágenes)"""
     try:
-        return send_from_directory(os.path.join(app.root_path, 'static'), filename)
+        static_path = os.path.join(app.root_path, 'static')
+        file_path = os.path.join(static_path, filename)
+        
+        logger.info(f"📁 Solicitando archivo estático: {filename}")
+        logger.info(f"📂 Ruta completa: {file_path}")
+        logger.info(f"📋 Archivo existe: {os.path.exists(file_path)}")
+        
+        if os.path.exists(file_path):
+            return send_from_directory(static_path, filename)
+        else:
+            logger.error(f"❌ Archivo no encontrado: {file_path}")
+            return "Archivo no encontrado", 404
+            
     except Exception as e:
-        logger.error(f"Error sirviendo archivo estático {filename}: {e}")
-        return "Archivo no encontrado", 404
+        logger.error(f"❌ Error sirviendo archivo estático {filename}: {e}")
+        return "Error interno del servidor", 500
 
 # Rutas para manejo de archivos médicos
 @app.route('/uploads/medical_files/<filename>')
