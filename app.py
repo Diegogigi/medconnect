@@ -1604,13 +1604,38 @@ def serve_static(filename):
         logger.info(f"📋 Archivo existe: {os.path.exists(file_path)}")
         
         if os.path.exists(file_path):
-            return send_from_directory(static_path, filename)
+            # Determinar tipo MIME basado en la extensión
+            mimetype = None
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
+                mimetype = f'image/{filename.split(".")[-1].lower()}'
+                if mimetype == 'image/jpg':
+                    mimetype = 'image/jpeg'
+            elif filename.lower().endswith('.css'):
+                mimetype = 'text/css'
+            elif filename.lower().endswith('.js'):
+                mimetype = 'application/javascript'
+            elif filename.lower().endswith('.ico'):
+                mimetype = 'image/x-icon'
+            
+            # Crear respuesta con headers apropiados
+            response = send_from_directory(static_path, filename, mimetype=mimetype)
+            
+            # Agregar headers de cache para mejor rendimiento
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico')):
+                response.headers['Cache-Control'] = 'public, max-age=31536000'  # 1 año para imágenes
+            elif filename.lower().endswith(('.css', '.js')):
+                response.headers['Cache-Control'] = 'public, max-age=86400'  # 1 día para CSS/JS
+            
+            logger.info(f"✅ Archivo servido exitosamente: {filename} (tipo: {mimetype})")
+            return response
         else:
             logger.error(f"❌ Archivo no encontrado: {file_path}")
             return "Archivo no encontrado", 404
             
     except Exception as e:
         logger.error(f"❌ Error sirviendo archivo estático {filename}: {e}")
+        import traceback
+        logger.error(f"❌ Traceback: {traceback.format_exc()}")
         return "Error interno del servidor", 500
 
 # Rutas para manejo de archivos médicos
@@ -2448,6 +2473,113 @@ def debug_auth():
                 <a href="/test-complete" class="btn">🏠 Diagnóstico Principal</a>
                 <a href="/debug-env" class="btn">🔧 Debug Variables</a>
                 <a href="/" class="btn">🏠 Página Principal</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+    
+    return html
+
+@app.route('/test-images')
+def test_images():
+    """Endpoint para probar las imágenes de la landing page"""
+    import os
+    
+    # Verificar existencia de archivos
+    static_path = os.path.join(app.root_path, 'static')
+    logo_path = os.path.join(static_path, 'images', 'logo.png')
+    imagen2_path = os.path.join(static_path, 'images', 'Imagen2.png')
+    css_path = os.path.join(static_path, 'css', 'styles.css')
+    
+    files_status = {
+        'logo.png': {
+            'exists': os.path.exists(logo_path),
+            'size': os.path.getsize(logo_path) if os.path.exists(logo_path) else 0,
+            'path': logo_path
+        },
+        'Imagen2.png': {
+            'exists': os.path.exists(imagen2_path),
+            'size': os.path.getsize(imagen2_path) if os.path.exists(imagen2_path) else 0,
+            'path': imagen2_path
+        },
+        'styles.css': {
+            'exists': os.path.exists(css_path),
+            'size': os.path.getsize(css_path) if os.path.exists(css_path) else 0,
+            'path': css_path
+        }
+    }
+    
+    html = f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test Imágenes - MedConnect</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+            .container {{ max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }}
+            .test-section {{ margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }}
+            .success {{ background: #d4edda; color: #155724; }}
+            .error {{ background: #f8d7da; color: #721c24; }}
+            .btn {{ padding: 10px 20px; margin: 5px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; display: inline-block; }}
+            img {{ max-width: 200px; margin: 10px; border: 1px solid #ddd; }}
+            pre {{ background: #f8f9fa; padding: 10px; border-radius: 4px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🖼️ Test de Imágenes - MedConnect</h1>
+            
+            <div class="test-section">
+                <h2>📊 Estado de Archivos</h2>
+                <pre>{json.dumps(files_status, indent=2)}</pre>
+            </div>
+            
+            <div class="test-section">
+                <h2>🖼️ Prueba Visual - Logo</h2>
+                <p><strong>URL Flask:</strong> {url_for('static', filename='images/logo.png')}</p>
+                <p><strong>URL Directa:</strong> /static/images/logo.png</p>
+                <img src="{url_for('static', filename='images/logo.png')}" alt="Logo Flask" 
+                     onload="document.getElementById('logo-flask').innerHTML='✅ Cargado con Flask'"
+                     onerror="document.getElementById('logo-flask').innerHTML='❌ Error con Flask'">
+                <div id="logo-flask">⏳ Cargando...</div>
+                
+                <img src="/static/images/logo.png" alt="Logo Directo"
+                     onload="document.getElementById('logo-direct').innerHTML='✅ Cargado directo'"
+                     onerror="document.getElementById('logo-direct').innerHTML='❌ Error directo'">
+                <div id="logo-direct">⏳ Cargando...</div>
+            </div>
+            
+            <div class="test-section">
+                <h2>🖼️ Prueba Visual - Imagen2</h2>
+                <p><strong>URL Flask:</strong> {url_for('static', filename='images/Imagen2.png')}</p>
+                <img src="{url_for('static', filename='images/Imagen2.png')}" alt="Imagen2 Flask"
+                     onload="document.getElementById('img2-flask').innerHTML='✅ Cargado con Flask'"
+                     onerror="document.getElementById('img2-flask').innerHTML='❌ Error con Flask'">
+                <div id="img2-flask">⏳ Cargando...</div>
+            </div>
+            
+            <div class="test-section">
+                <h2>🎨 Prueba CSS</h2>
+                <p><strong>URL CSS:</strong> {url_for('static', filename='css/styles.css')}</p>
+                <link rel="stylesheet" href="{url_for('static', filename='css/styles.css')}">
+                <div class="hero" style="padding: 20px; margin: 10px 0;">
+                    <h3>Si este texto tiene estilos aplicados, CSS funciona ✅</h3>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2>🔧 URLs de Prueba Directa</h2>
+                <a href="/static/images/logo.png" target="_blank" class="btn">🖼️ Ver Logo</a>
+                <a href="/static/images/Imagen2.png" target="_blank" class="btn">🖼️ Ver Imagen2</a>
+                <a href="/static/css/styles.css" target="_blank" class="btn">🎨 Ver CSS</a>
+            </div>
+            
+            <div class="test-section">
+                <h2>🔗 Navegación</h2>
+                <a href="/" class="btn">🏠 Landing Page</a>
+                <a href="/test-complete" class="btn">🔧 Diagnóstico Completo</a>
+                <a href="/debug-static" class="btn">📁 Debug Estáticos</a>
             </div>
         </div>
     </body>
