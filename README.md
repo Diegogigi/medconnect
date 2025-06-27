@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 🏥 MedConnect - Sistema de Gestión Médica Familiar
 
 MedConnect es una plataforma integral que combina una aplicación web con un bot de Telegram para la gestión colaborativa de información médica familiar. Especialmente diseñado para facilitar el cuidado de personas de la tercera edad.
@@ -287,8 +286,4 @@ Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
 
 ---
 
-**Desarrollado con ❤️ para facilitar el cuidado familiar** 
-=======
-# medconnect
-gestión de información de salud de los usuarios
->>>>>>> 5ec6c2179f28499df924b63777794c894f47583d
+**Desarrollado con ❤️ para facilitar el cuidado familiar**
