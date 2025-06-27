@@ -22,20 +22,45 @@ logger = logging.getLogger(__name__)
 # Configuración
 GOOGLE_SHEETS_ID = "1UvnO2lpZSyv13Hf2eG--kQcTff5BBh7jrZ6taFLJypU"
 
-# Cargar credenciales
+# Cargar credenciales con debugging detallado
 try:
+    logger.info("🔍 Iniciando carga de credenciales...")
+    
+    # Verificar variables de entorno disponibles
+    env_vars = {
+        'GOOGLE_SERVICE_ACCOUNT_JSON': bool(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')),
+        'GOOGLE_CREDENTIALS_FILE': bool(os.environ.get('GOOGLE_CREDENTIALS_FILE')),
+        'GOOGLE_SHEETS_ID': bool(os.environ.get('GOOGLE_SHEETS_ID'))
+    }
+    logger.info(f"🔧 Variables de entorno disponibles: {env_vars}")
+    
     # Priorizar GOOGLE_SERVICE_ACCOUNT_JSON de Railway
     if os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON'):
-        GOOGLE_CREDS = json.loads(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON'))
-        logger.info("✅ Credenciales cargadas desde variable de entorno")
+        json_content = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+        logger.info(f"📝 JSON content length: {len(json_content)} chars")
+        logger.info(f"📝 JSON starts with: {json_content[:50]}...")
+        
+        GOOGLE_CREDS = json.loads(json_content)
+        logger.info("✅ Credenciales cargadas desde variable de entorno GOOGLE_SERVICE_ACCOUNT_JSON")
+        logger.info(f"🔑 Proyecto: {GOOGLE_CREDS.get('project_id', 'N/A')}")
     else:
         # Fallback a archivo local
         credentials_file = os.environ.get('GOOGLE_CREDENTIALS_FILE', 'credentials.json')
-        with open(credentials_file, 'r') as f:
-            GOOGLE_CREDS = json.load(f)
-        logger.info("✅ Credenciales cargadas desde archivo")
+        logger.info(f"📁 Intentando cargar desde archivo: {credentials_file}")
+        
+        if os.path.exists(credentials_file):
+            with open(credentials_file, 'r') as f:
+                GOOGLE_CREDS = json.load(f)
+            logger.info("✅ Credenciales cargadas desde archivo")
+        else:
+            logger.error(f"❌ Archivo de credenciales no encontrado: {credentials_file}")
+            raise FileNotFoundError(f"Archivo de credenciales no encontrado: {credentials_file}")
+            
 except Exception as e:
     logger.error(f"❌ Error cargando credenciales: {e}")
+    logger.error(f"❌ Tipo de error: {type(e).__name__}")
+    import traceback
+    logger.error(f"❌ Traceback: {traceback.format_exc()}")
     GOOGLE_CREDS = None
 
 class AuthManager:

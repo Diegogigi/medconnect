@@ -1435,6 +1435,7 @@ def debug_static():
 @app.route('/test-simple')
 def test_simple():
     """Página de prueba simple con HTML básico"""
+    logger.info("🔍 Accediendo a página de prueba /test-simple")
     html = '''
     <!DOCTYPE html>
     <html>
