@@ -1,0 +1,94 @@
+# Archivos y directorios que no necesitan estar en la imagen Docker
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Entorno local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+bot_supervisor.log
+
+# Node modules (aunque no los usemos)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation
+*.md
+docs/
+CHANGELOG.md
+README.md
+PLAN_*.md
+SETUP_*.md
+DEPLOY*.md
+FUNCIONALIDAD_*.md
+SOLUCION_*.md
+GITHUB_SETUP.md
+RAILWAY_SETUP.md
+BUSINESS_PLAN.md
+INSTALL.md
+LICENSE
+
+# Scripts de desarrollo
+test_*.py
+setup_*.py
+
+# Archivos de backup
+*.bak
+package.json.bak
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Uploads locales (Railway manejará el storage)
+static/uploads/*
+!static/uploads/.gitkeep 
