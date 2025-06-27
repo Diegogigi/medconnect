@@ -2174,6 +2174,118 @@ if app.config['PREFERRED_URL_SCHEME'] == 'https':
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
+@app.route('/debug-env')
+def debug_env():
+    """Endpoint para debugging de variables de entorno"""
+    import os
+    import json
+    
+    # Obtener todas las variables de entorno
+    all_env_vars = dict(os.environ)
+    
+    # Variables específicas que necesitamos
+    target_vars = {
+        'GOOGLE_SERVICE_ACCOUNT_JSON': os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', 'NO ENCONTRADA'),
+        'GOOGLE_SHEETS_ID': os.environ.get('GOOGLE_SHEETS_ID', 'NO ENCONTRADA'),
+        'TELEGRAM_BOT_TOKEN': os.environ.get('TELEGRAM_BOT_TOKEN', 'NO ENCONTRADA'),
+        'PORT': os.environ.get('PORT', 'NO ENCONTRADA'),
+        'RAILWAY_ENVIRONMENT': os.environ.get('RAILWAY_ENVIRONMENT', 'NO ENCONTRADA'),
+        'RAILWAY_PROJECT_ID': os.environ.get('RAILWAY_PROJECT_ID', 'NO ENCONTRADA'),
+        'RAILWAY_SERVICE_ID': os.environ.get('RAILWAY_SERVICE_ID', 'NO ENCONTRADA'),
+    }
+    
+    # Filtrar variables de Railway para ver si está funcionando
+    railway_vars = {k: v for k, v in all_env_vars.items() if k.startswith('RAILWAY')}
+    
+    # Crear respuesta HTML
+    html = f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Debug Variables de Entorno - MedConnect</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+            .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }}
+            .section {{ margin: 20px 0; padding: 15px; border-radius: 5px; }}
+            .success {{ background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }}
+            .error {{ background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }}
+            .info {{ background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }}
+            table {{ width: 100%; border-collapse: collapse; margin: 10px 0; }}
+            th, td {{ padding: 8px 12px; border: 1px solid #ddd; text-align: left; word-break: break-all; }}
+            th {{ background: #f8f9fa; }}
+            .btn {{ padding: 10px 20px; margin: 5px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; display: inline-block; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🔍 Debug Variables de Entorno - MedConnect</h1>
+            
+            <div class="section info">
+                <h2>📊 Resumen</h2>
+                <p><strong>Total de variables:</strong> {len(all_env_vars)}</p>
+                <p><strong>Variables de Railway:</strong> {len(railway_vars)}</p>
+                <p><strong>Entorno detectado:</strong> {'Railway' if railway_vars else 'Local/Otro'}</p>
+            </div>
+            
+            <div class="section {'success' if target_vars['GOOGLE_SERVICE_ACCOUNT_JSON'] != 'NO ENCONTRADA' else 'error'}">
+                <h2>🎯 Variables Objetivo</h2>
+                <table>
+                    <tr><th>Variable</th><th>Estado</th><th>Valor (primeros 50 chars)</th></tr>'''
+    
+    for var, value in target_vars.items():
+        status_icon = "✅" if value != 'NO ENCONTRADA' else "❌"
+        display_value = str(value)[:50] + "..." if len(str(value)) > 50 else str(value)
+        html += f'<tr><td>{var}</td><td>{status_icon}</td><td>{display_value}</td></tr>'
+    
+    html += f'''
+                </table>
+            </div>
+            
+            <div class="section info">
+                <h2>🚂 Variables de Railway</h2>
+                <table>
+                    <tr><th>Variable</th><th>Valor</th></tr>'''
+    
+    if railway_vars:
+        for var, value in railway_vars.items():
+            html += f'<tr><td>{var}</td><td>{str(value)[:100]}...</td></tr>'
+    else:
+        html += '<tr><td colspan="2">❌ No se encontraron variables de Railway</td></tr>'
+    
+    html += f'''
+                </table>
+            </div>
+            
+            <div class="section info">
+                <h2>🔧 Todas las Variables (primeras 20)</h2>
+                <table>
+                    <tr><th>Variable</th><th>Valor (primeros 50 chars)</th></tr>'''
+    
+    # Mostrar solo las primeras 20 variables para no sobrecargar
+    for i, (var, value) in enumerate(list(all_env_vars.items())[:20]):
+        display_value = str(value)[:50] + "..." if len(str(value)) > 50 else str(value)
+        html += f'<tr><td>{var}</td><td>{display_value}</td></tr>'
+    
+    if len(all_env_vars) > 20:
+        html += f'<tr><td colspan="2">... y {len(all_env_vars) - 20} variables más</td></tr>'
+    
+    html += f'''
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2>🔗 Navegación</h2>
+                <a href="/test-complete" class="btn">🏠 Volver al Diagnóstico Principal</a>
+                <a href="/debug-static" class="btn">📁 Debug Archivos Estáticos</a>
+                <a href="/" class="btn">🏠 Página Principal</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+    
+    return html
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') == 'development'
