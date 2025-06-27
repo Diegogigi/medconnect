@@ -135,12 +135,41 @@ def get_google_sheets_client():
 # Cliente global de Google Sheets
 sheets_client = get_google_sheets_client()
 
-# Inicializar AuthManager
+# Inicializar AuthManager con debugging detallado
+logger.info("🔍 Iniciando inicialización de AuthManager...")
+
 try:
+    # Verificar variables de entorno antes de crear AuthManager
+    env_check = {
+        'GOOGLE_SERVICE_ACCOUNT_JSON': bool(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')),
+        'GOOGLE_SHEETS_ID': bool(os.environ.get('GOOGLE_SHEETS_ID')),
+        'TELEGRAM_BOT_TOKEN': bool(os.environ.get('TELEGRAM_BOT_TOKEN'))
+    }
+    logger.info(f"🔧 Variables de entorno en app.py: {env_check}")
+    
+    # Verificar contenido de JSON
+    json_content = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '')
+    if json_content:
+        logger.info(f"📝 JSON length: {len(json_content)} chars")
+        logger.info(f"📝 JSON preview: {json_content[:100]}...")
+        
+        # Verificar que es JSON válido
+        try:
+            test_json = json.loads(json_content)
+            logger.info(f"✅ JSON válido, proyecto: {test_json.get('project_id', 'N/A')}")
+        except json.JSONDecodeError as je:
+            logger.error(f"❌ JSON inválido: {je}")
+    
+    # Intentar crear AuthManager
+    logger.info("🚀 Creando instancia de AuthManager...")
     auth_manager = AuthManager()
     logger.info("✅ AuthManager inicializado correctamente")
+    
 except Exception as e:
     logger.error(f"❌ Error inicializando AuthManager: {e}")
+    logger.error(f"❌ Tipo de error: {type(e).__name__}")
+    import traceback
+    logger.error(f"❌ Traceback completo: {traceback.format_exc()}")
     auth_manager = None
 
 def get_spreadsheet():
@@ -1432,68 +1461,127 @@ def debug_static():
             'status': 'error'
         }), 500
 
-@app.route('/test-simple')
-def test_simple():
-    """Página de prueba simple con HTML básico"""
-    logger.info("🔍 Accediendo a página de prueba /test-simple")
-    html = '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>MedConnect - Prueba</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
-            .container { max-width: 800px; margin: 0 auto; }
-            .btn { padding: 10px 20px; margin: 10px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
-            .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
-            .success { background: #d4edda; color: #155724; }
-            .error { background: #f8d7da; color: #721c24; }
-            .info { background: #d1ecf1; color: #0c5460; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>🏥 MedConnect - Página de Prueba</h1>
-            
-            <div class="status info">
-                <strong>Estado del Sistema:</strong><br>
-                ✅ Flask funcionando correctamente<br>
-                ''' + ('✅' if auth_manager else '❌') + ''' AuthManager: ''' + ('Disponible' if auth_manager else 'No disponible') + '''<br>
-                📁 Archivos estáticos: Verificando...<br>
-            </div>
-            
-            <h2>🔗 Enlaces de Prueba:</h2>
-            <a href="/" class="btn">🏠 Página Principal</a>
-            <a href="/login" class="btn">🔐 Iniciar Sesión</a>
-            <a href="/register" class="btn">📝 Registrarse</a>
-            <a href="/debug-static" class="btn">🔧 Debug Archivos Estáticos</a>
-            
-            <h2>🖼️ Prueba de Imagen:</h2>
-            <img src="/static/images/logo.png" alt="Logo MedConnect" style="max-width: 200px;" onerror="this.style.display='none'; document.getElementById('img-error').style.display='block';">
-            <div id="img-error" style="display:none; color: red;">❌ Error cargando imagen</div>
-            
-            <h2>🎨 Prueba de CSS:</h2>
-            <link rel="stylesheet" href="/static/css/styles.css">
-            <div class="hero" style="background: #f8f9fa; padding: 20px; border-radius: 5px;">
-                <p>Si ves este texto con estilos, el CSS funciona ✅</p>
-                <p>Si no, hay problema con archivos estáticos ❌</p>
-            </div>
-            
-            <h2>📜 Prueba de JavaScript:</h2>
-            <button onclick="testJS()" class="btn">Probar JS</button>
-            <div id="js-result"></div>
-            
-            <script>
-                function testJS() {
-                    document.getElementById('js-result').innerHTML = '<div class="status success">✅ JavaScript funciona correctamente</div>';
-                }
-            </script>
-            <script src="/static/js/app.js" onerror="document.getElementById('js-result').innerHTML='<div class=\\'status error\\'>❌ Error cargando app.js</div>';"></script>
-        </div>
-    </body>
-    </html>
-    '''
-    return html
+@app.route('/test-complete')
+def test_complete():
+    """Página de diagnóstico completa"""
+    logger.info("🔍 Accediendo a página de diagnóstico completa")
+    
+    # Verificar estado del sistema
+    auth_status = "✅ Disponible" if auth_manager else "❌ No disponible"
+    
+    # Verificar archivos estáticos
+    static_files = []
+    critical_files = ['css/styles.css', 'js/app.js', 'images/logo.png']
+    for file_path in critical_files:
+        full_path = os.path.join(app.root_path, 'static', file_path)
+        static_files.append({
+            'path': file_path,
+            'exists': os.path.exists(full_path),
+            'size': os.path.getsize(full_path) if os.path.exists(full_path) else 0
+        })
+    
+    # Verificar variables de entorno
+    env_vars = {
+        'GOOGLE_SERVICE_ACCOUNT_JSON': bool(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')),
+        'GOOGLE_SHEETS_ID': bool(os.environ.get('GOOGLE_SHEETS_ID')),
+        'TELEGRAM_BOT_TOKEN': bool(os.environ.get('TELEGRAM_BOT_TOKEN')),
+        'PORT': os.environ.get('PORT', 'No definido')
+    }
+    
+         html = f'''
+     <!DOCTYPE html>
+     <html>
+     <head>
+         <title>MedConnect - Diagnóstico Completo</title>
+         <style>
+             body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+             .container {{ max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }}
+             .btn {{ padding: 10px 20px; margin: 5px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; display: inline-block; }}
+             .status {{ padding: 15px; margin: 10px 0; border-radius: 5px; }}
+             .success {{ background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }}
+             .error {{ background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }}
+             .info {{ background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }}
+             .warning {{ background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }}
+             table {{ width: 100%; border-collapse: collapse; margin: 10px 0; }}
+             th, td {{ padding: 8px 12px; border: 1px solid #ddd; text-align: left; }}
+             th {{ background: #f8f9fa; }}
+             .code {{ background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; }}
+         </style>
+     </head>
+     <body>
+         <div class="container">
+             <h1>🏥 MedConnect - Diagnóstico Completo</h1>
+             
+             <div class="status {'success' if auth_manager else 'error'}">
+                 <strong>🔐 AuthManager:</strong> {auth_status}
+             </div>
+             
+             <h2>🔧 Variables de Entorno</h2>
+             <table>
+                 <tr><th>Variable</th><th>Estado</th></tr>'''
+    
+    for var, status in env_vars.items():
+        status_icon = "✅" if status else "❌"
+        html += f'<tr><td>{var}</td><td>{status_icon} {status}</td></tr>'
+    
+    html += f'''
+             </table>
+             
+             <h2>📁 Archivos Estáticos</h2>
+             <table>
+                 <tr><th>Archivo</th><th>Existe</th><th>Tamaño</th></tr>'''
+    
+    for file_info in static_files:
+        exists_icon = "✅" if file_info['exists'] else "❌"
+        size_text = f"{file_info['size']} bytes" if file_info['exists'] else "N/A"
+        html += f'<tr><td>{file_info["path"]}</td><td>{exists_icon}</td><td>{size_text}</td></tr>'
+    
+    html += f'''
+             </table>
+             
+             <h2>🔗 Pruebas Funcionales</h2>
+             <a href="/" class="btn">🏠 Página Principal</a>
+             <a href="/login" class="btn">🔐 Login</a>
+             <a href="/register" class="btn">📝 Registro</a>
+             <a href="/debug-static" class="btn">🔧 Debug JSON</a>
+             
+             <h2>🖼️ Prueba Visual</h2>
+             <div class="status info">
+                 <strong>Logo:</strong><br>
+                 <img src="/static/images/logo.png" alt="Logo" style="max-width: 150px;" 
+                      onload="document.getElementById('img-status').innerHTML='✅ Imagen cargada correctamente'"
+                      onerror="document.getElementById('img-status').innerHTML='❌ Error cargando imagen'">
+                 <div id="img-status">⏳ Cargando imagen...</div>
+             </div>
+             
+             <h2>🎨 Prueba CSS</h2>
+             <link rel="stylesheet" href="/static/css/styles.css">
+             <div class="hero" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                 <h3>Si ves este gradiente y texto centrado, CSS funciona ✅</h3>
+             </div>
+             
+             <h2>📜 Información del Sistema</h2>
+             <div class="code">
+                 <strong>Ruta de la app:</strong> {app.root_path}<br>
+                 <strong>Carpeta static:</strong> {app.static_folder}<br>
+                 <strong>URL static:</strong> {app.static_url_path}<br>
+                 <strong>WhiteNoise:</strong> {'✅ Activo' if hasattr(app, 'wsgi_app') and 'WhiteNoise' in str(type(app.wsgi_app)) else '❌ No activo'}
+             </div>
+             
+             <script>
+                 // Verificar JavaScript
+                 document.addEventListener('DOMContentLoaded', function() {{
+                     const jsStatus = document.createElement('div');
+                     jsStatus.className = 'status success';
+                     jsStatus.innerHTML = '✅ JavaScript funcionando correctamente';
+                     document.body.appendChild(jsStatus);
+                 }});
+             </script>
+         </div>
+     </body>
+     </html>
+     '''
+     return html
 
 # Ruta para favicon
 @app.route('/favicon.ico')
