@@ -892,18 +892,18 @@ Hacemos que gestionar tu salud sea fácil, rápido y seguro."""
         retry_delay = 1
         
         for attempt in range(max_retries):
-            try:
-                url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
-                data = {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}
+        try:
+            url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+            data = {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}
                 
                 # Timeout más corto para evitar conexiones colgadas
                 response = requests.post(url, json=data, timeout=(5, 30))
-                response.raise_for_status()
+            response.raise_for_status()
                 
                 if attempt > 0:
                     logger.info(f"✅ Mensaje enviado después de {attempt + 1} intentos")
                 
-                return True
+            return True
                 
             except requests.exceptions.ConnectionError as e:
                 logger.warning(f"⚠️ Error de conexión enviando mensaje (intento {attempt + 1}/{max_retries})")
@@ -930,7 +930,7 @@ Hacemos que gestionar tu salud sea fácil, rápido y seguro."""
                     logger.error(f"❌ Error HTTP enviando mensaje: {e}")
                     break
                     
-            except Exception as e:
+        except Exception as e:
                 logger.error(f"❌ Error inesperado enviando mensaje: {e}")
                 break
         
@@ -1321,14 +1321,14 @@ Puedo ayudarte con muchas cosas relacionadas con tu salud:
         """Procesa mensajes de texto recibidos"""
         try:
             text = message.get('text', '').lower().strip()
-            chat_id = message['chat']['id']
-            user_id = message['from']['id']
+        chat_id = message['chat']['id']
+        user_id = message['from']['id']
             
             # Verificar si el usuario está registrado
             if not self.is_user_registered(user_id):
                 self.send_message(chat_id, "👋 ¡Hola! Para usar MedConnect necesitas registrarte primero.\n\n🌐 Visita: https://medconnect.cl/register")
-                return
-            
+            return
+        
             # Obtener información del usuario
             user_data = self.get_user_data(user_id)
             user_name = user_data.get('nombre', 'Usuario')
@@ -1378,8 +1378,8 @@ Puedo ayudarte con muchas cosas relacionadas con tu salud:
             if text.startswith('gestionar '):
                 target_name = text.replace('gestionar ', '').strip()
                 self.switch_managed_user(chat_id, user_id, target_name)
-                return
-            
+            return
+        
             # Procesar información médica con formato específico
             if self.is_medical_data(text):
                 self.process_medical_data(chat_id, user_id, text)
@@ -1440,7 +1440,7 @@ Puedo ayudarte con muchas cosas relacionadas con tu salud:
             
             if managing_user:
                 menu_text = f"🔔 <b>Notificaciones para {managing_user['nombre']}</b>\n\n"
-            else:
+                else:
                 menu_text = f"🔔 <b>Tus Notificaciones</b>\n\n"
             
             # Obtener recordatorios activos
@@ -1615,7 +1615,7 @@ Puedo ayudarte con muchas cosas relacionadas con tu salud:
             
             if data['ok']:
                 return data['result']
-            else:
+        else:
                 logger.error(f"❌ Error en respuesta de Telegram: {data}")
                 return []
                 
@@ -1786,19 +1786,19 @@ Puedo ayudarte con muchas cosas relacionadas con tu salud:
                 # Determinar tipo de archivo y emoji
                 ext = filename.split('.')[-1].lower() if '.' in filename else 'unknown'
                 
-                if ext == 'pdf':
+                            if ext == 'pdf':
                     emoji = "📄"
                     file_type = "PDF"
-                elif ext in ['jpg', 'jpeg', 'png', 'gif']:
+                            elif ext in ['jpg', 'jpeg', 'png', 'gif']:
                     emoji = "🖼️"
                     file_type = "Imagen"
-                elif ext in ['doc', 'docx']:
+                            elif ext in ['doc', 'docx']:
                     emoji = "📝"
                     file_type = "Word"
-                elif ext in ['dcm', 'dicom']:
+                            elif ext in ['dcm', 'dicom']:
                     emoji = "🩻"
                     file_type = "DICOM"
-                else:
+                            else:
                     emoji = "📎"
                     file_type = ext.upper()
                 
@@ -1818,7 +1818,7 @@ Puedo ayudarte con muchas cosas relacionadas con tu salud:
                 return ""  # No enviar mensaje adicional ya que se envió con botones
             else:
                 return "❌ Error al mostrar los archivos. Intenta más tarde."
-                
+            
         except Exception as e:
             logger.error(f"❌ Error mostrando archivos del examen: {e}")
             return "❌ Error al acceder a los archivos del examen."
