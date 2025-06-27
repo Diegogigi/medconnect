@@ -5,6 +5,7 @@ Módulo de autenticación para MedConnect
 Maneja registro, login y gestión de sesiones con Google Sheets
 """
 
+import os
 import gspread
 from google.oauth2.service_account import Credentials
 import json
@@ -22,14 +23,28 @@ logger = logging.getLogger(__name__)
 GOOGLE_SHEETS_ID = "1UvnO2lpZSyv13Hf2eG--kQcTff5BBh7jrZ6taFLJypU"
 
 # Cargar credenciales
-credentials_file = os.environ.get('GOOGLE_CREDENTIALS_FILE', 'credentials.json')
-with open(credentials_file, 'r') as f:
-    GOOGLE_CREDS = json.load(f)
+try:
+    # Priorizar GOOGLE_SERVICE_ACCOUNT_JSON de Railway
+    if os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON'):
+        GOOGLE_CREDS = json.loads(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON'))
+        logger.info("✅ Credenciales cargadas desde variable de entorno")
+    else:
+        # Fallback a archivo local
+        credentials_file = os.environ.get('GOOGLE_CREDENTIALS_FILE', 'credentials.json')
+        with open(credentials_file, 'r') as f:
+            GOOGLE_CREDS = json.load(f)
+        logger.info("✅ Credenciales cargadas desde archivo")
+except Exception as e:
+    logger.error(f"❌ Error cargando credenciales: {e}")
+    GOOGLE_CREDS = None
 
 class AuthManager:
     def __init__(self):
         """Inicializar el gestor de autenticación"""
         try:
+            if GOOGLE_CREDS is None:
+                raise Exception("Credenciales de Google no disponibles")
+                
             # Conectar con Google Sheets
             credentials = Credentials.from_service_account_info(
                 GOOGLE_CREDS, 

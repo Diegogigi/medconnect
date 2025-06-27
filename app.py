@@ -2,20 +2,65 @@
 # Backend para plataforma de gestión médica con Google Sheets y Telegram Bot
 
 import os
+import sys
 import logging
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, make_response, send_from_directory
-from flask_cors import CORS
-import requests
-import json
-from datetime import datetime, timedelta
-import gspread
-from google.oauth2.service_account import Credentials
-from config import get_config, SHEETS_CONFIG
-from auth_manager import AuthManager
-from werkzeug.utils import secure_filename
-import uuid
-from werkzeug.security import generate_password_hash, check_password_hash
-import secrets
+
+# Configurar logging temprano para debugging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
+
+logger.info("🚀 Iniciando importaciones de MedConnect...")
+
+try:
+    logger.info("📦 Importando Flask...")
+    from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, make_response, send_from_directory
+    logger.info("✅ Flask importado exitosamente")
+    
+    logger.info("📦 Importando Flask-CORS...")
+    from flask_cors import CORS
+    logger.info("✅ Flask-CORS importado exitosamente")
+    
+    logger.info("📦 Importando bibliotecas estándar...")
+    import requests
+    import json
+    from datetime import datetime, timedelta
+    logger.info("✅ Bibliotecas estándar importadas")
+    
+    logger.info("📦 Importando Google Sheets...")
+    import gspread
+    from google.oauth2.service_account import Credentials
+    logger.info("✅ Google Sheets importado exitosamente")
+    
+    logger.info("📦 Importando módulos locales...")
+    from config import get_config, SHEETS_CONFIG
+    from auth_manager import AuthManager
+    logger.info("✅ Módulos locales importados")
+    
+    logger.info("📦 Importando otras dependencias...")
+    from werkzeug.utils import secure_filename
+    import uuid
+    from werkzeug.security import generate_password_hash, check_password_hash
+    import secrets
+    logger.info("✅ Todas las importaciones completadas exitosamente")
+    
+except Exception as e:
+    logger.error(f"❌ Error durante las importaciones: {e}")
+    logger.error(f"❌ Tipo de error: {type(e).__name__}")
+    import traceback
+    logger.error(f"❌ Traceback completo: {traceback.format_exc()}")
+    raise
+
+logger.info("🔧 Verificando variables de entorno...")
+required_vars = ['GOOGLE_SHEETS_ID', 'TELEGRAM_BOT_TOKEN']
+for var in required_vars:
+    if os.environ.get(var):
+        logger.info(f"✅ {var}: Configurada")
+    else:
+        logger.warning(f"⚠️ {var}: NO configurada")
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
