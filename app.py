@@ -71,27 +71,27 @@ app = Flask(__name__)
 config = get_config()
 app.config.from_object(config)
 
-# Configurar WhiteNoise para archivos estáticos en producción
-# Railway detecta automáticamente producción
-is_production = (
-    os.environ.get('FLASK_ENV') == 'production' or 
-    os.environ.get('RAILWAY_ENVIRONMENT') == 'production' or
-    os.environ.get('PORT') is not None  # Railway siempre define PORT
-)
+# Configurar archivos estáticos para producción
+# Múltiples métodos para asegurar que funcione en Railway
+try:
+    # Método 1: WhiteNoise (preferido)
+    from whitenoise import WhiteNoise
+    app.wsgi_app = WhiteNoise(
+        app.wsgi_app, 
+        root=os.path.join(app.root_path, 'static'),
+        prefix='/static/',
+        max_age=31536000  # Cache por 1 año
+    )
+    logger.info("✅ WhiteNoise configurado para archivos estáticos")
+except Exception as e:
+    logger.error(f"❌ Error configurando WhiteNoise: {e}")
 
-if is_production:
-    try:
-        from whitenoise import WhiteNoise
-        app.wsgi_app = WhiteNoise(
-            app.wsgi_app, 
-            root=os.path.join(app.root_path, 'static'),
-            prefix='/static/'
-        )
-        logger.info("✅ WhiteNoise configurado para archivos estáticos")
-    except Exception as e:
-        logger.error(f"❌ Error configurando WhiteNoise: {e}")
-else:
-    logger.info("🔧 Modo desarrollo - usando servidor Flask para archivos estáticos")
+# Método 2: Configurar Flask para servir archivos estáticos directamente
+app.static_folder = 'static'
+app.static_url_path = '/static'
+
+logger.info(f"📁 Static folder: {app.static_folder}")
+logger.info(f"🌐 Static URL path: {app.static_url_path}")
 
 # Configurar CORS
 CORS(app, origins=config.CORS_ORIGINS)
@@ -239,13 +239,20 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Página de inicio de sesión"""
+    logger.info("🔍 Accediendo a página de login...")
+    
     if not auth_manager:
-        flash('Sistema de autenticación no disponible', 'error')
-        return redirect(url_for('index'))
+        logger.error("❌ AuthManager no disponible")
+        return render_template('login.html', 
+                             message='Sistema de autenticación temporalmente no disponible. Intenta más tarde.', 
+                             success=False)
+    
+    logger.info("✅ AuthManager disponible")
     
     # Si ya está logueado, redirigir al dashboard
     if 'user_id' in session:
         user_type = session.get('user_type', 'paciente')
+        logger.info(f"🔄 Usuario ya logueado, redirigiendo a dashboard: {user_type}")
         if user_type == 'profesional':
             return redirect(url_for('professional_dashboard'))
         else:
@@ -1389,10 +1396,14 @@ def debug_static():
             'static_exists': os.path.exists(static_path),
             'app_root_path': app.root_path,
             'whitenoise_active': hasattr(app, 'wsgi_app') and 'WhiteNoise' in str(type(app.wsgi_app)),
+            'auth_manager_available': auth_manager is not None,
             'environment': {
                 'FLASK_ENV': os.environ.get('FLASK_ENV'),
                 'RAILWAY_ENVIRONMENT': os.environ.get('RAILWAY_ENVIRONMENT'),
-                'PORT': os.environ.get('PORT')
+                'PORT': os.environ.get('PORT'),
+                'GOOGLE_SHEETS_ID': bool(os.environ.get('GOOGLE_SHEETS_ID')),
+                'TELEGRAM_BOT_TOKEN': bool(os.environ.get('TELEGRAM_BOT_TOKEN')),
+                'GOOGLE_SERVICE_ACCOUNT_JSON': bool(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON'))
             },
             'files': []
         }
@@ -1420,6 +1431,68 @@ def debug_static():
             'error': str(e),
             'status': 'error'
         }), 500
+
+@app.route('/test-simple')
+def test_simple():
+    """Página de prueba simple con HTML básico"""
+    html = '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>MedConnect - Prueba</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; }
+            .container { max-width: 800px; margin: 0 auto; }
+            .btn { padding: 10px 20px; margin: 10px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+            .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+            .success { background: #d4edda; color: #155724; }
+            .error { background: #f8d7da; color: #721c24; }
+            .info { background: #d1ecf1; color: #0c5460; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🏥 MedConnect - Página de Prueba</h1>
+            
+            <div class="status info">
+                <strong>Estado del Sistema:</strong><br>
+                ✅ Flask funcionando correctamente<br>
+                ''' + ('✅' if auth_manager else '❌') + ''' AuthManager: ''' + ('Disponible' if auth_manager else 'No disponible') + '''<br>
+                📁 Archivos estáticos: Verificando...<br>
+            </div>
+            
+            <h2>🔗 Enlaces de Prueba:</h2>
+            <a href="/" class="btn">🏠 Página Principal</a>
+            <a href="/login" class="btn">🔐 Iniciar Sesión</a>
+            <a href="/register" class="btn">📝 Registrarse</a>
+            <a href="/debug-static" class="btn">🔧 Debug Archivos Estáticos</a>
+            
+            <h2>🖼️ Prueba de Imagen:</h2>
+            <img src="/static/images/logo.png" alt="Logo MedConnect" style="max-width: 200px;" onerror="this.style.display='none'; document.getElementById('img-error').style.display='block';">
+            <div id="img-error" style="display:none; color: red;">❌ Error cargando imagen</div>
+            
+            <h2>🎨 Prueba de CSS:</h2>
+            <link rel="stylesheet" href="/static/css/styles.css">
+            <div class="hero" style="background: #f8f9fa; padding: 20px; border-radius: 5px;">
+                <p>Si ves este texto con estilos, el CSS funciona ✅</p>
+                <p>Si no, hay problema con archivos estáticos ❌</p>
+            </div>
+            
+            <h2>📜 Prueba de JavaScript:</h2>
+            <button onclick="testJS()" class="btn">Probar JS</button>
+            <div id="js-result"></div>
+            
+            <script>
+                function testJS() {
+                    document.getElementById('js-result').innerHTML = '<div class="status success">✅ JavaScript funciona correctamente</div>';
+                }
+            </script>
+            <script src="/static/js/app.js" onerror="document.getElementById('js-result').innerHTML='<div class=\\'status error\\'>❌ Error cargando app.js</div>';"></script>
+        </div>
+    </body>
+    </html>
+    '''
+    return html
 
 # Ruta para favicon
 @app.route('/favicon.ico')
