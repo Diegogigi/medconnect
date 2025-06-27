@@ -287,3 +287,5 @@ Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
 ---
 
 **Desarrollado con ❤️ para facilitar el cuidado familiar**
+#   F o r c e   r e d e p l o y   0 6 / 2 7 / 2 0 2 5   1 5 : 1 2 : 5 0  
+ 
