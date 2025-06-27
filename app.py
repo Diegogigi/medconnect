@@ -1488,7 +1488,7 @@ def test_complete():
         'PORT': os.environ.get('PORT', 'No definido')
     }
     
-         html = f'''
+    html = f'''
      <!DOCTYPE html>
      <html>
      <head>
@@ -1581,7 +1581,7 @@ def test_complete():
      </body>
      </html>
      '''
-     return html
+    return html
 
 # Ruta para favicon
 @app.route('/favicon.ico')
