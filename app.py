@@ -2588,6 +2588,83 @@ def test_images():
     
     return html
 
+@app.route('/landing-test')
+def landing_test():
+    """Endpoint para probar la landing page con template simplificado"""
+    return '''
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>MedConnect - Test Landing</title>
+        <link rel="stylesheet" href="/static/css/styles.css">
+        <style>
+            .test-section {
+                margin: 20px 0;
+                padding: 20px;
+                border: 2px solid #007bff;
+                border-radius: 8px;
+                background: #f8f9fa;
+            }
+            .nav-test {
+                background: #343a40;
+                color: white;
+                padding: 15px;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+            }
+            .nav-test img {
+                height: 40px;
+                width: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="nav-test">
+            <img src="/static/images/logo.png" alt="MedConnect Logo">
+            <h2>MedConnect - Test de Landing Page</h2>
+        </div>
+        
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+            <div class="test-section">
+                <h2>🧪 Prueba de Elementos Básicos</h2>
+                <p><strong>Logo en navegación:</strong> Debería aparecer arriba ⬆️</p>
+                <p><strong>CSS aplicado:</strong> Esta sección debería tener borde azul y fondo gris</p>
+            </div>
+            
+            <div class="test-section">
+                <h2>🖼️ Prueba de Imágenes</h2>
+                <p><strong>Logo principal:</strong></p>
+                <img src="/static/images/logo.png" alt="Logo" style="max-width: 200px; border: 1px solid #ddd;">
+                
+                <p><strong>Imagen2:</strong></p>
+                <img src="/static/images/Imagen2.png" alt="Imagen2" style="max-width: 300px; border: 1px solid #ddd;">
+            </div>
+            
+            <div class="test-section">
+                <h2>🎨 Prueba de Estilos CSS</h2>
+                <div class="hero" style="padding: 30px; text-align: center;">
+                    <h1>Bienvenido a <span class="highlight">MedConnect</span></h1>
+                    <p class="hero-subtitle">Tu plataforma integral de gestión médica familiar</p>
+                    <div class="hero-buttons">
+                        <a href="/register" class="btn btn-primary">Registrarse</a>
+                        <a href="/login" class="btn btn-secondary">Iniciar Sesión</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2>🔗 Comparación</h2>
+                <a href="/" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">🏠 Landing Page Original</a>
+                <a href="/test-images" style="padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;">🖼️ Test de Imágenes</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') == 'development'
