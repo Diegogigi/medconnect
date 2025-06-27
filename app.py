@@ -2286,6 +2286,176 @@ def debug_env():
     
     return html
 
+@app.route('/debug-auth')
+def debug_auth():
+    """Endpoint específico para debugging de AuthManager"""
+    import traceback
+    
+    debug_info = {
+        'auth_manager_status': 'Available' if auth_manager else 'Not Available',
+        'variables_check': {},
+        'credentials_test': {},
+        'connection_test': {},
+        'error_details': []
+    }
+    
+    # 1. Verificar variables de entorno
+    debug_info['variables_check'] = {
+        'GOOGLE_SERVICE_ACCOUNT_JSON': {
+            'exists': bool(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')),
+            'length': len(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '')),
+            'starts_with': os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '')[:50] + '...' if os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON') else 'N/A'
+        },
+        'GOOGLE_SHEETS_ID': {
+            'exists': bool(os.environ.get('GOOGLE_SHEETS_ID')),
+            'value': os.environ.get('GOOGLE_SHEETS_ID', 'N/A')
+        }
+    }
+    
+    # 2. Probar carga de credenciales
+    try:
+        json_content = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+        if json_content:
+            import json
+            creds_dict = json.loads(json_content)
+            debug_info['credentials_test'] = {
+                'json_parse': 'SUCCESS',
+                'project_id': creds_dict.get('project_id', 'N/A'),
+                'client_email': creds_dict.get('client_email', 'N/A'),
+                'has_private_key': bool(creds_dict.get('private_key'))
+            }
+        else:
+            debug_info['credentials_test'] = {
+                'json_parse': 'FAILED - No JSON content',
+                'error': 'GOOGLE_SERVICE_ACCOUNT_JSON is empty'
+            }
+    except Exception as e:
+        debug_info['credentials_test'] = {
+            'json_parse': 'FAILED',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }
+    
+    # 3. Probar conexión a Google Sheets
+    try:
+        if debug_info['credentials_test'].get('json_parse') == 'SUCCESS':
+            from google.oauth2.service_account import Credentials
+            import gspread
+            
+            json_content = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+            creds_dict = json.loads(json_content)
+            
+            credentials = Credentials.from_service_account_info(
+                creds_dict, 
+                scopes=['https://www.googleapis.com/auth/spreadsheets']
+            )
+            gc = gspread.authorize(credentials)
+            
+            sheets_id = os.environ.get('GOOGLE_SHEETS_ID', '1UvnO2lpZSyv13Hf2eG--kQcTff5BBh7jrZ6taFLJypU')
+            spreadsheet = gc.open_by_key(sheets_id)
+            
+            debug_info['connection_test'] = {
+                'gspread_auth': 'SUCCESS',
+                'spreadsheet_open': 'SUCCESS',
+                'spreadsheet_title': spreadsheet.title,
+                'worksheets': [ws.title for ws in spreadsheet.worksheets()]
+            }
+            
+            # Probar acceso a hoja de usuarios
+            try:
+                users_sheet = spreadsheet.worksheet('Usuarios')
+                debug_info['connection_test']['users_sheet'] = 'SUCCESS'
+                debug_info['connection_test']['users_sheet_rows'] = len(users_sheet.get_all_values())
+            except Exception as e:
+                debug_info['connection_test']['users_sheet'] = f'FAILED: {str(e)}'
+                
+        else:
+            debug_info['connection_test'] = {
+                'status': 'SKIPPED - Credentials test failed'
+            }
+            
+    except Exception as e:
+        debug_info['connection_test'] = {
+            'status': 'FAILED',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }
+    
+    # 4. Intentar crear AuthManager en tiempo real
+    try:
+        from auth_manager import AuthManager
+        test_auth = AuthManager()
+        debug_info['live_auth_test'] = {
+            'status': 'SUCCESS',
+            'instance_created': True
+        }
+    except Exception as e:
+        debug_info['live_auth_test'] = {
+            'status': 'FAILED',
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }
+    
+    # Crear respuesta HTML
+    html = f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Debug AuthManager - MedConnect</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+            .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }}
+            .section {{ margin: 20px 0; padding: 15px; border-radius: 5px; }}
+            .success {{ background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }}
+            .error {{ background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }}
+            .info {{ background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }}
+            .warning {{ background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }}
+            pre {{ background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }}
+            .btn {{ padding: 10px 20px; margin: 5px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; display: inline-block; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🔍 Debug AuthManager - MedConnect</h1>
+            
+            <div class="section {'success' if auth_manager else 'error'}">
+                <h2>📊 Estado Actual</h2>
+                <p><strong>AuthManager:</strong> {debug_info['auth_manager_status']}</p>
+            </div>
+            
+            <div class="section info">
+                <h2>🔧 Variables de Entorno</h2>
+                <pre>{json.dumps(debug_info['variables_check'], indent=2)}</pre>
+            </div>
+            
+            <div class="section {'success' if debug_info['credentials_test'].get('json_parse') == 'SUCCESS' else 'error'}">
+                <h2>🔑 Prueba de Credenciales</h2>
+                <pre>{json.dumps(debug_info['credentials_test'], indent=2)}</pre>
+            </div>
+            
+            <div class="section {'success' if debug_info['connection_test'].get('gspread_auth') == 'SUCCESS' else 'error'}">
+                <h2>🌐 Prueba de Conexión</h2>
+                <pre>{json.dumps(debug_info['connection_test'], indent=2)}</pre>
+            </div>
+            
+            <div class="section {'success' if debug_info['live_auth_test'].get('status') == 'SUCCESS' else 'error'}">
+                <h2>🚀 Prueba en Vivo de AuthManager</h2>
+                <pre>{json.dumps(debug_info['live_auth_test'], indent=2)}</pre>
+            </div>
+            
+            <div class="section">
+                <h2>🔗 Navegación</h2>
+                <a href="/test-complete" class="btn">🏠 Diagnóstico Principal</a>
+                <a href="/debug-env" class="btn">🔧 Debug Variables</a>
+                <a href="/" class="btn">🏠 Página Principal</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+    
+    return html
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') == 'development'
