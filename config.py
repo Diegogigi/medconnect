@@ -26,7 +26,7 @@ class Config:
     
     # Configuración de Google Sheets
     GOOGLE_SHEETS_ID = os.environ.get('GOOGLE_SHEETS_ID') or '1UvnO2lpZSyv13Hf2eG--kQcTff5BBh7jrZ6taFLJypU'
-    GOOGLE_CREDENTIALS_FILE = os.environ.get('GOOGLE_CREDENTIALS_FILE') or 'sincere-mission-463804-h9-95d16ea62efc.json'
+    GOOGLE_CREDENTIALS_FILE = os.environ.get('GOOGLE_CREDENTIALS_FILE')
     
     # Configuración de la base de datos (Google Sheets como respaldo)
     DATABASE_URL = os.environ.get('DATABASE_URL') or 'sqlite:///medconnect.db'

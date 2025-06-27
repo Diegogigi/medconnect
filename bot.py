@@ -23,8 +23,10 @@ from backend.database.sheets_manager import SheetsManager
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-TELEGRAM_BOT_TOKEN = "7618933472:AAEYCYi9Sso9YVP9aB8dLWvlZ-1hxqgdhck"
-GOOGLE_SHEETS_ID = "1UvnO2lpZSyv13Hf2eG--kQcTff5BBh7jrZ6taFLJypU"
+# Configuración desde variables de entorno
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+GOOGLE_SHEETS_ID = os.environ.get('GOOGLE_SHEETS_ID')
+GOOGLE_CREDENTIALS_FILE = os.environ.get('GOOGLE_CREDENTIALS_FILE')
 
 # Configuración de archivos
 UPLOAD_FOLDER = 'static/uploads/medical_files'
@@ -34,19 +36,29 @@ MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
 # Crear directorio de uploads si no existe
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-GOOGLE_CREDS = {
-    "type": "service_account",
-    "project_id": "sincere-mission-463804-h9",
-    "private_key_id": "95d16ea62efca929d5ba7b73a14bb07e0b28eb48",
-    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCkF61+dbK/uXup\nwh2Mwt8bLAEHgOgywXOMhDlR/Xhnyos3my8Q+ovx5rpYE822YqA/BhRVhYoBr1A2\nXkYimPiD514PZ/3eLw+flhAVGlOvbWULGDfZFQNFT1+yzbKds+HNjD6p3mr5lGcz\nnPJS2x4rzEQlJQVG8r5RbiM5vmKxGMBG41mzhlFUCenXta+jgdaRlVQWmjsxY3RM\nIIgiCi8/2UO1RebSyGHQ1SXVXcDuvzDlcNSreg/dZQmyDUlqje4uu4qDYf0p/oC/\nw7W6lzE22WrEsRSmGVVpxftXKNsCDOt8ubQbpko9kVj14Br0Bvh24VqTTW7HJ/wL\nIBcFva/nAgMBAAECggEAAyZZNDY6Kif7UbTiMFOFSNY9ZtF4o5DHEQlwuDwvVX6z\n0WtvKdpFWW1eYlZu+nNGNC9/sGyRy5p75a9FlWBuVMnaKl2Kp/srR5rv0BfjR1jI\nOcBLQiV/HJN7eMkuBozvZqysf0I/t2671GfM1v5Rw/F11WiygzwhnxqIHpGi/1c8\naDKZTFlw+xmv29tsrG32K0P7/aCQAgChV1j4TFuapSvH181B5Uv/FEixP2HcPHic\ntLHx064uVmtlN0QWgw5KM0z95qlXsdq3cYvqESh5OmQ9ALscBzZazyPztjzYGIHv\nuamL92Njd69vV5qc9rU7DlNq6o0oIEKNP+qiGWE8EQKBgQDYmnEtv31N+/erD4S2\ni3wehrYPfQY4I/MqnGhYPqY4RrsVrU8zRwnVyl8ilqB66rCpsZRp4sEDVITKwFua\nngOXIEw7RJXJfqaTUnBvbeDpz4X4lK5v+A8SwYRlK07qmep9soB79IMQeiMFVVz7\n5ojieJMVY7mtwy9nm9SBeS3FewKBgQDB8DWhyfbVpnxGm5FSqZjt7FD4kiPBaUop\n8f8TiQ6y2ODslwCH4nTN5sMHtPMTEvFkV4tRoG3ATep+tTGGRhGdJJOxzwckxh8X\nS0SzkCnJd06vclPjSqfDXteYKuyX0FGXysdWFIwOZ0QycvAUm+a7Ut1HolXAuiq9\ncisFeFkVhQKBgF4chI5nBA+tKcgWXwhdhJlS2KnUHa6o2A+sk5274sbS3Jini6Dw\n/bH5UuqZXbLqY8XnVV/IWSqUP3pEp8h/XXn9W4Ho49f/gmrCR/3yVOXh+AiwuTYH\nJq10jYzTi19dbsgclbzF2WiAWNUJaPQ+Dz2vO+DwSo3YH7G5wFRdDWkfAoGAMXCO\nC4+T+EU32zwfYOZRUR30Slne+Zhgyq6haxZ+g8NcG5QnE3z8b90LDPTpHoyusvjK\nUGXIdMSoKeMBHAzSwq+nYyW22X4UQPj0K55tuKlMitdnYUMP33NXHLicldsKYdrU\n1DHqvmU+8mlwoKBZwplORcuxdq8+5Aqtwvg6JY0CgYAxp/xa94PNFp4FO6LSQcNd\ngB4XZpj0AMlZqf70v7/0P1GU3aaSaLBEOUr4EzvyN7Jqd0WjSd0D+Z7R5XWFGbxu\nzuzj/OGWV0GDBppWfY4FwIYx9b564abDbhchqF0a3jYTMsUxk3J8cbLwoqzOU8sE\nym0W+E4k/xHFdwNtunoySw==\n-----END PRIVATE KEY-----\n",
-    "client_email": "medconnect@sincere-mission-463804-h9.iam.gserviceaccount.com",
-    "client_id": "109935890158775682198",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/medconnect%40sincere-mission-463804-h9.iam.gserviceaccount.com",
-    "universe_domain": "googleapis.com"
-}
+# Las credenciales se cargan desde variables de entorno por seguridad
+def get_google_credentials():
+    """Obtiene las credenciales de Google desde variables de entorno"""
+    import json
+    import base64
+    
+    credentials_b64 = os.environ.get('GOOGLE_CREDENTIALS_FILE')
+    if not credentials_b64:
+        raise ValueError("GOOGLE_CREDENTIALS_FILE no está configurado")
+    
+    try:
+        # Decodificar las credenciales desde base64
+        credentials_json = base64.b64decode(credentials_b64).decode('utf-8')
+        return json.loads(credentials_json)
+    except Exception as e:
+        raise ValueError(f"Error decodificando credenciales: {e}")
+
+# Obtener credenciales al inicializar
+try:
+    GOOGLE_CREDS = get_google_credentials()
+except Exception as e:
+    logger.error(f"❌ Error cargando credenciales de Google: {e}")
+    GOOGLE_CREDS = None
 
 class MedConnectBot:
     def __init__(self):

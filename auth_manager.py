@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 GOOGLE_SHEETS_ID = "1UvnO2lpZSyv13Hf2eG--kQcTff5BBh7jrZ6taFLJypU"
 
 # Cargar credenciales
-with open('sincere-mission-463804-h9-95d16ea62efc.json', 'r') as f:
+credentials_file = os.environ.get('GOOGLE_CREDENTIALS_FILE', 'credentials.json')
+with open(credentials_file, 'r') as f:
     GOOGLE_CREDS = json.load(f)
 
 class AuthManager:
