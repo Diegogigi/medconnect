@@ -1,6 +1,213 @@
-# 🚂 Guía Completa para Desplegar en Railway
+# 🚀 Guía de Despliegue en Railway
 
-Esta guía te llevará paso a paso para desplegar MedConnect en Railway usando Google Sheets como base de datos.
+## Configuración Paso a Paso
+
+### 1️⃣ **Preparación del Proyecto**
+
+✅ **Ya completado en este repositorio:**
+- `Procfile` configurado para web + bot
+- `requirements.txt` actualizado
+- `railway.json` con configuración avanzada
+- Variables de entorno seguras (sin credenciales hardcodeadas)
+
+### 2️⃣ **Crear Proyecto en Railway**
+
+1. **Ir a Railway:** https://railway.app
+2. **Iniciar sesión** con GitHub
+3. **Nuevo proyecto:**
+   - Click "New Project"
+   - "Deploy from GitHub repo"
+   - Seleccionar: `medconn/medconnect`
+
+### 3️⃣ **Configurar Variables de Entorno**
+
+En Railway → **Variables**, agregar:
+
+```env
+# Bot de Telegram
+TELEGRAM_BOT_TOKEN=tu_token_del_bot_aqui
+
+# Google Sheets (credenciales en formato base64)
+GOOGLE_SHEETS_CREDENTIALS_BASE64=tu_credencial_base64_aqui
+SPREADSHEET_ID=tu_id_de_google_sheets
+
+# Flask
+SECRET_KEY=clave_secreta_muy_segura_aqui
+FLASK_ENV=production
+FLASK_HOST=0.0.0.0
+FLASK_PORT=8080
+
+# Dominio personalizado (opcional)
+CUSTOM_DOMAIN=www.medconnect.cl
+```
+
+### 4️⃣ **Configurar Dominio Personalizado**
+
+#### En Railway:
+1. Ve a **Settings** → **Domains**
+2. Click **+ Custom Domain**
+3. Ingresa: `www.medconnect.cl`
+4. Railway te dará instrucciones DNS específicas
+
+#### En tu proveedor DNS:
+```dns
+# Para www.medconnect.cl
+Tipo: CNAME
+Nombre: www
+Valor: tu-app-railway.up.railway.app
+TTL: 300
+
+# Para medconnect.cl (dominio raíz)
+Tipo: A
+Nombre: @
+Valor: [IP proporcionada por Railway]
+```
+
+### 5️⃣ **Configuración Avanzada**
+
+Railway detectará automáticamente:
+- **Procfile:** Ejecuta web app + bot simultáneamente
+- **requirements.txt:** Instala dependencias Python
+- **railway.json:** Configuración de build y deploy
+
+### 6️⃣ **Verificar Despliegue**
+
+1. **Logs de Deploy:** Railway → Deployments → Ver logs
+2. **Variables:** Verificar que todas estén configuradas
+3. **Servicios:** Web app + Bot corriendo simultáneamente
+
+### 7️⃣ **Configurar Google Sheets**
+
+#### Obtener credenciales base64:
+```bash
+# En tu máquina local
+base64 -i tu_archivo_credenciales.json
+```
+
+#### Configurar hoja de cálculo:
+1. Crear Google Sheet con nombre específico
+2. Compartir con email del service account
+3. Copiar ID de la hoja (desde URL)
+
+### 8️⃣ **Configurar Bot de Telegram**
+
+1. **BotFather:** https://t.me/BotFather
+2. **Crear bot:** `/newbot`
+3. **Obtener token:** Copiar a `TELEGRAM_BOT_TOKEN`
+4. **Webhook:** Se configura automáticamente
+
+### 9️⃣ **SSL/HTTPS Automático**
+
+Railway proporciona:
+- ✅ **SSL gratuito** para dominios personalizados
+- ✅ **Certificados automáticos** Let's Encrypt
+- ✅ **Redirección HTTP → HTTPS**
+
+### 🔟 **Monitoreo y Logs**
+
+```bash
+# Ver logs en tiempo real
+railway logs --follow
+
+# Ver métricas
+railway status
+```
+
+## 🌐 **Configuración DNS Detallada**
+
+### Para www.medconnect.cl:
+```
+Tipo: CNAME
+Nombre: www
+Destino: tu-proyecto.up.railway.app
+TTL: 300 (5 minutos)
+```
+
+### Para medconnect.cl (apex):
+```
+Tipo: A
+Nombre: @ (o vacío)
+IP: [Proporcionada por Railway]
+TTL: 300
+```
+
+### Verificar DNS:
+```bash
+# Verificar CNAME
+nslookup www.medconnect.cl
+
+# Verificar A record
+nslookup medconnect.cl
+```
+
+## 🔧 **Comandos Útiles**
+
+```bash
+# Instalar Railway CLI
+npm install -g @railway/cli
+
+# Login
+railway login
+
+# Deploy manual
+railway up
+
+# Ver variables
+railway variables
+
+# Ver logs
+railway logs
+```
+
+## 🚨 **Solución de Problemas**
+
+### Bot no responde:
+1. Verificar `TELEGRAM_BOT_TOKEN`
+2. Revisar logs: `railway logs`
+3. Verificar webhook en BotFather
+
+### Web app no carga:
+1. Verificar `FLASK_HOST=0.0.0.0`
+2. Verificar `FLASK_PORT=8080`
+3. Revisar Procfile
+
+### Errores de Google Sheets:
+1. Verificar formato base64 de credenciales
+2. Verificar permisos de la hoja
+3. Verificar `SPREADSHEET_ID`
+
+### Dominio no funciona:
+1. Verificar configuración DNS (24-48h propagación)
+2. Verificar SSL certificate status
+3. Probar con `curl -I https://www.medconnect.cl`
+
+## 📊 **Monitoreo de Salud**
+
+Railway proporciona:
+- **Uptime monitoring**
+- **Resource usage metrics**
+- **Error tracking**
+- **Performance insights**
+
+## 💰 **Costos**
+
+Railway ofrece:
+- **Plan gratuito:** $5 crédito mensual
+- **Plan Pro:** $20/mes (recursos adicionales)
+- **Facturación por uso:** RAM, CPU, bandwidth
+
+## 🔐 **Seguridad**
+
+- ✅ Variables de entorno encriptadas
+- ✅ SSL/TLS automático
+- ✅ No credenciales en código
+- ✅ Acceso por tokens seguros
+
+## 📞 **Soporte**
+
+- **Documentación:** https://docs.railway.app
+- **Discord:** https://discord.gg/railway
+- **GitHub Issues:** Para bugs específicos del proyecto
 
 ## 🎯 Prerrequisitos
 

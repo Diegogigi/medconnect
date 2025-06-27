@@ -7,13 +7,15 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from flask_cors import CORS
 import requests
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import gspread
 from google.oauth2.service_account import Credentials
 from config import get_config, SHEETS_CONFIG
 from auth_manager import AuthManager
 from werkzeug.utils import secure_filename
 import uuid
+from werkzeug.security import generate_password_hash, check_password_hash
+import secrets
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
@@ -1863,6 +1865,21 @@ def convert_date_format(date_str):
     except Exception as e:
         logger.warning(f"⚠️ Error convirtiendo fecha '{date_str}': {e}")
         return date_str
+
+# Configuración mejorada para producción
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+
+# Configuración para dominio personalizado
+CUSTOM_DOMAIN = os.environ.get('CUSTOM_DOMAIN', 'localhost:5000')
+app.config['SERVER_NAME'] = None  # Permitir cualquier host
+app.config['PREFERRED_URL_SCHEME'] = 'https' if 'medconnect.cl' in CUSTOM_DOMAIN else 'http'
+
+# Configuración de seguridad para HTTPS
+if app.config['PREFERRED_URL_SCHEME'] == 'https':
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
