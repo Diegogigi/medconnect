@@ -71,6 +71,11 @@ app = Flask(__name__)
 config = get_config()
 app.config.from_object(config)
 
+# Configurar WhiteNoise para archivos estáticos en producción
+if os.environ.get('FLASK_ENV') == 'production':
+    from whitenoise import WhiteNoise
+    app.wsgi_app = WhiteNoise(app.wsgi_app, root='static/', prefix='static/')
+
 # Configurar CORS
 CORS(app, origins=config.CORS_ORIGINS)
 
@@ -1364,6 +1369,16 @@ def favicon():
     from flask import send_from_directory
     import os
     return send_from_directory(os.path.join(app.root_path, 'static', 'images'), 'logo.png', mimetype='image/png')
+
+# Ruta para servir archivos estáticos en producción
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """Servir archivos estáticos en producción (CSS, JS, imágenes)"""
+    try:
+        return send_from_directory(os.path.join(app.root_path, 'static'), filename)
+    except Exception as e:
+        logger.error(f"Error sirviendo archivo estático {filename}: {e}")
+        return "Archivo no encontrado", 404
 
 # Rutas para manejo de archivos médicos
 @app.route('/uploads/medical_files/<filename>')
