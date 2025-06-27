@@ -6,6 +6,9 @@ Flask==3.0.0
 gunicorn==21.2.0
 python-dotenv==1.0.0
 
+# Telegram Bot
+python-telegram-bot==20.7
+
 # Google Sheets integration
 gspread==5.12.4
 google-auth==2.24.0
@@ -44,19 +47,6 @@ pytest-flask==1.3.0
 
 # Railway deployment
 whitenoise==6.6.0
-
-# Flask y extensiones
-Flask-CORS==4.0.0
-
-# Natural Language Processing básico
-spacy==3.7.2
-nltk==3.8.1
-
-# Web Framework para APIs REST
-flask-cors==4.0.0
-
-# Fecha y hora
-python-logging==0.1.0
 
 # PDF Generation
 reportlab==4.0.7 
