@@ -154,4 +154,52 @@ medconnect/
 - **Deprecado** - Funcionalidades que serán removidas
 - **Removido** - Funcionalidades removidas
 - **Corregido** - Corrección de errores
-- **Seguridad** - Mejoras de seguridad 
+- **Seguridad** - Mejoras de seguridad
+
+## [2024-12-28] - Sistema de Códigos Telegram + Landing Page Modernizada
+
+### ✨ Nuevas Funcionalidades
+- **Sistema de códigos para vinculación Telegram**: Reemplaza el sistema de email por códigos únicos (formato: MED123456)
+- **Landing page completamente renovada**: Diseño moderno con hero section espectacular
+- **Endpoints de diagnóstico del bot**: `/test-bot` y `/bot-stats` para monitoreo
+
+### 🔧 Mejoras
+- **Webhook del bot configurado**: Ahora responde mensajes correctamente
+- **UI/UX mejorada**: Header translúcido, gradientes consistentes, efectos 3D
+- **Responsive design**: Adaptativo para todos los dispositivos
+- **Cache busting**: Parámetro aleatorio para CSS
+- **Logging mejorado**: Mejor rastreo de eventos del webhook
+
+### 🎨 Cambios Visuales
+- **Logo prominente**: Utilización del logo.png en header y footer
+- **Imagen principal**: Imagen2.png como hero background con overlay
+- **6 tarjetas de servicios**: Con iconos circulares y efectos hover
+- **Fuente Inter**: De Google Fonts para mejor legibilidad
+- **Layout de dos columnas**: Texto + imagen con efectos visuales
+
+### 🔗 Flujo de Vinculación Actualizado
+1. Usuario va a perfil web → clic "Generar Código"
+2. Sistema genera código MED123456 (expira en 15 minutos)
+3. Usuario abre @Medconn_bot en Telegram
+4. Usuario envía `/codigo MED123456`
+5. Bot vincula automáticamente y saluda por nombre
+
+### 🛠️ Archivos Modificados
+- `app.py`: Sistema de códigos, webhook mejorado, endpoints de diagnóstico
+- `templates/index.html`: Landing page completamente renovada
+- `templates/profile.html`: Sección Telegram actualizada para códigos
+- `static/js/profile.js`: Funciones de generación y manejo de códigos
+- `auth_manager.py`: Método de vinculación por user_id
+- `test_bot_functionality.py`: Script de diagnóstico del bot
+
+### 🎯 Estado del Bot
+- ✅ Bot de Telegram funcionando y respondiendo mensajes
+- ✅ Webhook configurado: `https://www.medconnect.cl/webhook`
+- ✅ Bot activo: @Medconn_bot (ID: 7618933472)
+- ✅ 4/4 tests exitosos en script de diagnóstico
+
+### 📱 Comandos del Bot Actualizados
+- `/start` - Mensaje de bienvenida con instrucciones de códigos
+- `/codigo MED123456` - Vinculación por código (nuevo)
+- `/help` - Ayuda actualizada
+- Todos los tips ahora dirigen a la plataforma web 
