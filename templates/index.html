@@ -23,344 +23,484 @@
     <meta property="twitter:image" content="https://www.medconnect.cl/static/images/logo.png">
     
     <link rel="canonical" href="https://www.medconnect.cl/">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}?v={{ range(1000, 9999) | random }}">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
+        /* Reset y Variables */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
         
+        :root {
+            /* Paleta de colores moderna y médica con toques morados */
+            --color-primary: #0066CC;        /* Azul médico profesional */
+            --color-secondary: #6366F1;      /* Morado/índigo médico sutil */
+            --color-tertiary: #8B5CF6;       /* Morado más vibrante para acentos */
+            --color-accent: #FF6B35;         /* Naranja cálido para CTAs */
+            --color-medical-green: #00A651;  /* Verde médico/salud */
+            --color-dark: #1A1A1A;           /* Negro suave */
+            --color-gray: #6B7280;           /* Gris neutro */
+            --color-light-gray: #F3F4F6;    /* Gris muy claro */
+            --color-white: #FFFFFF;          /* Blanco puro */
+            --color-success: #10B981;
+            --color-warning: #F59E0B;
+            --color-error: #EF4444;
+            
+            /* Gradientes con morado */
+            --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            --gradient-secondary: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-tertiary) 100%);
+            --gradient-accent: linear-gradient(135deg, var(--color-tertiary) 0%, var(--color-secondary) 100%);
+            
+            /* Sombras */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-purple: 0 10px 25px -5px rgba(139, 92, 246, 0.2);
+            
+            /* Transiciones */
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: var(--color-dark);
+            background-color: var(--color-white);
             overflow-x: hidden;
+            font-size: 16px;
         }
         
-        /* Header mejorado */
+        /* Header moderno y limpio */
         .header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
             position: fixed;
             top: 0;
-            width: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
             z-index: 1000;
-            padding: 15px 0;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
+            transition: var(--transition);
+        }
+        
+        .header.scrolled {
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: var(--shadow-md);
         }
         
         .nav-container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 0 2rem;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 0 20px;
+            justify-content: space-between;
+            height: 80px;
         }
         
-        .logo-container {
+        .logo {
             display: flex;
             align-items: center;
             gap: 12px;
+            text-decoration: none;
+            transition: var(--transition);
         }
         
-        .logo-container img {
-            height: 50px;
-            width: auto;
-            border-radius: 8px;
+        .logo:hover {
+            transform: translateY(-1px);
         }
         
-        .logo-text {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .logo img {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
         }
+        
+                 .logo-text {
+             font-size: 24px;
+             font-weight: 800;
+             background: var(--gradient-primary);
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+             background-clip: text;
+             letter-spacing: -0.5px;
+         }
         
         .nav-menu {
             display: flex;
-            gap: 30px;
             align-items: center;
+            gap: 2rem;
         }
         
         .nav-link {
-            color: #333;
+            color: var(--color-gray);
             text-decoration: none;
             font-weight: 500;
-            transition: all 0.3s ease;
+            font-size: 15px;
+            transition: var(--transition);
             position: relative;
         }
         
-        .nav-link:hover {
-            color: #667eea;
-        }
-        
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: -5px;
-            left: 50%;
-            background: #667eea;
-            transition: all 0.3s ease;
-            transform: translateX(-50%);
-        }
+                 .nav-link:hover {
+             color: var(--color-secondary);
+         }
+         
+         .nav-link::after {
+             content: '';
+             position: absolute;
+             bottom: -8px;
+             left: 0;
+             width: 0;
+             height: 2px;
+             background: var(--gradient-primary);
+             transition: var(--transition);
+         }
         
         .nav-link:hover::after {
             width: 100%;
         }
         
-        .btn-login {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white !important;
-            padding: 10px 25px;
-            border-radius: 25px;
+        .btn-primary {
+            background: var(--color-primary);
+            color: var(--color-white);
+            padding: 12px 24px;
+            border-radius: 50px;
+            text-decoration: none;
             font-weight: 600;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            font-size: 14px;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .btn-login:hover {
+        .btn-primary:hover {
+            background: #0052A3;
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: var(--shadow-lg);
         }
         
-        /* Hero Section Mejorada */
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-primary);
+            padding: 12px 24px;
+            border: 2px solid var(--color-primary);
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--color-primary);
+            color: var(--color-white);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-accent {
+            background: var(--color-accent);
+            color: var(--color-white);
+            padding: 16px 32px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+                 .btn-accent:hover {
+             background: linear-gradient(135deg, #E5562A 0%, var(--color-tertiary) 100%);
+             transform: translateY(-2px);
+             box-shadow: var(--shadow-purple);
+         }
+        
+        /* Hero Section - Moderno y espacioso */
         .hero {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(243, 244, 246, 0.5) 100%);
+            padding: 140px 0 100px;
             min-height: 100vh;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%),
-                        url('{{ url_for("static", filename="images/Imagen2.png") }}') center/cover;
             display: flex;
             align-items: center;
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
-            z-index: 1;
         }
         
         .hero-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 2rem;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 60px;
+            gap: 80px;
             align-items: center;
-            position: relative;
-            z-index: 2;
         }
         
         .hero-content h1 {
-            font-size: 3.5rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            line-height: 1.2;
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            color: var(--color-dark);
+            letter-spacing: -1px;
         }
+        
+                 .hero-highlight {
+             background: var(--gradient-primary);
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+             background-clip: text;
+         }
         
         .hero-subtitle {
-            font-size: 1.3rem;
+            font-size: 20px;
+            color: var(--color-gray);
+            margin-bottom: 32px;
             font-weight: 400;
-            margin-bottom: 20px;
-            opacity: 0.9;
-        }
-        
-        .hero-description {
-            font-size: 1.1rem;
             line-height: 1.6;
-            margin-bottom: 40px;
-            opacity: 0.8;
         }
         
         .hero-buttons {
             display: flex;
             gap: 20px;
             flex-wrap: wrap;
+            margin-bottom: 48px;
         }
         
-        .btn {
-            padding: 15px 35px;
-            border-radius: 30px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
+        .hero-stats {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
         }
         
-        .btn-primary {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
+        .stat-item {
+            text-align: center;
         }
         
-        .btn-primary:hover {
-            background: white;
-            color: #667eea;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
+                 .stat-number {
+             font-size: 2rem;
+             font-weight: 800;
+             background: var(--gradient-primary);
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+             background-clip: text;
+             display: block;
+         }
         
-        .btn-secondary {
-            background: transparent;
-            color: white;
-            border: 2px solid white;
-        }
-        
-        .btn-secondary:hover {
-            background: white;
-            color: #667eea;
-            transform: translateY(-3px);
+        .stat-label {
+            font-size: 14px;
+            color: var(--color-gray);
+            font-weight: 500;
         }
         
         .hero-image {
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            position: relative;
         }
         
         .hero-image img {
-            max-width: 100%;
+            width: 100%;
             height: auto;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            transform: perspective(1000px) rotateY(-5deg);
-            transition: all 0.3s ease;
+            box-shadow: var(--shadow-xl);
+            transition: var(--transition);
         }
         
-        .hero-image img:hover {
-            transform: perspective(1000px) rotateY(0deg) scale(1.05);
+        .hero-image:hover img {
+            transform: scale(1.02);
         }
         
-        /* Features Section */
+        /* Features Section - Grid moderno */
         .features {
-            padding: 100px 0;
-            background: #f8fafc;
+            padding: 120px 0;
+            background: var(--color-white);
         }
         
         .features-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 2rem;
         }
         
-        .features-header {
+        .section-header {
             text-align: center;
             margin-bottom: 80px;
         }
         
-        .features-header h2 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .section-title {
+            font-size: clamp(2rem, 4vw, 2.5rem);
+            font-weight: 800;
+            color: var(--color-dark);
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+        
+        .section-subtitle {
+            font-size: 18px;
+            color: var(--color-gray);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
         }
         
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 40px;
         }
         
         .feature-card {
-            background: white;
-            padding: 40px 30px;
+            background: var(--color-white);
+            padding: 40px;
             border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            border: 1px solid rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
         }
+        
+                 .feature-card::before {
+             content: '';
+             position: absolute;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 4px;
+             background: var(--gradient-accent);
+             transform: scaleX(0);
+             transition: var(--transition);
+         }
         
         .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
         }
         
-        .feature-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 25px;
-            font-size: 2rem;
-            color: white;
+        .feature-card:hover::before {
+            transform: scaleX(1);
         }
         
-        .feature-card h3 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #333;
+                 .feature-icon {
+             width: 64px;
+             height: 64px;
+             background: var(--gradient-primary);
+             border-radius: 16px;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             margin-bottom: 24px;
+             font-size: 24px;
+             color: var(--color-white);
+             box-shadow: var(--shadow-purple);
+             transition: var(--transition);
+         }
+         
+         .feature-card:hover .feature-icon {
+             background: var(--gradient-secondary);
+             transform: scale(1.1);
+         }
+        
+        .feature-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-dark);
+            margin-bottom: 12px;
         }
         
-        .feature-card p {
-            color: #666;
+        .feature-description {
+            color: var(--color-gray);
             line-height: 1.6;
         }
         
-        /* CTA Section */
-        .cta {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 80px 0;
-            text-align: center;
+                 /* CTA Section - Llamativo pero elegante */
+         .cta {
+             background: var(--gradient-primary);
+             color: var(--color-white);
+             padding: 100px 0;
+             text-align: center;
+             position: relative;
+             overflow: hidden;
+         }
+        
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.1;
         }
         
         .cta-container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
         }
         
-        .cta h2 {
-            font-size: 2.5rem;
-            font-weight: 700;
+        .cta-title {
+            font-size: clamp(2rem, 4vw, 2.5rem);
+            font-weight: 800;
             margin-bottom: 20px;
+            line-height: 1.2;
         }
         
-        .cta p {
-            font-size: 1.2rem;
+        .cta-subtitle {
+            font-size: 18px;
             margin-bottom: 40px;
             opacity: 0.9;
+            line-height: 1.6;
         }
         
-        /* Footer */
+        .btn-cta {
+            background: var(--color-white);
+            color: var(--color-primary);
+            padding: 18px 36px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-xl);
+            background: #f8f9fa;
+        }
+        
+        /* Footer - Minimalista */
         .footer {
-            background: #1a1a1a;
-            color: white;
+            background: var(--color-white);
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
             padding: 60px 0 30px;
         }
         
         .footer-container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 2rem;
             text-align: center;
         }
         
@@ -368,42 +508,117 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
-            margin-bottom: 30px;
+            gap: 12px;
+            margin-bottom: 24px;
         }
         
         .footer-logo img {
-            height: 60px;
-            border-radius: 10px;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
         }
+        
+                 .footer-brand {
+             font-size: 24px;
+             font-weight: 800;
+             background: var(--gradient-primary);
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+             background-clip: text;
+         }
         
         .footer-text {
-            font-size: 1.5rem;
-            font-weight: 600;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--color-gray);
+            font-size: 14px;
+            margin-bottom: 20px;
         }
         
-        /* Responsive */
-        @media (max-width: 768px) {
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .footer-link {
+            color: var(--color-gray);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+                 .footer-link:hover {
+             color: var(--color-secondary);
+         }
+        
+        .footer-copyright {
+            color: var(--color-gray);
+            font-size: 12px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        
+        /* Mobile Menu */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--color-dark);
+            cursor: pointer;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1024px) {
             .hero-container {
-                grid-template-columns: 1fr;
-                text-align: center;
-                gap: 40px;
+                gap: 60px;
             }
             
-            .hero-content h1 {
-                font-size: 2.5rem;
+            .features-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 30px;
             }
-            
+        }
+        
+        @media (max-width: 768px) {
             .nav-menu {
                 display: none;
             }
             
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            .hero {
+                padding: 120px 0 80px;
+                text-align: center;
+            }
+            
+            .hero-container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+            
+            .hero-stats {
+                justify-content: center;
+            }
+            
+            .features {
+                padding: 80px 0;
+            }
+            
+            .cta {
+                padding: 80px 0;
+            }
+            
             .features-grid {
                 grid-template-columns: 1fr;
+            }
+            
+            .feature-card {
+                padding: 30px;
             }
         }
         
@@ -419,54 +634,107 @@
             }
         }
         
-        .hero-content {
-            animation: fadeInUp 1s ease-out;
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
         }
         
-        .hero-image {
-            animation: fadeInUp 1s ease-out 0.3s both;
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .animate-fade-up {
+            animation: fadeInUp 0.8s ease-out;
+        }
+        
+        .animate-fade-left {
+            animation: fadeInLeft 0.8s ease-out;
+        }
+        
+        .animate-fade-right {
+            animation: fadeInRight 0.8s ease-out;
         }
     </style>
 </head>
 <body>
     <!-- Header -->
-    <header class="header">
+    <header class="header" id="header">
         <div class="nav-container">
-            <div class="logo-container">
+            <a href="#" class="logo">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo">
-                <span class="logo-text">MedConnect.cl</span>
-            </div>
+                <span class="logo-text">MedConnect</span>
+            </a>
+            
             <nav class="nav-menu">
                 <a href="#inicio" class="nav-link">Inicio</a>
                 <a href="#servicios" class="nav-link">Servicios</a>
                 <a href="#contacto" class="nav-link">Contacto</a>
-                <a href="{{ url_for('login') }}" class="nav-link btn-login">Iniciar Sesión</a>
+                <a href="{{ url_for('login') }}" class="btn-primary">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Iniciar Sesión
+                </a>
             </nav>
+            
+            <button class="mobile-menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
     </header>
 
     <!-- Hero Section -->
     <section id="inicio" class="hero">
         <div class="hero-container">
-            <div class="hero-content">
-                <h1>🏥 Gestión Médica <span style="color: #FFD700;">Inteligente</span></h1>
-                <p class="hero-subtitle">Tu familia, tu salud, nuestra tecnología</p>
-                <p class="hero-description">
-                    🚀 Revoluciona la gestión de la salud familiar con MedConnect. 
-                    Nuestro bot de Telegram y plataforma web te permiten gestionar citas, 
-                    medicamentos y recordatorios médicos de forma inteligente y segura.
+            <div class="hero-content animate-fade-left">
+                <h1>
+                    Gestión médica <span class="hero-highlight">inteligente</span> para toda tu familia
+                </h1>
+                <p class="hero-subtitle">
+                    Revoluciona el cuidado de la salud familiar con nuestra plataforma integral. 
+                    Bot de Telegram, recordatorios inteligentes y gestión centralizada.
                 </p>
+                
                 <div class="hero-buttons">
-                    <a href="{{ url_for('register') }}" class="btn btn-primary">
-                        <i class="fas fa-rocket"></i> Comenzar Gratis
+                    <a href="{{ url_for('register') }}" class="btn-accent">
+                        <i class="fas fa-rocket"></i>
+                        Comenzar Gratis
                     </a>
-                    <a href="{{ url_for('login') }}" class="btn btn-secondary">
-                        <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                    <a href="{{ url_for('login') }}" class="btn-secondary">
+                        <i class="fas fa-play"></i>
+                        Ver Demo
                     </a>
                 </div>
+                
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">1,200+</span>
+                        <span class="stat-label">Familias registradas</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">15,000+</span>
+                        <span class="stat-label">Citas gestionadas</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">98%</span>
+                        <span class="stat-label">Satisfacción</span>
+                    </div>
+                </div>
             </div>
-            <div class="hero-image">
-                <img src="{{ url_for('static', filename='images/Imagen2.png') }}" alt="MedConnect Platform">
+            
+            <div class="hero-image animate-fade-right">
+                <img src="{{ url_for('static', filename='images/Imagen2.png') }}" alt="MedConnect Platform Interface">
             </div>
         </div>
     </section>
@@ -474,52 +742,79 @@
     <!-- Features Section -->
     <section id="servicios" class="features">
         <div class="features-container">
-            <div class="features-header">
-                <h2>🌟 Características Principales</h2>
-                <p>Todo lo que necesitas para gestionar la salud de tu familia</p>
+            <div class="section-header">
+                <h2 class="section-title">Todo lo que necesitas en una sola plataforma</h2>
+                <p class="section-subtitle">
+                    Funcionalidades diseñadas para simplificar la gestión médica familiar
+                    y mejorar el cuidado de la salud de todos los miembros de tu familia.
+                </p>
             </div>
+            
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-robot"></i>
                     </div>
-                    <h3>Bot de Telegram</h3>
-                    <p>Interactúa con nuestro bot inteligente para gestionar citas, medicamentos y recordatorios directamente desde Telegram.</p>
+                    <h3 class="feature-title">Bot de Telegram Inteligente</h3>
+                    <p class="feature-description">
+                        Interactúa con nuestro asistente de IA para gestionar citas, recordatorios 
+                        y consultas médicas directamente desde tu aplicación favorita.
+                    </p>
                 </div>
+                
                 <div class="feature-card">
                     <div class="feature-icon">
-                        <i class="fas fa-family"></i>
+                        <i class="fas fa-users"></i>
                     </div>
-                    <h3>Gestión Familiar</h3>
-                    <p>Administra la información médica de toda tu familia desde una sola plataforma segura y centralizada.</p>
+                    <h3 class="feature-title">Gestión Familiar Completa</h3>
+                    <p class="feature-description">
+                        Administra la información médica de toda tu familia en un solo lugar. 
+                        Perfiles individuales con historial completo y seguro.
+                    </p>
                 </div>
+                
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-bell"></i>
                     </div>
-                    <h3>Recordatorios Inteligentes</h3>
-                    <p>Nunca olvides una cita médica o medicamento con nuestro sistema de notificaciones personalizadas.</p>
+                    <h3 class="feature-title">Recordatorios Personalizados</h3>
+                    <p class="feature-description">
+                        Nunca olvides una cita o medicamento. Sistema de notificaciones 
+                        inteligente adaptado a las necesidades de cada miembro familiar.
+                    </p>
                 </div>
+                
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-shield-alt"></i>
                     </div>
-                    <h3>Seguridad Total</h3>
-                    <p>Tus datos médicos están protegidos con los más altos estándares de seguridad y privacidad.</p>
+                    <h3 class="feature-title">Seguridad y Privacidad</h3>
+                    <p class="feature-description">
+                        Protección de datos médicos con estándares internacionales. 
+                        Encriptación de extremo a extremo y cumplimiento HIPAA.
+                    </p>
                 </div>
+                
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-mobile-alt"></i>
                     </div>
-                    <h3>Acceso Móvil</h3>
-                    <p>Gestiona tu información médica desde cualquier dispositivo, en cualquier lugar y momento.</p>
+                    <h3 class="feature-title">Acceso Multiplataforma</h3>
+                    <p class="feature-description">
+                        Gestiona tu información desde web, móvil o Telegram. 
+                        Sincronización en tiempo real en todos tus dispositivos.
+                    </p>
                 </div>
+                
                 <div class="feature-card">
                     <div class="feature-icon">
                         <i class="fas fa-chart-line"></i>
                     </div>
-                    <h3>Reportes y Análisis</h3>
-                    <p>Obtén insights valiosos sobre la salud familiar con reportes detallados y análisis de tendencias.</p>
+                    <h3 class="feature-title">Reportes y Análisis</h3>
+                    <p class="feature-description">
+                        Obtén insights valiosos sobre la salud familiar. Reportes 
+                        detallados y tendencias para un mejor cuidado preventivo.
+                    </p>
                 </div>
             </div>
         </div>
@@ -528,10 +823,16 @@
     <!-- CTA Section -->
     <section class="cta">
         <div class="cta-container">
-            <h2>¿Listo para transformar la gestión de tu salud familiar?</h2>
-            <p>Únete a miles de familias que ya confían en MedConnect para cuidar su salud</p>
-            <a href="{{ url_for('register') }}" class="btn btn-primary">
-                <i class="fas fa-user-plus"></i> Registrarse Ahora - Es Gratis
+            <h2 class="cta-title">
+                ¿Listo para transformar el cuidado de la salud familiar?
+            </h2>
+            <p class="cta-subtitle">
+                Únete a miles de familias que ya confían en MedConnect para gestionar 
+                su salud de manera inteligente y segura.
+            </p>
+            <a href="{{ url_for('register') }}" class="btn-cta">
+                <i class="fas fa-user-plus"></i>
+                Comenzar Ahora - Es Gratis
             </a>
         </div>
     </section>
@@ -541,23 +842,40 @@
         <div class="footer-container">
             <div class="footer-logo">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo">
-                <span class="footer-text">MedConnect.cl</span>
+                <span class="footer-brand">MedConnect</span>
             </div>
-            <p>&copy; 2025 MedConnect. Todos los derechos reservados.</p>
-            <p>🏥 Transformando la gestión médica familiar con tecnología avanzada</p>
+            
+            <p class="footer-text">
+                Transformando la gestión médica familiar con tecnología de vanguardia
+            </p>
+            
+            <div class="footer-links">
+                <a href="#inicio" class="footer-link">Inicio</a>
+                <a href="#servicios" class="footer-link">Servicios</a>
+                <a href="#" class="footer-link">Privacidad</a>
+                <a href="#" class="footer-link">Términos</a>
+                <a href="#contacto" class="footer-link">Contacto</a>
+            </div>
+            
+            <div class="footer-copyright">
+                <p>&copy; 2025 MedConnect. Todos los derechos reservados. | www.medconnect.cl</p>
+            </div>
         </div>
     </footer>
 
     <script>
-        // Smooth scrolling
+        // Smooth scrolling para enlaces internos
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
-                e.preventDefault();
                 const target = document.querySelector(this.getAttribute('href'));
                 if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
+                    e.preventDefault();
+                    const headerHeight = document.querySelector('.header').offsetHeight;
+                    const targetPosition = target.offsetTop - headerHeight;
+                    
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
                     });
                 }
             });
@@ -565,13 +883,46 @@
 
         // Header scroll effect
         window.addEventListener('scroll', () => {
-            const header = document.querySelector('.header');
-            if (window.scrollY > 100) {
-                header.style.background = 'rgba(255, 255, 255, 0.98)';
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
             } else {
-                header.style.background = 'rgba(255, 255, 255, 0.95)';
+                header.classList.remove('scrolled');
             }
         });
+
+        // Intersection Observer para animaciones
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observar elementos para animaciones
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+            observer.observe(card);
+        });
+
+        // Mobile menu toggle (funcionalidad básica)
+        const mobileToggle = document.querySelector('.mobile-menu-toggle');
+        const navMenu = document.querySelector('.nav-menu');
+        
+        if (mobileToggle) {
+            mobileToggle.addEventListener('click', () => {
+                navMenu.style.display = navMenu.style.display === 'flex' ? 'none' : 'flex';
+            });
+        }
     </script>
 </body>
 </html>
