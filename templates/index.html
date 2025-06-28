@@ -25,218 +25,553 @@
     <link rel="canonical" href="https://www.medconnect.cl/">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}?v={{ range(1000, 9999) | random }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* Estilos adicionales para asegurar que se vea correctamente */
-        .update-notice {
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
-            padding: 10px;
-            text-align: center;
-            font-size: 14px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            overflow-x: hidden;
+        }
+        
+        /* Header mejorado */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            padding: 15px 0;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-container img {
+            height: 50px;
+            width: auto;
+            border-radius: 8px;
+        }
+        
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-menu {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: #333;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
             position: relative;
         }
-        .navbar {
-            background: #fff;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
+        
+        .nav-link:hover {
+            color: #667eea;
         }
-        .nav-logo img {
-            height: 40px;
-            width: auto;
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 50%;
+            background: #667eea;
+            transition: all 0.3s ease;
+            transform: translateX(-50%);
         }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Hero Section Mejorada */
         .hero {
+            min-height: 100vh;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%),
+                        url('{{ url_for("static", filename="images/Imagen2.png") }}') center/cover;
+            display: flex;
+            align-items: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.8) 0%, rgba(118, 75, 162, 0.8) 100%);
+            z-index: 1;
+        }
+        
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.3rem;
+            font-weight: 400;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        
+        .hero-description {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 40px;
+            opacity: 0.8;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 35px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .btn-primary:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+        
+        .btn-secondary:hover {
+            background: white;
+            color: #667eea;
+            transform: translateY(-3px);
+        }
+        
+        .hero-image {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .hero-image img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            transform: perspective(1000px) rotateY(-5deg);
+            transition: all 0.3s ease;
+        }
+        
+        .hero-image img:hover {
+            transform: perspective(1000px) rotateY(0deg) scale(1.05);
+        }
+        
+        /* Features Section */
+        .features {
+            padding: 100px 0;
+            background: #f8fafc;
+        }
+        
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .features-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+        
+        .features-header h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 40px 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 25px;
+            font-size: 2rem;
+            color: white;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        /* CTA Section */
+        .cta {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 80px 0;
             text-align: center;
         }
-        .btn-primary {
-            background: #007bff;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
+        
+        .cta-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .cta h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .cta p {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+        
+        /* Footer */
+        .footer {
+            background: #1a1a1a;
             color: white;
-            text-decoration: none;
-            display: inline-block;
-            margin: 10px;
-            transition: all 0.3s ease;
+            padding: 60px 0 30px;
         }
-        .btn-primary:hover {
-            background: #0056b3;
-            transform: translateY(-2px);
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            text-align: center;
         }
-        .btn-secondary {
-            background: transparent;
-            border: 2px solid white;
-            padding: 10px 28px;
-            border-radius: 25px;
-            color: white;
-            text-decoration: none;
-            display: inline-block;
-            margin: 10px;
-            transition: all 0.3s ease;
+        
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
         }
-        .btn-secondary:hover {
-            background: white;
-            color: #667eea;
+        
+        .footer-logo img {
+            height: 60px;
+            border-radius: 10px;
+        }
+        
+        .footer-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 40px;
+            }
+            
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+            
+            .nav-menu {
+                display: none;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Animaciones */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .hero-content {
+            animation: fadeInUp 1s ease-out;
+        }
+        
+        .hero-image {
+            animation: fadeInUp 1s ease-out 0.3s both;
         }
     </style>
 </head>
 <body>
-    <!-- Aviso de actualización -->
-    <div class="update-notice">
-        ✅ Sistema actualizado - Versión 2.0 | Última actualización: {{ moment().format('DD/MM/YYYY HH:mm') if moment else 'Enero 2025' }}
-    </div>
-
-    <nav class="navbar">
+    <!-- Header -->
+    <header class="header">
         <div class="nav-container">
-            <div class="nav-logo">
+            <div class="logo-container">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo">
-                <span>MedConnect.cl</span>
+                <span class="logo-text">MedConnect.cl</span>
             </div>
-            <div class="nav-menu">
+            <nav class="nav-menu">
                 <a href="#inicio" class="nav-link">Inicio</a>
                 <a href="#servicios" class="nav-link">Servicios</a>
                 <a href="#contacto" class="nav-link">Contacto</a>
-                <a href="{{ url_for('login') }}" class="nav-link nav-login">Iniciar Sesión</a>
-            </div>
+                <a href="{{ url_for('login') }}" class="nav-link btn-login">Iniciar Sesión</a>
+            </nav>
         </div>
-    </nav>
+    </header>
 
-    <main>
-        <section id="inicio" class="hero">
+    <!-- Hero Section -->
+    <section id="inicio" class="hero">
+        <div class="hero-container">
             <div class="hero-content">
-                <h1>🏥 Bienvenido a <span class="highlight">MedConnect</span></h1>
-                <p class="hero-subtitle">Tu plataforma integral de gestión médica familiar</p>
+                <h1>🏥 Gestión Médica <span style="color: #FFD700;">Inteligente</span></h1>
+                <p class="hero-subtitle">Tu familia, tu salud, nuestra tecnología</p>
                 <p class="hero-description">
-                    🚀 Gestiona la salud de toda tu familia desde un solo lugar. 
-                    Con nuestro bot de Telegram y plataforma web, nunca olvides una cita médica 
-                    o medicamento importante.
+                    🚀 Revoluciona la gestión de la salud familiar con MedConnect. 
+                    Nuestro bot de Telegram y plataforma web te permiten gestionar citas, 
+                    medicamentos y recordatorios médicos de forma inteligente y segura.
                 </p>
                 <div class="hero-buttons">
                     <a href="{{ url_for('register') }}" class="btn btn-primary">
-                        <i class="fas fa-user-plus"></i> Registrarse Gratis
+                        <i class="fas fa-rocket"></i> Comenzar Gratis
                     </a>
                     <a href="{{ url_for('login') }}" class="btn btn-secondary">
                         <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
                     </a>
                 </div>
-                <div class="hero-features">
-                    <div class="feature-item">
+            </div>
+            <div class="hero-image">
+                <img src="{{ url_for('static', filename='images/Imagen2.png') }}" alt="MedConnect Platform">
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="servicios" class="features">
+        <div class="features-container">
+            <div class="features-header">
+                <h2>🌟 Características Principales</h2>
+                <p>Todo lo que necesitas para gestionar la salud de tu familia</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
                         <i class="fas fa-robot"></i>
-                        <span>Bot de Telegram</span>
                     </div>
-                    <div class="feature-item">
+                    <h3>Bot de Telegram</h3>
+                    <p>Interactúa con nuestro bot inteligente para gestionar citas, medicamentos y recordatorios directamente desde Telegram.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
                         <i class="fas fa-family"></i>
-                        <span>Gestión Familiar</span>
                     </div>
-                    <div class="feature-item">
+                    <h3>Gestión Familiar</h3>
+                    <p>Administra la información médica de toda tu familia desde una sola plataforma segura y centralizada.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
                         <i class="fas fa-bell"></i>
-                        <span>Recordatorios</span>
                     </div>
+                    <h3>Recordatorios Inteligentes</h3>
+                    <p>Nunca olvides una cita médica o medicamento con nuestro sistema de notificaciones personalizadas.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Seguridad Total</h3>
+                    <p>Tus datos médicos están protegidos con los más altos estándares de seguridad y privacidad.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3>Acceso Móvil</h3>
+                    <p>Gestiona tu información médica desde cualquier dispositivo, en cualquier lugar y momento.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Reportes y Análisis</h3>
+                    <p>Obtén insights valiosos sobre la salud familiar con reportes detallados y análisis de tendencias.</p>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section id="servicios" class="services">
-            <div class="container">
-                <h2>Nuestros Servicios</h2>
-                <div class="services-grid">
-                    <div class="service-card">
-                        <div class="service-icon">
-                            <i class="fas fa-calendar-alt"></i>
-                        </div>
-                        <h3>Gestión de Citas</h3>
-                        <p>Programa, modifica y recibe recordatorios de todas tus citas médicas</p>
-                    </div>
-                    <div class="service-card">
-                        <div class="service-icon">
-                            <i class="fas fa-pills"></i>
-                        </div>
-                        <h3>Control de Medicamentos</h3>
-                        <p>Lleva un registro detallado de medicamentos y horarios de toma</p>
-                    </div>
-                    <div class="service-card">
-                        <div class="service-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <h3>Gestión Familiar</h3>
-                        <p>Administra la salud de toda tu familia desde una sola cuenta</p>
-                    </div>
-                    <div class="service-card">
-                        <div class="service-icon">
-                            <i class="fas fa-robot"></i>
-                        </div>
-                        <h3>Bot de Telegram</h3>
-                        <p>Accede a toda la información médica directamente desde Telegram</p>
-                    </div>
-                    <div class="service-card">
-                        <div class="service-icon">
-                            <i class="fas fa-chart-line"></i>
-                        </div>
-                        <h3>Historial Médico</h3>
-                        <p>Mantén un registro completo del historial médico familiar</p>
-                    </div>
-                    <div class="service-card">
-                        <div class="service-icon">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <h3>Datos Seguros</h3>
-                        <p>Toda tu información médica protegida con los más altos estándares</p>
-                    </div>
-                </div>
-            </div>
-        </section>
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="cta-container">
+            <h2>¿Listo para transformar la gestión de tu salud familiar?</h2>
+            <p>Únete a miles de familias que ya confían en MedConnect para cuidar su salud</p>
+            <a href="{{ url_for('register') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> Registrarse Ahora - Es Gratis
+            </a>
+        </div>
+    </section>
 
-        <section id="contacto" class="contact">
-            <div class="container">
-                <h2>Contacto</h2>
-                <div class="contact-info">
-                    <div class="contact-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>medconnect.contacto@gmail.com</span>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-globe"></i>
-                        <span>www.medconnect.cl</span>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fab fa-telegram"></i>
-                        <span>Bot de Telegram disponible 24/7</span>
-                    </div>
-                </div>
+    <!-- Footer -->
+    <footer id="contacto" class="footer">
+        <div class="footer-container">
+            <div class="footer-logo">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo">
+                <span class="footer-text">MedConnect.cl</span>
             </div>
-        </section>
-    </main>
-
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h4>MedConnect</h4>
-                    <p>Tu plataforma de gestión médica familiar</p>
-                </div>
-                <div class="footer-section">
-                    <h4>Enlaces</h4>
-                    <a href="#inicio">Inicio</a>
-                    <a href="#servicios">Servicios</a>
-                    <a href="{{ url_for('login') }}">Iniciar Sesión</a>
-                </div>
-                <div class="footer-section">
-                    <h4>Contacto</h4>
-                    <p>medconnect.contacto@gmail.com</p>
-                    <p>www.medconnect.cl</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 MedConnect. Todos los derechos reservados.</p>
-            </div>
+            <p>&copy; 2025 MedConnect. Todos los derechos reservados.</p>
+            <p>🏥 Transformando la gestión médica familiar con tecnología avanzada</p>
         </div>
     </footer>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('.header');
+            if (window.scrollY > 100) {
+                header.style.background = 'rgba(255, 255, 255, 0.98)';
+            } else {
+                header.style.background = 'rgba(255, 255, 255, 0.95)';
+            }
+        });
+    </script>
 </body>
 </html>
