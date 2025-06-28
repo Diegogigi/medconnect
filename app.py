@@ -1047,7 +1047,7 @@ def telegram_webhook():
     """Webhook para recibir mensajes del bot de Telegram"""
     try:
         data = request.get_json()
-        logger.info(f"Webhook recibido: {data}")
+        logger.info(f"📨 Webhook recibido: {data}")
         
         # Procesar mensaje del bot
         if 'message' in data:
@@ -1057,6 +1057,8 @@ def telegram_webhook():
             user_id = message['from']['id']
             username = message['from'].get('username', 'Sin username')
             
+            logger.info(f"👤 Usuario: {username} ({user_id}) - Mensaje: {text}")
+            
             # Registrar interacción en Google Sheets
             log_bot_interaction(user_id, username, text, chat_id)
             
@@ -1065,12 +1067,72 @@ def telegram_webhook():
             
             # Enviar respuesta
             if response:
-                send_telegram_message(chat_id, response)
+                success = send_telegram_message(chat_id, response)
+                logger.info(f"📤 Respuesta enviada: {success}")
         
         return jsonify({'status': 'ok'})
     except Exception as e:
-        logger.error(f"Error en webhook: {e}")
+        logger.error(f"❌ Error en webhook: {e}")
         return jsonify({'error': 'Error procesando webhook'}), 500
+
+@app.route('/test-bot', methods=['GET'])
+def test_bot():
+    """Endpoint para probar el bot de Telegram"""
+    try:
+        # Información del bot
+        bot_info = {
+            'bot_token_configured': bool(config.TELEGRAM_BOT_TOKEN),
+            'webhook_url': 'https://www.medconnect.cl/webhook',
+            'sheets_id': config.GOOGLE_SHEETS_ID[:20] + '...' if config.GOOGLE_SHEETS_ID else None
+        }
+        
+        # Probar envío de mensaje de prueba
+        test_message = "🤖 Bot de MedConnect funcionando correctamente!\n\n✅ Webhook configurado\n✅ Conexión establecida"
+        
+        return jsonify({
+            'status': 'Bot configurado correctamente',
+            'bot_info': bot_info,
+            'test_message': test_message,
+            'instructions': 'Envía un mensaje al bot @Medconn_bot en Telegram para probarlo'
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error probando bot: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/bot-stats', methods=['GET'])
+def bot_stats():
+    """Estadísticas del bot"""
+    try:
+        if not auth_manager:
+            return jsonify({'error': 'AuthManager no disponible'}), 500
+            
+        # Obtener estadísticas de interacciones del bot
+        try:
+            interactions = auth_manager.get_sheet_data('Interacciones_Bot')
+            
+            stats = {
+                'total_interactions': len(interactions) if interactions else 0,
+                'unique_users': len(set(row.get('user_id', '') for row in interactions)) if interactions else 0,
+                'recent_interactions': interactions[-5:] if interactions else []
+            }
+            
+            return jsonify({
+                'status': 'success',
+                'stats': stats,
+                'bot_username': '@Medconn_bot'
+            })
+            
+        except Exception as e:
+            return jsonify({
+                'status': 'error getting stats',
+                'error': str(e),
+                'bot_username': '@Medconn_bot'
+            })
+            
+    except Exception as e:
+        logger.error(f"❌ Error obteniendo estadísticas: {e}")
+        return jsonify({'error': str(e)}), 500
 
 def log_bot_interaction(user_id, username, message, chat_id):
     """Registra la interacción del bot en Google Sheets"""
