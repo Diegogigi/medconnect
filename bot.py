@@ -892,18 +892,18 @@ Hacemos que gestionar tu salud sea fácil, rápido y seguro."""
         retry_delay = 1
         
         for attempt in range(max_retries):
-        try:
-            url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
-            data = {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}
+            try:
+                url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+                data = {'chat_id': chat_id, 'text': text, 'parse_mode': 'HTML'}
                 
                 # Timeout más corto para evitar conexiones colgadas
                 response = requests.post(url, json=data, timeout=(5, 30))
-            response.raise_for_status()
+                response.raise_for_status()
                 
                 if attempt > 0:
                     logger.info(f"✅ Mensaje enviado después de {attempt + 1} intentos")
                 
-            return True
+                return True
                 
             except requests.exceptions.ConnectionError as e:
                 logger.warning(f"⚠️ Error de conexión enviando mensaje (intento {attempt + 1}/{max_retries})")
@@ -930,7 +930,7 @@ Hacemos que gestionar tu salud sea fácil, rápido y seguro."""
                     logger.error(f"❌ Error HTTP enviando mensaje: {e}")
                     break
                     
-        except Exception as e:
+            except Exception as e:
                 logger.error(f"❌ Error inesperado enviando mensaje: {e}")
                 break
         
