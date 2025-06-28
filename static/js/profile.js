@@ -421,4 +421,93 @@ function shareProfile() {
 
 function editPersonalInfo() {
     togglePersonalEdit();
+}
+
+// ==========================================================================
+// TELEGRAM LINKING FUNCTIONALITY
+// ==========================================================================
+
+// Generar código de vinculación de Telegram
+async function generateTelegramCode() {
+    try {
+        const response = await fetch('/api/user/generate-telegram-code', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Mostrar código generado
+            document.getElementById('linkingCode').textContent = data.code;
+            document.getElementById('codeSection').style.display = 'block';
+
+            showNotification(`Código generado: ${data.code}. Expira en 15 minutos.`, 'success');
+
+            // Auto-copiar al portapapeles
+            await copyToClipboard(data.code);
+
+        } else {
+            showNotification('Error generando código: ' + data.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error de conexión al generar código', 'error');
+    }
+}
+
+// Copiar código al portapapeles
+async function copyCode() {
+    const code = document.getElementById('linkingCode').textContent;
+    await copyToClipboard(code);
+}
+
+// Función auxiliar para copiar al portapapeles
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        showNotification('Código copiado al portapapeles', 'success');
+    } catch (err) {
+        // Fallback para navegadores que no soportan clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification('Código copiado al portapapeles', 'success');
+    }
+}
+
+// Desvincular cuenta de Telegram
+async function unlinkTelegram() {
+    if (!confirm('¿Estás seguro de que quieres desvincular tu cuenta de Telegram?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/user/unlink-telegram', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showNotification('Cuenta de Telegram desvinculada exitosamente', 'success');
+            // Recargar la página para mostrar el estado actualizado
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showNotification('Error desvinculando cuenta: ' + data.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('Error de conexión al desvincular cuenta', 'error');
+    }
 } 

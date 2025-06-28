@@ -476,23 +476,49 @@
                             <div class="step-item">
                                 <div class="step-number">1</div>
                                 <div class="step-content">
-                                    <p class="fw-bold mb-1">Abre el ChatBot</p>
-                                    <small class="text-muted">Haz clic en el botón de abajo para abrir nuestro ChatBot de Telegram</small>
+                                    <p class="fw-bold mb-1">Genera tu código</p>
+                                    <small class="text-muted">Haz clic en el botón "Generar Código" para obtener tu código único</small>
                                 </div>
                             </div>
                             <div class="step-item">
                                 <div class="step-number">2</div>
                                 <div class="step-content">
-                                    <p class="fw-bold mb-1">Envía el comando</p>
-                                    <small class="text-muted">Escribe: <code>/vincular {{ user.email if user else 'tu-email@ejemplo.com' }}</code></small>
+                                    <p class="fw-bold mb-1">Abre el ChatBot</p>
+                                    <small class="text-muted">Ve a Telegram y busca @Medconn_bot</small>
                                 </div>
                             </div>
                             <div class="step-item">
                                 <div class="step-number">3</div>
                                 <div class="step-content">
+                                    <p class="fw-bold mb-1">Envía tu código</p>
+                                    <small class="text-muted">Escribe: <code>/codigo TU_CODIGO</code></small>
+                                </div>
+                            </div>
+                            <div class="step-item">
+                                <div class="step-number">4</div>
+                                <div class="step-content">
                                     <p class="fw-bold mb-1">¡Listo!</p>
                                     <small class="text-muted">El bot te reconocerá y te saludará por tu nombre</small>
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Código de vinculación -->
+                        <div class="code-section mb-3" id="codeSection" style="display: none;">
+                            <div class="alert alert-info border-0">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-key me-2"></i>
+                                    <strong>Tu código de vinculación:</strong>
+                                </div>
+                                <div class="code-display">
+                                    <code id="linkingCode" class="fs-5 fw-bold"></code>
+                                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="copyCode()">
+                                        <i class="fas fa-copy"></i> Copiar
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-clock me-1"></i>Expira en 15 minutos
+                                </small>
                             </div>
                         </div>
                         
@@ -509,8 +535,11 @@
                         </div>
                         
                         <div class="text-center">
-                            <a href="https://t.me/Medconn_bot" target="_blank" class="btn btn-primary">
-                                <i class="fab fa-telegram me-2"></i>Conectar con ChatBot
+                            <button class="btn btn-primary" onclick="generateTelegramCode()">
+                                <i class="fas fa-key me-2"></i>Generar Código
+                            </button>
+                            <a href="https://t.me/Medconn_bot" target="_blank" class="btn btn-outline-primary ms-2">
+                                <i class="fab fa-telegram me-2"></i>Abrir ChatBot
                             </a>
                         </div>
                         {% endif %}
