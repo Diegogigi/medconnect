@@ -156,6 +156,38 @@ medconnect/
 - **Corregido** - Corrección de errores
 - **Seguridad** - Mejoras de seguridad
 
+## [2024-12-28] - Bot con Lenguaje Natural Avanzado
+
+### 🤖 Mejoras del Bot de Telegram
+- **Reconocimiento de intenciones inteligente**: Detecta automáticamente qué quiere hacer el usuario
+- **8 categorías de intenciones**: consultas, medicamentos, exámenes, historial, saludos, despedidas, ayuda, emergencias
+- **Sinónimos incluidos**: Reconoce múltiples formas de expresar la misma intención
+- **Respuestas conversacionales**: Lenguaje natural, amigable y empático
+- **Variaciones aleatorias**: El bot no repite siempre la misma respuesta
+- **Manejo de contexto**: Recuerda el hilo de conversación del usuario
+- **Detección de emergencias**: Respuesta prioritaria con números de emergencia
+- **Personalización**: Usa el nombre del usuario cuando está disponible
+
+### 🎯 Ejemplos de Frases que Entiende
+- **Consultas**: "Quiero registrar una consulta", "Fui al médico ayer"
+- **Medicamentos**: "Necesito anotar un medicamento", "Estoy tomando pastillas"
+- **Exámenes**: "Me hice unos exámenes", "Tengo resultados de laboratorio"
+- **Historial**: "Muéstrame mi historial", "Quiero ver mis datos"
+- **Emergencias**: "Tengo dolor fuerte", "Es urgente"
+
+### 🛠️ Implementación Técnica
+- **Sistema de puntuación**: Analiza keywords para detectar intención
+- **Contexto en memoria**: Almacena estado de conversación por usuario
+- **Respuestas dinámicas**: 4 variaciones para saludos y mensajes de error
+- **Priorización**: Emergencias tienen máxima prioridad
+
+### 📚 Documentación
+- **BOT_LENGUAJE_NATURAL.md**: Guía completa de funcionalidades
+- **Ejemplos de conversación**: Casos de uso detallados
+- **Roadmap futuro**: Próximas mejoras planificadas
+
+---
+
 ## [2024-12-28] - Sistema de Códigos Telegram + Landing Page Modernizada
 
 ### ✨ Nuevas Funcionalidades
