@@ -1190,8 +1190,11 @@ Como usuario registrado, puedo ayudarte con:
 Soy tu asistente personal de salud. 
 
 📱 **¿Ya tienes cuenta en MedConnect?**
-Si ya estás registrado en nuestra plataforma web, puedes vincular tu cuenta escribiendo:
-`/vincular tu-email@ejemplo.com`
+Si ya estás registrado en nuestra plataforma web, puedes vincular tu cuenta:
+
+1️⃣ Ve a tu perfil: https://medconnect.cl/profile
+2️⃣ Haz clic en "Generar Código"
+3️⃣ Envíame el código: `/codigo MED123456`
 
 Si aún no tienes cuenta, visita: https://medconnect.cl/register
 
@@ -1206,6 +1209,9 @@ Una vez vinculada tu cuenta, podrás:
     
     elif text.startswith('/vincular'):
         return handle_account_linking(text, user_id)
+    
+    elif text.startswith('/codigo'):
+        return handle_telegram_code_linking(text, user_id)
     
     elif 'consulta' in text or 'médico' in text:
         if user_info:
@@ -1228,7 +1234,7 @@ Esta información se guardará en tu historial personal. ¿Podrías proporcionar
 4. Diagnóstico
 5. Tratamiento indicado
 
-💡 **Tip:** Si vinculas tu cuenta de MedConnect con `/vincular tu-email@ejemplo.com`, podré guardar esta información en tu historial personal.
+💡 **Tip:** Vincula tu cuenta desde https://medconnect.cl/profile para que pueda guardar esta información en tu historial personal.
 
 ¿Podrías proporcionarme esta información?"""
     
@@ -1251,7 +1257,7 @@ Lo guardaré en tu perfil personalizado. ¿Podrías darme estos datos?"""
 3. Frecuencia (ej: cada 8 horas)
 4. Médico que lo prescribió
 
-💡 **Tip:** Vincula tu cuenta con `/vincular tu-email@ejemplo.com` para un seguimiento personalizado.
+💡 **Tip:** Vincula tu cuenta desde https://medconnect.cl/profile para un seguimiento personalizado.
 
 ¿Podrías darme estos datos?"""
     
@@ -1300,7 +1306,7 @@ También puedes preguntarme directamente sobre:
             return f"""📊 Para ver tu historial médico completo, necesitas vincular tu cuenta primero.
 
 **¿Ya tienes cuenta en MedConnect?**
-Escribe: `/vincular tu-email@ejemplo.com`
+Ve a: https://medconnect.cl/profile y genera tu código
 
 **¿Aún no tienes cuenta?**
 Regístrate en: https://medconnect.cl/register
@@ -1330,7 +1336,7 @@ Puedes preguntarme sobre:
 🩺 Registrar exámenes
 📊 Ver tu historial
 
-💡 **Tip:** Vincula tu cuenta con `/vincular tu-email@ejemplo.com` para una experiencia personalizada.
+💡 **Tip:** Vincula tu cuenta desde https://medconnect.cl/profile para una experiencia personalizada.
 
 O escribe /start para ver todas las opciones."""
 
@@ -2726,6 +2732,185 @@ def landing_test():
     </body>
     </html>
     '''
+
+# Almacén temporal de códigos de vinculación (en producción usaría Redis)
+telegram_link_codes = {}
+
+@app.route('/api/user/generate-telegram-code', methods=['POST'])
+@login_required
+def generate_telegram_code():
+    """Genera un código único para vincular Telegram"""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'Usuario no autenticado'}), 401
+        
+        # Generar código único
+        import random
+        import string
+        code = 'MED' + ''.join(random.choices(string.digits, k=6))
+        
+        # Verificar que el código no exista (muy improbable)
+        while code in telegram_link_codes:
+            code = 'MED' + ''.join(random.choices(string.digits, k=6))
+        
+        # Guardar código con expiración (15 minutos)
+        from datetime import datetime, timedelta
+        expiration = datetime.now() + timedelta(minutes=15)
+        
+        telegram_link_codes[code] = {
+            'user_id': user_id,
+            'created_at': datetime.now(),
+            'expires_at': expiration
+        }
+        
+        # Limpiar códigos expirados
+        clean_expired_codes()
+        
+        logger.info(f"✅ Código generado para usuario {user_id}: {code}")
+        
+        return jsonify({
+            'success': True,
+            'code': code,
+            'expires_in_minutes': 15,
+            'instructions': f'Envía este mensaje al bot: /codigo {code}'
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error generando código: {e}")
+        return jsonify({'error': 'Error interno del servidor'}), 500
+
+def clean_expired_codes():
+    """Limpia códigos expirados del almacén temporal"""
+    try:
+        from datetime import datetime
+        now = datetime.now()
+        expired_codes = [code for code, data in telegram_link_codes.items() 
+                        if data['expires_at'] < now]
+        
+        for code in expired_codes:
+            del telegram_link_codes[code]
+            
+        if expired_codes:
+            logger.info(f"🧹 Limpiados {len(expired_codes)} códigos expirados")
+            
+    except Exception as e:
+        logger.error(f"❌ Error limpiando códigos: {e}")
+
+def handle_telegram_code_linking(text, telegram_user_id):
+    """Maneja la vinculación por código"""
+    try:
+        parts = text.split()
+        if len(parts) < 2:
+            return """❌ Formato incorrecto.
+
+**Uso correcto:**
+`/codigo MED123456`
+
+**¿Dónde obtengo mi código?**
+1. Ve a tu perfil en: https://medconnect.cl/profile
+2. En la sección "Conectar Telegram" haz clic en "Generar Código"
+3. Envía el código aquí
+
+El código expira en 15 minutos."""
+        
+        code = parts[1].strip().upper()
+        
+        # Limpiar códigos expirados primero
+        clean_expired_codes()
+        
+        # Verificar si el código existe y es válido
+        if code not in telegram_link_codes:
+            return f"""❌ Código inválido o expirado: `{code}`
+
+**¿Qué hacer?**
+1. Ve a tu perfil: https://medconnect.cl/profile
+2. Genera un nuevo código
+3. Envíalo inmediatamente (expira en 15 minutos)
+
+**Formato correcto:** `/codigo MED123456`"""
+        
+        code_data = telegram_link_codes[code]
+        user_id = code_data['user_id']
+        
+        # Eliminar el código usado
+        del telegram_link_codes[code]
+        
+        if not auth_manager:
+            return "❌ Sistema de autenticación no disponible temporalmente."
+        
+        # Obtener información del usuario
+        user_info = auth_manager.get_user_by_id(user_id)
+        if not user_info:
+            return "❌ Usuario no encontrado en el sistema."
+        
+        # Vincular la cuenta
+        success, message, updated_user = auth_manager.link_telegram_by_user_id(user_id, telegram_user_id)
+        
+        if success and updated_user:
+            nombre = updated_user.get('nombre', 'Usuario')
+            apellido = updated_user.get('apellido', '')
+            
+            logger.info(f"✅ Cuenta vinculada: Usuario {user_id} con Telegram {telegram_user_id}")
+            
+            return f"""🎉 ¡Cuenta vinculada exitosamente!
+
+¡Hola <b>{nombre} {apellido}</b>! 👋
+
+Tu cuenta de MedConnect está ahora conectada con Telegram.
+
+✅ <b>Beneficios activados:</b>
+📋 Registro de consultas médicas
+💊 Gestión de medicamentos
+🩺 Seguimiento de exámenes
+📊 Acceso a tu historial completo
+👨‍👩‍👧‍👦 Notificaciones familiares
+
+<i>Escribe /start para comenzar tu experiencia personalizada.</i>"""
+        else:
+            logger.error(f"❌ Error vinculando cuenta: {message}")
+            return f"❌ Error vinculando cuenta: {message}"
+            
+    except Exception as e:
+        logger.error(f"❌ Error en vinculación por código: {e}")
+        return "❌ Error interno. Intenta generar un nuevo código."
+
+@app.route('/api/user/unlink-telegram', methods=['POST'])
+@login_required
+def unlink_telegram():
+    """Desvincula la cuenta de Telegram del usuario"""
+    try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'Usuario no autenticado'}), 401
+        
+        if not auth_manager:
+            return jsonify({'error': 'Sistema de autenticación no disponible'}), 500
+        
+        # Obtener información del usuario
+        user_info = auth_manager.get_user_by_id(user_id)
+        if not user_info:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        # Verificar si tiene Telegram vinculado
+        if not user_info.get('telegram_id'):
+            return jsonify({'error': 'No hay cuenta de Telegram vinculada'}), 400
+        
+        # Desvincular (actualizar a vacío)
+        success, message, updated_user = auth_manager.link_telegram_by_user_id(user_id, '', '')
+        
+        if success:
+            logger.info(f"✅ Telegram desvinculado para usuario {user_id}")
+            return jsonify({
+                'success': True,
+                'message': 'Cuenta de Telegram desvinculada exitosamente'
+            })
+        else:
+            return jsonify({'error': message}), 500
+            
+    except Exception as e:
+        logger.error(f"❌ Error desvinculando Telegram: {e}")
+        return jsonify({'error': 'Error interno del servidor'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

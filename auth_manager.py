@@ -458,4 +458,58 @@ class AuthManager:
             n -= 1
             result = chr(n % 26 + ord('A')) + result
             n //= 26
-        return result 
+        return result
+
+    def link_telegram_by_user_id(self, user_id, telegram_id, telegram_username=""):
+        """Vincular cuenta de Telegram con usuario por ID"""
+        try:
+            all_records = self.users_sheet.get_all_records()
+            row_index = None
+            user_record = None
+            
+            # Buscar usuario por ID
+            for i, record in enumerate(all_records, start=2):
+                if str(record.get('id', '')) == str(user_id):
+                    user_record = record
+                    row_index = i
+                    break
+            
+            if not user_record:
+                return False, "Usuario no encontrado", None
+            
+            # Verificar si ya tiene Telegram vinculado
+            if user_record.get('telegram_id'):
+                return False, "Esta cuenta ya tiene un Telegram vinculado", None
+            
+            # Verificar si el Telegram ID ya está en uso
+            for record in all_records:
+                if str(record.get('telegram_id', '')) == str(telegram_id) and record.get('telegram_id'):
+                    return False, "Este Telegram ya está vinculado a otra cuenta", None
+            
+            # Actualizar las columnas de Telegram
+            try:
+                self.users_sheet.update(f'P{row_index}', str(telegram_id))  # Columna P = telegram_id
+                if telegram_username:
+                    self.users_sheet.update(f'Q{row_index}', telegram_username)  # Columna Q = telegram_username
+                
+                # Actualizar el registro en memoria
+                user_record['telegram_id'] = str(telegram_id)
+                user_record['telegram_username'] = telegram_username
+                
+            except Exception as sheet_error:
+                logger.warning(f"Error actualizando columnas Telegram, intentando crear: {sheet_error}")
+                # Si las columnas no existen, las creamos al final
+                self._ensure_telegram_columns()
+                # Reintentar
+                self.users_sheet.update(f'P{row_index}', str(telegram_id))
+                if telegram_username:
+                    self.users_sheet.update(f'Q{row_index}', telegram_username)
+            
+            logger.info(f"✅ Telegram vinculado para usuario ID: {user_id}")
+            return True, f"Cuenta vinculada exitosamente", user_record
+            
+        except Exception as e:
+            logger.error(f"❌ Error vinculando Telegram por ID: {e}")
+            return False, "Error interno del servidor", None
+    
+    def _ensure_telegram_columns(self): 
