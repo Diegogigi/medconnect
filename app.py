@@ -1160,185 +1160,430 @@ def log_bot_interaction(user_id, username, message, chat_id):
     except Exception as e:
         logger.error(f"Error registrando interacción: {e}")
 
+# Diccionario para almacenar contexto de conversaciones
+user_contexts = {}
+
+# Palabras clave para reconocimiento de intenciones
+INTENT_KEYWORDS = {
+    'consulta': ['consulta', 'médico', 'doctor', 'cita', 'visita', 'chequeo', 'revisión', 'control'],
+    'medicamento': ['medicamento', 'medicina', 'pastilla', 'píldora', 'remedio', 'fármaco', 'droga', 'tratamiento'],
+    'examen': ['examen', 'análisis', 'estudio', 'prueba', 'laboratorio', 'radiografía', 'ecografía', 'resonancia'],
+    'historial': ['historial', 'historia', 'registro', 'datos', 'información', 'ver', 'mostrar', 'consultar'],
+    'saludo': ['hola', 'buenos', 'buenas', 'saludos', 'hey', 'qué tal', 'cómo estás'],
+    'despedida': ['adiós', 'chao', 'hasta luego', 'nos vemos', 'bye', 'gracias'],
+    'ayuda': ['ayuda', 'help', 'auxilio', 'socorro', 'no entiendo', 'qué puedes hacer'],
+    'emergencia': ['emergencia', 'urgente', 'grave', 'dolor fuerte', 'sangre', 'desmayo', 'accidente']
+}
+
+# Respuestas variadas para hacer el bot más humano
+RESPONSE_VARIATIONS = {
+    'greeting': [
+        "¡Hola! 😊 ¿Cómo estás hoy?",
+        "¡Qué bueno verte! 👋 ¿En qué puedo ayudarte?",
+        "¡Hola! Espero que tengas un buen día 🌟",
+        "¡Saludos! ¿Cómo te sientes hoy?"
+    ],
+    'not_understood': [
+        "Disculpa, no estoy seguro de entender. ¿Podrías explicarme de otra manera?",
+        "Hmm, no capté bien eso. ¿Puedes ser más específico?",
+        "No estoy seguro de cómo ayudarte con eso. ¿Podrías reformular tu pregunta?",
+        "Perdón, no entendí bien. ¿Te refieres a algo relacionado con tu salud?"
+    ],
+    'encouragement': [
+        "¡Perfecto! 👍",
+        "¡Excelente! 🌟",
+        "¡Muy bien! ✨",
+        "¡Genial! 🎉"
+    ]
+}
+
+def detect_intent(text):
+    """Detecta la intención del usuario basándose en palabras clave"""
+    text_lower = text.lower()
+    
+    # Contar coincidencias por categoría
+    intent_scores = {}
+    for intent, keywords in INTENT_KEYWORDS.items():
+        score = sum(1 for keyword in keywords if keyword in text_lower)
+        if score > 0:
+            intent_scores[intent] = score
+    
+    # Retornar la intención con mayor puntaje
+    if intent_scores:
+        return max(intent_scores, key=intent_scores.get)
+    
+    return 'unknown'
+
+def get_user_context(user_id):
+    """Obtiene el contexto de conversación del usuario"""
+    return user_contexts.get(user_id, {})
+
+def set_user_context(user_id, context_key, value):
+    """Establece contexto de conversación para el usuario"""
+    if user_id not in user_contexts:
+        user_contexts[user_id] = {}
+    user_contexts[user_id][context_key] = value
+
+def get_random_response(category):
+    """Obtiene una respuesta aleatoria de una categoría"""
+    import random
+    return random.choice(RESPONSE_VARIATIONS.get(category, ["¡Perfecto!"]))
+
 def process_telegram_message(text, chat_id, user_id):
-    """Procesa mensajes del bot de Telegram"""
+    """Procesa mensajes del bot de Telegram con lenguaje natural mejorado"""
+    original_text = text
     text = text.lower().strip()
     
     # Intentar obtener información del usuario registrado
     user_info = get_telegram_user_info(user_id)
+    user_name = user_info.get('nombre', 'Usuario') if user_info else 'Usuario'
     
+    # Obtener contexto de conversación
+    context = get_user_context(user_id)
+    
+    # Comando /start
     if text.startswith('/start'):
         if user_info:
             nombre = user_info.get('nombre', 'Usuario')
             apellido = user_info.get('apellido', '')
-            return f"""¡Hola {nombre} {apellido}! 👋 
+            nombre_completo = f"{nombre} {apellido}".strip()
+            
+            saludos = [
+                f"¡Hola {nombre_completo}! 👋 ¡Qué alegría verte de nuevo! 😊",
+                f"¡{nombre_completo}! 🌟 ¡Bienvenido de vuelta a MedConnect!",
+                f"¡Hola {nombre}! 👨‍⚕️ Listo para ayudarte con tu salud hoy"
+            ]
+            
+            import random
+            saludo = random.choice(saludos)
+            
+            return f"""{saludo}
 
-¡Qué bueno verte de nuevo en MedConnect! 🏥
+Como usuario registrado, estoy aquí para ayudarte con:
 
-Como usuario registrado, puedo ayudarte con:
+📋 **Consultas médicas** - Registra tus visitas al doctor
+💊 **Medicamentos** - Lleva control de tus tratamientos  
+🩺 **Exámenes** - Guarda resultados de laboratorio
+👨‍👩‍👧‍👦 **Familiares** - Notifica a tus seres queridos
+📊 **Historial** - Consulta toda tu información médica
 
-📋 Registrar consultas médicas
-💊 Gestionar medicamentos  
-🩺 Registrar exámenes
-👨‍👩‍👧‍👦 Notificar a familiares
-📊 Consultar tu historial personalizado
+Solo dime algo como:
+• "Quiero registrar una consulta"
+• "Necesito anotar un medicamento"
+• "Tengo resultados de exámenes"
+• "Muéstrame mi historial"
 
-¿En qué puedo ayudarte hoy?"""
+¿En qué puedo ayudarte hoy? 🤔"""
         else:
-            return """¡Hola! 👋 Bienvenido a MedConnect
+            return """¡Hola! 👋 Soy tu asistente personal de salud de MedConnect 🏥
 
-Soy tu asistente personal de salud. 
+Me encanta conocerte y estoy aquí para ayudarte a cuidar tu bienestar. 
 
-📱 **¿Ya tienes cuenta en MedConnect?**
-Si ya estás registrado en nuestra plataforma web, puedes vincular tu cuenta:
+📱 **¿Ya eres parte de la familia MedConnect?**
+Si ya tienes cuenta, es súper fácil conectarnos:
 
 1️⃣ Ve a tu perfil: https://medconnect.cl/profile
 2️⃣ Haz clic en "Generar Código"
-3️⃣ Envíame el código: `/codigo MED123456`
+3️⃣ Comparte conmigo el código: `/codigo MED123456`
 
-Si aún no tienes cuenta, visita: https://medconnect.cl/register
+📝 **¿Primera vez aquí?**
+¡Genial! Regístrate en: https://medconnect.cl/register
 
-Una vez vinculada tu cuenta, podrás:
-📋 Registrar consultas médicas
-💊 Gestionar medicamentos  
-🩺 Registrar exámenes
-👨‍👩‍👧‍👦 Notificar a familiares
-📊 Ver tu historial personalizado
+Una vez conectados, podremos:
+📋 Registrar tus consultas médicas
+💊 Organizar tus medicamentos  
+🩺 Guardar resultados de exámenes
+👨‍👩‍👧‍👦 Mantener informada a tu familia
+📊 Crear tu historial médico personalizado
 
-¿En qué puedo ayudarte?"""
+¿Hay algo en lo que pueda ayudarte mientras tanto? 😊"""
     
-    elif text.startswith('/vincular'):
-        return handle_account_linking(text, user_id)
-    
+    # Comando /codigo
     elif text.startswith('/codigo'):
         return handle_telegram_code_linking(text, user_id)
     
-    elif 'consulta' in text or 'médico' in text:
-        if user_info:
-            nombre = user_info.get('nombre', 'Usuario')
-            return f"""📋 Perfecto {nombre}, para registrar una consulta médica necesito:
-
-1. Fecha de la consulta
-2. Nombre del médico
-3. Especialidad
-4. Diagnóstico
-5. Tratamiento indicado
-
-Esta información se guardará en tu historial personal. ¿Podrías proporcionarme estos datos?"""
-        else:
-            return """📋 Para registrar una consulta médica, necesito:
-
-1. Fecha de la consulta
-2. Nombre del médico
-3. Especialidad
-4. Diagnóstico
-5. Tratamiento indicado
-
-💡 **Tip:** Vincula tu cuenta desde https://medconnect.cl/profile para que pueda guardar esta información en tu historial personal.
-
-¿Podrías proporcionarme esta información?"""
+    # Detectar intención del mensaje
+    intent = detect_intent(text)
     
-    elif 'medicamento' in text or 'medicina' in text:
-        if user_info:
-            nombre = user_info.get('nombre', 'Usuario')
-            return f"""💊 Hola {nombre}, para registrar un medicamento necesito:
+    # Manejar emergencias con prioridad
+    if intent == 'emergencia':
+        return """🚨 **EMERGENCIA DETECTADA** 🚨
 
-1. Nombre del medicamento
-2. Dosis (ej: 50mg)
-3. Frecuencia (ej: cada 8 horas)
-4. Médico que lo prescribió
+Si estás en una situación de emergencia médica:
 
-Lo guardaré en tu perfil personalizado. ¿Podrías darme estos datos?"""
-        else:
-            return """💊 Para registrar un medicamento, necesito:
+📞 **LLAMA INMEDIATAMENTE:**
+• **131** - SAMU (Ambulancia)
+• **133** - Bomberos
+• **132** - Carabineros
 
-1. Nombre del medicamento
-2. Dosis (ej: 50mg)
-3. Frecuencia (ej: cada 8 horas)
-4. Médico que lo prescribió
+🏥 **Ve al servicio de urgencias más cercano**
 
-💡 **Tip:** Vincula tu cuenta desde https://medconnect.cl/profile para un seguimiento personalizado.
+⚠️ **Recuerda:** Soy un asistente virtual y no puedo reemplazar la atención médica profesional en emergencias.
 
-¿Podrías darme estos datos?"""
+Una vez que estés seguro, estaré aquí para ayudarte con el seguimiento. 💙"""
     
-    elif 'examen' in text or 'análisis' in text:
+    # Saludos
+    elif intent == 'saludo' and not text.startswith('/'):
+        greeting = get_random_response('greeting')
         if user_info:
-            nombre = user_info.get('nombre', 'Usuario')
-            return f"""🩺 Hola {nombre}, para registrar un examen necesito:
-
-1. Tipo de examen
-2. Fecha realizada
-3. Laboratorio o centro médico
-4. Resultados principales
-
-Se agregará a tu historial médico. ¿Tienes esta información?"""
+            return f"{greeting} {user_name}! ¿En qué puedo ayudarte con tu salud hoy? 😊"
         else:
-            return """🩺 Para registrar un examen, necesito:
+            return f"""{greeting}
 
-1. Tipo de examen
-2. Fecha realizada
-3. Laboratorio o centro médico
-4. Resultados principales
+Soy tu asistente de salud de MedConnect. Puedo ayudarte a:
+📋 Registrar información médica
+💊 Organizar medicamentos
+🩺 Guardar exámenes
+📊 Consultar tu historial
 
-💡 **Tip:** Con tu cuenta vinculada, mantendré un historial completo de tus exámenes.
+¿Te gustaría vincular tu cuenta primero? Solo necesitas ir a https://medconnect.cl/profile y generar un código. 
 
-¿Tienes esta información?"""
+¿O prefieres que te ayude con algo específico? 🤔"""
     
-    elif 'historial' in text or 'ver' in text:
+    # Despedidas
+    elif intent == 'despedida':
+        despedidas = [
+            f"¡Hasta pronto {user_name}! 👋 Cuídate mucho y no dudes en escribirme cuando necesites algo. 💙",
+            f"¡Que tengas un excelente día {user_name}! 🌟 Estaré aquí cuando me necesites. 😊",
+            f"¡Nos vemos pronto {user_name}! 👋 Recuerda cuidar tu salud. ¡Hasta la próxima! 💚"
+        ]
+        import random
+        return random.choice(despedidas)
+    
+    # Consultas médicas
+    elif intent == 'consulta':
+        set_user_context(user_id, 'current_task', 'consulta')
+        
         if user_info:
-            nombre = user_info.get('nombre', 'Usuario')
-            return f"""📊 Hola {nombre}, para ver tu historial completo personalizado, visita:
-https://medconnect.cl/patient
+            encouragement = get_random_response('encouragement')
+            return f"""{encouragement} {user_name}, veo que quieres registrar una consulta médica. 📋
 
-En tu dashboard podrás ver:
-✅ Todas tus consultas médicas
-✅ Medicamentos actuales
-✅ Resultados de exámenes
-✅ Próximas citas
+Para crear un registro completo, me gustaría que me compartieras:
 
-También puedes preguntarme directamente sobre:
-- Últimas consultas
-- Medicamentos activos
-- Próximas citas
+🩺 **Detalles de la consulta:**
+1️⃣ ¿Cuándo fue? (fecha)
+2️⃣ ¿Con qué doctor te atendiste?
+3️⃣ ¿Cuál es su especialidad?
+4️⃣ ¿Qué diagnóstico te dieron?
+5️⃣ ¿Te recetaron algún tratamiento?
 
-¿Qué te gustaría consultar?"""
+Puedes contarme todo junto o paso a paso, como prefieras. Lo importante es que quede bien registrado en tu historial personal. 😊
+
+¿Empezamos? 🤔"""
         else:
-            return f"""📊 Para ver tu historial médico completo, necesitas vincular tu cuenta primero.
+            return """📋 ¡Me encanta que quieras registrar tu consulta médica! Es súper importante llevar un buen control.
+
+Para poder guardar esta información en tu historial personal, necesitaríamos conectar tu cuenta primero.
+
+**Datos que necesito para la consulta:**
+1️⃣ Fecha de la consulta
+2️⃣ Nombre del médico
+3️⃣ Especialidad
+4️⃣ Diagnóstico recibido
+5️⃣ Tratamiento indicado
+
+💡 **¿Tienes cuenta en MedConnect?**
+Ve a https://medconnect.cl/profile, genera tu código y compártelo conmigo.
+
+Mientras tanto, puedes contarme los detalles y los guardaré temporalmente. ¿Te parece? 😊"""
+    
+    # Medicamentos
+    elif intent == 'medicamento':
+        set_user_context(user_id, 'current_task', 'medicamento')
+        
+        if user_info:
+            encouragement = get_random_response('encouragement')
+            return f"""{encouragement} {user_name}! Organizar tus medicamentos es fundamental para tu salud. 💊
+
+Para registrar correctamente tu medicamento, necesito conocer:
+
+💉 **Información del medicamento:**
+1️⃣ ¿Cómo se llama?
+2️⃣ ¿Qué dosis tomas? (ej: 50mg, 1 tableta)
+3️⃣ ¿Cada cuánto tiempo? (ej: cada 8 horas, 2 veces al día)
+4️⃣ ¿Qué médico te lo recetó?
+5️⃣ ¿Para qué es? (opcional)
+
+Cuéntame todo lo que sepas y lo organizaremos en tu perfil para que nunca se te olvide. 😊
+
+¿Cuál es el medicamento? 🤔"""
+        else:
+            return """💊 ¡Qué responsable eres cuidando tu tratamiento! Me parece genial que quieras registrar tus medicamentos.
+
+**Para un registro completo necesito:**
+1️⃣ Nombre del medicamento
+2️⃣ Dosis que tomas
+3️⃣ Frecuencia (cada cuánto tiempo)
+4️⃣ Médico que lo recetó
+5️⃣ Para qué es el tratamiento
+
+💡 **Para guardarlo en tu historial permanente:**
+Necesitarías vincular tu cuenta desde https://medconnect.cl/profile
+
+Pero puedes contarme los detalles ahora y te ayudo a organizarlos. ¿Cuál es el medicamento? 😊"""
+    
+    # Exámenes
+    elif intent == 'examen':
+        set_user_context(user_id, 'current_task', 'examen')
+        
+        if user_info:
+            encouragement = get_random_response('encouragement')
+            return f"""{encouragement} {user_name}! Los exámenes son súper importantes para monitorear tu salud. 🩺
+
+Para registrar tu examen correctamente, me gustaría saber:
+
+🔬 **Detalles del examen:**
+1️⃣ ¿Qué tipo de examen fue? (sangre, orina, radiografía, etc.)
+2️⃣ ¿Cuándo te lo hiciste?
+3️⃣ ¿En qué laboratorio o centro médico?
+4️⃣ ¿Cuáles fueron los resultados principales?
+5️⃣ ¿Algún valor fuera de lo normal?
+
+Si tienes los resultados en papel o digital, también puedes subir la imagen a tu perfil web más tarde.
+
+¿Me cuentas sobre tu examen? 🤔"""
+        else:
+            return """🩺 ¡Excelente que quieras registrar tus exámenes! Es clave para el seguimiento de tu salud.
+
+**Información que necesito:**
+1️⃣ Tipo de examen realizado
+2️⃣ Fecha cuando te lo hiciste
+3️⃣ Laboratorio o centro médico
+4️⃣ Resultados principales
+5️⃣ Valores importantes o anormales
+
+💡 **Para mantener un historial completo:**
+Te recomiendo vincular tu cuenta en https://medconnect.cl/profile
+
+Mientras tanto, cuéntame sobre tu examen y te ayudo a organizarlo. ¿Qué examen te hiciste? 😊"""
+    
+    # Historial
+    elif intent == 'historial':
+        if user_info:
+            return f"""📊 ¡Hola {user_name}! Tu historial médico está siempre disponible para ti.
+
+**Para ver toda tu información completa:**
+🌐 Visita tu dashboard: https://medconnect.cl/patient
+
+**Ahí encontrarás:**
+✅ Todas tus consultas médicas organizadas
+✅ Lista completa de medicamentos actuales
+✅ Resultados de exámenes con fechas
+✅ Información de familiares registrados
+✅ Gráficos y estadísticas de tu salud
+
+**También puedes preguntarme directamente:**
+• "¿Cuáles son mis últimas consultas?"
+• "¿Qué medicamentos estoy tomando?"
+• "¿Cuándo fue mi último examen?"
+• "¿Tengo alguna cita próxima?"
+
+¿Qué te gustaría consultar específicamente? 🤔"""
+        else:
+            return """📊 ¡Me encantaría mostrarte tu historial médico! Pero primero necesitamos conectar tu cuenta.
+
+**Una vez vinculada, tendrás acceso a:**
+✅ Historial completo de consultas
+✅ Registro de todos tus medicamentos
+✅ Resultados de exámenes organizados
+✅ Información de contactos de emergencia
+✅ Estadísticas de tu salud
 
 **¿Ya tienes cuenta en MedConnect?**
-Ve a: https://medconnect.cl/profile y genera tu código
+🔗 Ve a: https://medconnect.cl/profile y genera tu código
 
-**¿Aún no tienes cuenta?**
-Regístrate en: https://medconnect.cl/register
+**¿Primera vez aquí?**
+📝 Regístrate en: https://medconnect.cl/register
 
-Una vez vinculada, podrás ver toda tu información médica personalizada.
-
-¿Te gustaría que te ayude con algo más?"""
+Una vez conectados, podrás consultar toda tu información médica cuando quieras. ¿Te ayudo con la vinculación? 😊"""
     
-    else:
+    # Ayuda
+    elif intent == 'ayuda' or text in ['help', '/help']:
         if user_info:
-            nombre = user_info.get('nombre', 'Usuario')
-            return f"""Hola {nombre}, no estoy seguro de cómo ayudarte con eso. 
+            return f"""🤝 ¡Por supuesto {user_name}! Estoy aquí para ayudarte.
 
-Puedes preguntarme sobre:
-📋 Registrar consultas médicas
-💊 Gestionar medicamentos
-🩺 Registrar exámenes
-📊 Ver tu historial
+**Esto es lo que puedo hacer por ti:**
 
-O escribe /start para ver todas las opciones."""
+📋 **Consultas médicas**
+• "Registrar una consulta"
+• "Anotar visita al doctor"
+
+💊 **Medicamentos**  
+• "Agregar un medicamento"
+• "Registrar tratamiento"
+
+🩺 **Exámenes**
+• "Guardar resultados de examen"
+• "Registrar análisis de laboratorio"
+
+📊 **Historial**
+• "Ver mi historial"
+• "Mostrar mis datos médicos"
+
+🆘 **Comandos especiales:**
+• `/start` - Menú principal
+• `/codigo MED123456` - Vincular cuenta
+
+Solo háblame naturalmente, como "Quiero registrar una consulta" o "Necesito anotar un medicamento". ¡Entiendo el lenguaje cotidiano! 😊
+
+¿En qué te ayudo ahora? 🤔"""
         else:
-            return """No estoy seguro de cómo ayudarte con eso. 
+            return """🤝 ¡Claro! Te explico todo lo que puedo hacer por ti.
 
-Puedes preguntarme sobre:
+**Mis funcionalidades principales:**
+
+📋 **Registro médico**
+• Consultas con doctores
+• Medicamentos y tratamientos
+• Resultados de exámenes
+• Información de familiares
+
+📊 **Consulta de información**
+• Historial médico completo
+• Medicamentos actuales
+• Próximas citas
+
+🔗 **Vinculación de cuenta**
+• Conectar con tu perfil de MedConnect
+• Sincronizar información
+
+**Para aprovechar al máximo:**
+1️⃣ Vincula tu cuenta: https://medconnect.cl/profile
+2️⃣ Genera tu código de vinculación
+3️⃣ Compártelo conmigo: `/codigo MED123456`
+
+¡Habla conmigo naturalmente! Entiendo frases como "quiero registrar una consulta" o "muéstrame mi historial".
+
+¿Te ayudo con algo específico? 😊"""
+    
+    # Mensajes no entendidos
+    else:
+        not_understood = get_random_response('not_understood')
+        
+        if user_info:
+            return f"""{not_understood}
+
+{user_name}, puedo ayudarte con:
+📋 **Consultas médicas** - "registrar consulta"
+💊 **Medicamentos** - "anotar medicamento"  
+🩺 **Exámenes** - "guardar examen"
+📊 **Historial** - "ver mi historial"
+
+O escribe `/start` para ver el menú completo.
+
+¿Podrías decirme de otra manera en qué te ayudo? 😊"""
+        else:
+            return f"""{not_understood}
+
+Puedo ayudarte con temas de salud como:
 📋 Registrar consultas médicas
-💊 Gestionar medicamentos
-🩺 Registrar exámenes
-📊 Ver tu historial
+💊 Organizar medicamentos
+🩺 Guardar exámenes
+📊 Consultar historial médico
 
-💡 **Tip:** Vincula tu cuenta desde https://medconnect.cl/profile para una experiencia personalizada.
+💡 **Tip:** Para una experiencia completa, vincula tu cuenta desde https://medconnect.cl/profile
 
-O escribe /start para ver todas las opciones."""
+¿Hay algo específico sobre tu salud en lo que pueda ayudarte? 🤔"""
 
 def get_telegram_user_info(telegram_user_id):
     """Obtiene información del usuario registrado por su ID de Telegram"""
