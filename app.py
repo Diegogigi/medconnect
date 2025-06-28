@@ -1166,13 +1166,16 @@ user_contexts = {}
 # Palabras clave para reconocimiento de intenciones
 INTENT_KEYWORDS = {
     'consulta': ['consulta', 'médico', 'doctor', 'cita', 'visita', 'chequeo', 'revisión', 'control'],
-    'medicamento': ['medicamento', 'medicina', 'pastilla', 'píldora', 'remedio', 'fármaco', 'droga', 'tratamiento'],
-    'examen': ['examen', 'análisis', 'estudio', 'prueba', 'laboratorio', 'radiografía', 'ecografía', 'resonancia'],
+    'medicamento': ['medicamento', 'medicina', 'pastilla', 'píldora', 'remedio', 'fármaco', 'droga', 'tratamiento', 'nuevo medicamento', 'empezar medicamento', 'comenzar tratamiento', 'recetaron', 'prescribieron', 'como va', 'efectos', 'reacción', 'funciona', 'mejora', 'empeora'],
+    'examen': ['examen', 'análisis', 'estudio', 'prueba', 'laboratorio', 'radiografía', 'ecografía', 'resonancia', 'me hice', 'ya me hice', 'tengo resultados', 'salieron', 'completé', 'terminé examen', 'tengo que hacerme', 'debo hacerme', 'programado', 'agendado', 'próximo examen', 'me van a hacer'],
     'historial': ['historial', 'historia', 'registro', 'datos', 'información', 'ver', 'mostrar', 'consultar'],
     'saludo': ['hola', 'buenos', 'buenas', 'saludos', 'hey', 'qué tal', 'cómo estás'],
     'despedida': ['adiós', 'chao', 'hasta luego', 'nos vemos', 'bye', 'gracias'],
     'ayuda': ['ayuda', 'help', 'auxilio', 'socorro', 'no entiendo', 'qué puedes hacer'],
-    'emergencia': ['emergencia', 'urgente', 'grave', 'dolor fuerte', 'sangre', 'desmayo', 'accidente']
+    'emergencia': ['emergencia', 'urgente', 'grave', 'dolor fuerte', 'sangre', 'desmayo', 'accidente'],
+    'recordatorio': ['recordar', 'recordatorio', 'alerta', 'avisar', 'notificar', 'programar aviso'],
+    'cita_futura': ['próxima cita', 'agendar cita', 'programar cita', 'reservar hora', 'pedir hora'],
+    'seguimiento': ['cómo voy', 'evolución', 'progreso', 'mejorando', 'empeorando', 'seguimiento']
 }
 
 # Respuestas variadas para hacer el bot más humano

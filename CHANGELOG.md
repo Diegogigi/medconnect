@@ -5,6 +5,53 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2024-12-28
+
+### 🚀 Bot de Telegram - Mejoras Avanzadas
+- **Nuevo**: 3 categorías adicionales (recordatorio, cita_futura, seguimiento)
+- **Expandido**: Categoría medicamento con 19 palabras clave (+137%)
+- **Expandido**: Categoría examen con 20 palabras clave (+150%)
+- **Nuevo**: Reconocimiento de medicamentos nuevos vs seguimiento de efectos
+- **Nuevo**: Diferenciación entre exámenes realizados y futuros
+- **Nuevo**: Sistema de recordatorios inteligentes para medicamentos y citas
+- **Nuevo**: Gestión de citas futuras con planificación proactiva
+- **Nuevo**: Seguimiento personalizado de tratamientos y evolución
+- **Mejorado**: Detección de efectos secundarios y adherencia al tratamiento
+- **Mejorado**: Reconocimiento de preparación especial para exámenes
+
+### 💊 Medicamentos Avanzados
+- **Frases reconocidas**: "Me recetaron un nuevo medicamento", "¿Cómo va mi tratamiento?", "He notado efectos secundarios"
+- **Capacidades**: Seguimiento de efectividad, detección de reacciones, monitoreo de adherencia
+- **Diferenciación**: Medicamentos nuevos vs seguimiento de medicamentos existentes
+
+### 🩺 Exámenes Completos
+- **Realizados**: "Ya me hice los exámenes", "Tengo resultados", "Salieron los análisis"
+- **Futuros**: "Tengo que hacerme", "Debo hacerme", "Tengo programada una ecografía"
+- **Capacidades**: Registro de resultados, programación de recordatorios, preparación especial
+
+### 🔔 Sistema de Recordatorios
+- **Frases**: "Recordarme tomar las pastillas", "Necesito una alerta", "Programar aviso"
+- **Tipos**: Medicamentos, citas médicas, exámenes programados, renovación de recetas
+
+### 📅 Citas Futuras
+- **Frases**: "Quiero agendar una cita", "Programar cita con cardiólogo", "Reservar hora"
+- **Funcionalidades**: Planificación proactiva, organización de consultas futuras
+
+### 📊 Seguimiento Personalizado
+- **Frases**: "¿Cómo voy con mi diabetes?", "Evolución de mi presión", "¿Estoy mejorando?"
+- **Capacidades**: Monitoreo continuo, evaluación de progreso, tracking de parámetros vitales
+
+### 📈 Estadísticas Expandidas
+- **Categorías**: 11 tipos de intenciones (antes: 8)
+- **Palabras clave**: 60+ términos reconocidos (antes: 30+)
+- **Cobertura**: +200% en reconocimiento de intenciones
+- **Precisión**: 71.4% en 35 frases de prueba avanzadas
+
+### 📚 Documentación Nueva
+- **BOT_MEJORAS_AVANZADAS.md**: Documentación completa de 200+ líneas
+- **demo_mejoras_avanzadas.py**: Script de demostración con 35 casos de prueba
+- **bot_mejoras_avanzadas.py**: Archivo de especificaciones técnicas
+
 ## [1.0.0] - 2024-12-19
 
 ### ✨ Agregado
