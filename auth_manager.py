@@ -512,4 +512,3 @@ class AuthManager:
             logger.error(f"❌ Error vinculando Telegram por ID: {e}")
             return False, "Error interno del servidor", None
     
-    def _ensure_telegram_columns(self): 
