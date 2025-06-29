@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import logging
 from typing import Dict, List, Optional, Any
 from config import Config
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -28,18 +29,29 @@ class SheetsManager:
                 'https://www.googleapis.com/auth/drive'
             ]
             
-            creds = Credentials.from_service_account_file(
-                Config.GOOGLE_CREDENTIALS_FILE, 
-                scopes=scopes
-            )
+            # Verificar si tenemos credenciales en variable de entorno (Railway)
+            if os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON'):
+                import json
+                service_account_info = json.loads(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON'))
+                creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
+                logger.info("✅ Credenciales cargadas desde GOOGLE_SERVICE_ACCOUNT_JSON")
+            elif Config.GOOGLE_CREDENTIALS_FILE and os.path.exists(Config.GOOGLE_CREDENTIALS_FILE):
+                # Usar archivo de credenciales local
+                creds = Credentials.from_service_account_file(
+                    Config.GOOGLE_CREDENTIALS_FILE, 
+                    scopes=scopes
+                )
+                logger.info("✅ Credenciales cargadas desde archivo local")
+            else:
+                raise Exception("❌ No se encontraron credenciales de Google Sheets")
             
             self.gc = gspread.authorize(creds)
             self.spreadsheet = self.gc.open_by_key(Config.GOOGLE_SHEETS_ID)
             
-            logger.info("Conexión exitosa con Google Sheets")
+            logger.info("✅ Conexión exitosa con Google Sheets")
             
         except Exception as e:
-            logger.error(f"Error conectando con Google Sheets: {e}")
+            logger.error(f"❌ Error conectando con Google Sheets: {e}")
             raise
     
     def get_worksheet(self, sheet_name: str):
