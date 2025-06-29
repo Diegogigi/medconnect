@@ -49,7 +49,7 @@ echo "🌐 Railway requiere puerto 8080 para exposición pública"
 
 # Ejecutar aplicación web y bot en paralelo
 echo "🌐 Iniciando aplicación web en puerto $PORT..."
-gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --keep-alive 2 &
+gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --keep-alive 2 &
 GUNICORN_PID=$!
 
 echo "🤖 Iniciando bot SIMPLIFICADO de MedConnect..."
