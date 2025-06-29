@@ -46,8 +46,8 @@ fi
 echo "🌐 Iniciando aplicación web..."
 gunicorn app:app --bind 0.0.0.0:${PORT:-5000} --workers 2 --timeout 120 --keep-alive 2 --daemon
 
-echo "🤖 Iniciando bot de Telegram..."
-python run_bot.py &
+echo "🤖 Iniciando bot de Telegram (versión corregida)..."
+python bot_fixed.py &
 
 # Mantener el script corriendo
 wait 
