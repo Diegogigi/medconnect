@@ -51,8 +51,8 @@ echo "🌐 Iniciando aplicación web en puerto $PORT..."
 gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --keep-alive 2 &
 GUNICORN_PID=$!
 
-echo "🤖 Iniciando bot de EMERGENCIA..."
-python bot_emergency.py &
+echo "🤖 Iniciando bot OFICIAL de MedConnect..."
+python bot.py &
 BOT_PID=$!
 
 echo "✅ Web app PID: $GUNICORN_PID"
