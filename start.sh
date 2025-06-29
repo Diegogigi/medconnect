@@ -44,18 +44,18 @@ if [ -f "/tmp/medconnect_bot.lock" ]; then
     rm -f /tmp/medconnect_bot.lock
 fi
 
-# Ejecutar aplicación web y bot en paralelo
+# Ejecutar aplicación web y bot webhook en paralelo
 echo "🌐 Iniciando aplicación web en puerto $PORT..."
 gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --keep-alive 2 &
 GUNICORN_PID=$!
 
-echo "🤖 Iniciando bot de instancia única..."
-python bot_single_instance.py &
+echo "🤖 Iniciando bot webhook..."
+python bot_webhook.py &
 BOT_PID=$!
 
 echo "✅ Servicios iniciados:"
 echo "   🌐 Web App (PID: $GUNICORN_PID)"
-echo "   🤖 Bot (PID: $BOT_PID)"
+echo "   🤖 Bot Webhook (PID: $BOT_PID)"
 
 # Función para limpiar procesos al salir
 cleanup() {
