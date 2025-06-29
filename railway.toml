@@ -1,0 +1,16 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "pip install -r requirements.txt"
+
+[deploy]
+startCommand = "bash start.sh"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[build.env]
+NIXPACKS_PYTHON_VERSION = "3.11"
+
+[deploy.env]
+PORT = "5000" 

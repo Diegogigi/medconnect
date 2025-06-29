@@ -42,12 +42,30 @@ else
     source venv/bin/activate
 fi
 
+# Configurar puerto para Railway
+export PORT=${PORT:-5000}
+echo "🔧 Puerto configurado: $PORT"
+
 # Ejecutar aplicación web y bot en paralelo
-echo "🌐 Iniciando aplicación web..."
-gunicorn app:app --bind 0.0.0.0:${PORT:-5000} --workers 2 --timeout 120 --keep-alive 2 --daemon
+echo "🌐 Iniciando aplicación web en puerto $PORT..."
+gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --keep-alive 2 &
+GUNICORN_PID=$!
 
-echo "🤖 Iniciando bot de DIAGNÓSTICO..."
-python bot_debug.py &
+echo "🤖 Iniciando bot de EMERGENCIA..."
+python bot_emergency.py &
+BOT_PID=$!
 
-# Mantener el script corriendo
+echo "✅ Web app PID: $GUNICORN_PID"
+echo "✅ Bot PID: $BOT_PID"
+
+# Función para manejar señales
+cleanup() {
+    echo "🛑 Deteniendo servicios..."
+    kill $GUNICORN_PID $BOT_PID 2>/dev/null
+    exit 0
+}
+trap cleanup SIGINT SIGTERM
+
+# Mantener ambos procesos corriendo
+echo "🔄 Servicios iniciados, monitoreando..."
 wait 
