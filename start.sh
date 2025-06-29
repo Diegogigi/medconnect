@@ -43,8 +43,9 @@ else
 fi
 
 # Configurar puerto para Railway
-export PORT=${PORT:-5000}
+export PORT=${PORT:-8080}
 echo "🔧 Puerto configurado: $PORT"
+echo "🌐 Railway requiere puerto 8080 para exposición pública"
 
 # Ejecutar aplicación web y bot en paralelo
 echo "🌐 Iniciando aplicación web en puerto $PORT..."
