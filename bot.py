@@ -40,22 +40,31 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def get_google_credentials():
     """Obtiene las credenciales de Google desde variables de entorno"""
     import json
-    import base64
     
+    # Priorizar GOOGLE_SERVICE_ACCOUNT_JSON (Railway) sobre GOOGLE_CREDENTIALS_FILE
+    credentials_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+    if credentials_json:
+        try:
+            return json.loads(credentials_json)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error decodificando GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
+    
+    # Fallback a GOOGLE_CREDENTIALS_FILE con base64
     credentials_b64 = os.environ.get('GOOGLE_CREDENTIALS_FILE')
-    if not credentials_b64:
-        raise ValueError("GOOGLE_CREDENTIALS_FILE no está configurado")
+    if credentials_b64:
+        try:
+            import base64
+            credentials_json = base64.b64decode(credentials_b64).decode('utf-8')
+            return json.loads(credentials_json)
+        except Exception as e:
+            raise ValueError(f"Error decodificando GOOGLE_CREDENTIALS_FILE: {e}")
     
-    try:
-        # Decodificar las credenciales desde base64
-        credentials_json = base64.b64decode(credentials_b64).decode('utf-8')
-        return json.loads(credentials_json)
-    except Exception as e:
-        raise ValueError(f"Error decodificando credenciales: {e}")
+    raise ValueError("No se encontraron credenciales de Google. Configura GOOGLE_SERVICE_ACCOUNT_JSON o GOOGLE_CREDENTIALS_FILE")
 
 # Obtener credenciales al inicializar
 try:
     GOOGLE_CREDS = get_google_credentials()
+    logger.info("✅ Credenciales de Google cargadas exitosamente")
 except Exception as e:
     logger.error(f"❌ Error cargando credenciales de Google: {e}")
     GOOGLE_CREDS = None

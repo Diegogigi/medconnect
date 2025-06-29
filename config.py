@@ -20,12 +20,12 @@ class Config:
     BASE_URL = f"https://{DOMAIN}"
     
     # Configuración de Telegram Bot
-    TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN') or '7618933472:AAEYCYi9Sso9YVP9aB8dLWvlZ-1hxqgdhck'
-    TELEGRAM_BOT_ID = os.environ.get('TELEGRAM_BOT_ID') or '1071410995'
+    TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+    TELEGRAM_BOT_ID = os.environ.get('TELEGRAM_BOT_ID')
     TELEGRAM_WEBHOOK_URL = f"{BASE_URL}/webhook"
     
     # Configuración de Google Sheets
-    GOOGLE_SHEETS_ID = os.environ.get('GOOGLE_SHEETS_ID') or '1UvnO2lpZSyv13Hf2eG--kQcTff5BBh7jrZ6taFLJypU'
+    GOOGLE_SHEETS_ID = os.environ.get('GOOGLE_SHEETS_ID')
     GOOGLE_CREDENTIALS_FILE = os.environ.get('GOOGLE_CREDENTIALS_FILE')
     
     # Configuración de la base de datos (Google Sheets como respaldo)
