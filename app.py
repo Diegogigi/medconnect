@@ -116,17 +116,25 @@ SCOPES = [
 def get_google_sheets_client():
     """Inicializa el cliente de Google Sheets"""
     try:
-        if os.path.exists(app.config['GOOGLE_SERVICE_ACCOUNT_FILE']):
+        # Verificar si existe archivo de credenciales local
+        credentials_file = app.config.get('GOOGLE_CREDENTIALS_FILE')
+        if credentials_file and os.path.exists(credentials_file):
             creds = Credentials.from_service_account_file(
-                app.config['GOOGLE_SERVICE_ACCOUNT_FILE'], 
+                credentials_file, 
                 scopes=SCOPES
             )
         else:
-            # Para Railway, usar variables de entorno
-            service_account_info = json.loads(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '{}'))
-            creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+            # Para Railway, usar variables de entorno (método preferido)
+            service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '{}')
+            if service_account_json != '{}':
+                service_account_info = json.loads(service_account_json)
+                creds = Credentials.from_service_account_info(service_account_info, scopes=SCOPES)
+            else:
+                logger.error("❌ No se encontraron credenciales de Google Sheets")
+                return None
         
         client = gspread.authorize(creds)
+        logger.info("✅ Cliente de Google Sheets inicializado correctamente")
         return client
     except Exception as e:
         logger.error(f"Error inicializando Google Sheets: {e}")
