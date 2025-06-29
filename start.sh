@@ -7,27 +7,19 @@ echo ""
 
 # Verificar variables de entorno críticas
 echo "🔍 === VERIFICANDO VARIABLES DE ENTORNO ==="
+if [ -z "$PORT" ]; then
+    echo "❌ Error: Variable PORT no configurada"
+    exit 1
+fi
+
 if [ -z "$TELEGRAM_BOT_TOKEN" ]; then
-    echo "❌ TELEGRAM_BOT_TOKEN no configurado"
+    echo "❌ Error: Variable TELEGRAM_BOT_TOKEN no configurada"
     exit 1
-else
-    echo "✅ TELEGRAM_BOT_TOKEN configurado"
 fi
 
-if [ -z "$GOOGLE_SHEETS_ID" ]; then
-    echo "❌ GOOGLE_SHEETS_ID no configurado"
-    exit 1
-else
-    echo "✅ GOOGLE_SHEETS_ID configurado"
-fi
-
-if [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
-    echo "❌ GOOGLE_SERVICE_ACCOUNT_JSON no configurado"
-    exit 1
-else
-    echo "✅ GOOGLE_SERVICE_ACCOUNT_JSON configurado"
-    echo "📝 JSON length: ${#GOOGLE_SERVICE_ACCOUNT_JSON} caracteres"
-fi
+echo "✅ Variables de entorno verificadas"
+echo "🌐 Puerto: $PORT"
+echo "🤖 Bot Token: ${TELEGRAM_BOT_TOKEN:0:10}..."
 
 echo ""
 echo "🚀 === INICIANDO SERVICIOS ==="
@@ -43,7 +35,6 @@ else
 fi
 
 # Configurar puerto para Railway
-export PORT=${PORT:-8080}
 echo "🔧 Puerto configurado: $PORT"
 echo "🌐 Railway requiere puerto 8080 para exposición pública"
 
@@ -52,21 +43,24 @@ echo "🌐 Iniciando aplicación web en puerto $PORT..."
 gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --keep-alive 2 &
 GUNICORN_PID=$!
 
-echo "🤖 Iniciando bot avanzado de Telegram..."
-python bot_advanced.py &
+echo "🤖 Iniciando bot corregido de Telegram..."
+python bot_fixed.py &
 BOT_PID=$!
 
-echo "✅ Web app PID: $GUNICORN_PID"
-echo "✅ Bot PID: $BOT_PID"
+echo "✅ Servicios iniciados:"
+echo "   🌐 Web App (PID: $GUNICORN_PID)"
+echo "   🤖 Bot (PID: $BOT_PID)"
 
-# Función para manejar señales
+# Función para limpiar procesos al salir
 cleanup() {
     echo "🛑 Deteniendo servicios..."
-    kill $GUNICORN_PID $BOT_PID 2>/dev/null
+    kill $GUNICORN_PID 2>/dev/null
+    kill $BOT_PID 2>/dev/null
     exit 0
 }
-trap cleanup SIGINT SIGTERM
 
-# Mantener ambos procesos corriendo
-echo "🔄 Servicios iniciados, monitoreando..."
+# Capturar señales de terminación
+trap cleanup SIGTERM SIGINT
+
+# Esperar a que los procesos terminen
 wait 
