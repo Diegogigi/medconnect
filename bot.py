@@ -1330,13 +1330,13 @@ Puedo ayudarte con muchas cosas relacionadas con tu salud:
         """Procesa mensajes de texto recibidos"""
         try:
             text = message.get('text', '').lower().strip()
-        chat_id = message['chat']['id']
-        user_id = message['from']['id']
+            chat_id = message['chat']['id']
+            user_id = message['from']['id']
             
             # Verificar si el usuario está registrado
             if not self.is_user_registered(user_id):
                 self.send_message(chat_id, "👋 ¡Hola! Para usar MedConnect necesitas registrarte primero.\n\n🌐 Visita: https://medconnect.cl/register")
-            return
+                return
         
             # Obtener información del usuario
             user_data = self.get_user_data(user_id)
@@ -1387,7 +1387,7 @@ Puedo ayudarte con muchas cosas relacionadas con tu salud:
             if text.startswith('gestionar '):
                 target_name = text.replace('gestionar ', '').strip()
                 self.switch_managed_user(chat_id, user_id, target_name)
-            return
+                return
         
             # Procesar información médica con formato específico
             if self.is_medical_data(text):
@@ -1449,7 +1449,7 @@ Puedo ayudarte con muchas cosas relacionadas con tu salud:
             
             if managing_user:
                 menu_text = f"🔔 <b>Notificaciones para {managing_user['nombre']}</b>\n\n"
-                else:
+            else:
                 menu_text = f"🔔 <b>Tus Notificaciones</b>\n\n"
             
             # Obtener recordatorios activos
