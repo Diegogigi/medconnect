@@ -38,13 +38,19 @@ fi
 echo "🔧 Puerto configurado: $PORT"
 echo "🌐 Railway requiere puerto 8080 para exposición pública"
 
+# Limpiar archivo de bloqueo si existe
+if [ -f "/tmp/medconnect_bot.lock" ]; then
+    echo "🧹 Limpiando archivo de bloqueo anterior..."
+    rm -f /tmp/medconnect_bot.lock
+fi
+
 # Ejecutar aplicación web y bot en paralelo
 echo "🌐 Iniciando aplicación web en puerto $PORT..."
 gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --keep-alive 2 &
 GUNICORN_PID=$!
 
-echo "🤖 Iniciando bot corregido de Telegram..."
-python bot_fixed.py &
+echo "🤖 Iniciando bot de instancia única..."
+python bot_single_instance.py &
 BOT_PID=$!
 
 echo "✅ Servicios iniciados:"
@@ -56,6 +62,7 @@ cleanup() {
     echo "🛑 Deteniendo servicios..."
     kill $GUNICORN_PID 2>/dev/null
     kill $BOT_PID 2>/dev/null
+    rm -f /tmp/medconnect_bot.lock 2>/dev/null
     exit 0
 }
 
