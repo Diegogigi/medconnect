@@ -1624,7 +1624,7 @@ Puedo ayudarte con muchas cosas relacionadas con tu salud:
             
             if data['ok']:
                 return data['result']
-        else:
+            else:
                 logger.error(f"❌ Error en respuesta de Telegram: {data}")
                 return []
                 
@@ -1795,19 +1795,19 @@ Puedo ayudarte con muchas cosas relacionadas con tu salud:
                 # Determinar tipo de archivo y emoji
                 ext = filename.split('.')[-1].lower() if '.' in filename else 'unknown'
                 
-                            if ext == 'pdf':
+                if ext == 'pdf':
                     emoji = "📄"
                     file_type = "PDF"
-                            elif ext in ['jpg', 'jpeg', 'png', 'gif']:
+                elif ext in ['jpg', 'jpeg', 'png', 'gif']:
                     emoji = "🖼️"
                     file_type = "Imagen"
-                            elif ext in ['doc', 'docx']:
+                elif ext in ['doc', 'docx']:
                     emoji = "📝"
                     file_type = "Word"
-                            elif ext in ['dcm', 'dicom']:
+                elif ext in ['dcm', 'dicom']:
                     emoji = "🩻"
                     file_type = "DICOM"
-                            else:
+                else:
                     emoji = "📎"
                     file_type = ext.upper()
                 
