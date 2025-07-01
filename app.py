@@ -4,6 +4,7 @@
 import os
 import sys
 import logging
+import time
 
 # Configurar logging temprano para debugging
 logging.basicConfig(
@@ -17,7 +18,7 @@ logger.info("🚀 Iniciando importaciones de MedConnect...")
 
 try:
     logger.info("📦 Importando Flask...")
-    from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, make_response, send_from_directory
+    from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash, make_response, send_from_directory, send_file, abort
     logger.info("✅ Flask importado exitosamente")
     
     logger.info("📦 Importando Flask-CORS...")
@@ -27,6 +28,9 @@ try:
     logger.info("📦 Importando bibliotecas estándar...")
     import requests
     import json
+    import pdfkit
+    import tempfile
+    from io import BytesIO
     from datetime import datetime, timedelta
     logger.info("✅ Bibliotecas estándar importadas")
     
@@ -38,6 +42,7 @@ try:
     logger.info("📦 Importando módulos locales...")
     from config import get_config, SHEETS_CONFIG
     from auth_manager import AuthManager
+    from backend.database.sheets_manager import sheets_db
     logger.info("✅ Módulos locales importados")
     
     logger.info("📦 Importando otras dependencias...")
@@ -97,12 +102,11 @@ logger.info(f"🌐 Static URL path: {app.static_url_path}")
 CORS(app, origins=config.CORS_ORIGINS)
 
 # Configuración para subida de archivos
-UPLOAD_FOLDER = 'static/uploads/medical_files'
-ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'dcm', 'dicom'}
-MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 
 # Crear directorio de uploads si no existe
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -191,7 +195,9 @@ def get_spreadsheet():
 
 def get_current_user():
     """Obtiene los datos del usuario actual desde la sesión"""
-    return session.get('user_data', {})
+    user_data = session.get('user_data', {})
+    logger.info(f"🔍 Datos del usuario en sesión: {user_data}")
+    return user_data
 
 def allowed_file(filename):
     """Verifica si el archivo tiene una extensión permitida"""
@@ -244,6 +250,23 @@ def register():
                 'ciudad': request.form.get('ciudad', '').strip(),
                 'tipo_usuario': request.form.get('tipo_usuario', '').strip()
             }
+            
+            # Agregar campos específicos para profesionales
+            if user_data['tipo_usuario'] == 'profesional':
+                user_data.update({
+                    'profesion': request.form.get('profesion', '').strip(),
+                    'especialidad': request.form.get('especialidad', '').strip(),
+                    'numero_registro': request.form.get('numero_registro', '').strip(),
+                    'anos_experiencia': request.form.get('anos_experiencia', '0').strip(),
+                    'institucion': request.form.get('institucion', '').strip(),
+                    'titulo': request.form.get('titulo', '').strip(),
+                    'ano_egreso': request.form.get('ano_egreso', '').strip(),
+                    'idiomas': request.form.get('idiomas', 'Español').strip(),
+                    'direccion_consulta': request.form.get('direccion_consulta', '').strip(),
+                    'horario_atencion': request.form.get('horario_atencion', '').strip(),
+                    'areas_especializacion': request.form.get('areas_especializacion', '').strip(),
+                    'certificaciones': request.form.get('certificaciones', '').strip()
+                })
             
             # Validar confirmación de contraseña
             confirm_password = request.form.get('confirm_password', '')
@@ -464,21 +487,119 @@ def patient_dashboard():
         logger.error(f"Error en dashboard paciente: {e}")
         return render_template('patient.html', user={}, just_logged_in=False)
 
+def infer_gender_from_name(nombre):
+    """Infiere el género basado en el nombre"""
+    # Lista de terminaciones comunes para nombres femeninos en español
+    terminaciones_femeninas = ['a', 'na', 'ia', 'la', 'ra', 'da', 'ta', 'ina', 'ela', 'isa', 'ana', 'elle', 'ella']
+    # Excepciones conocidas (nombres masculinos que terminan en 'a')
+    excepciones_masculinas = ['juan pablo', 'jose maria', 'luca', 'matias', 'tobias', 'elias']
+    
+    if not nombre:
+        return 'M'  # valor por defecto
+        
+    nombre = nombre.lower().strip()
+    
+    # Verificar excepciones primero
+    if nombre in excepciones_masculinas:
+        return 'M'
+        
+    # Verificar terminaciones femeninas
+    for terminacion in terminaciones_femeninas:
+        if nombre.endswith(terminacion):
+            return 'F'
+            
+    return 'M'  # Si no coincide con patrones femeninos, asumir masculino
+
+def get_gendered_profession(profesion, genero=None, nombre=None):
+    """Retorna la profesión con el género correcto"""
+    profesiones = {
+        'FONOAUDIOLOGÍA': {'M': 'Fonoaudiólogo', 'F': 'Fonoaudióloga'},
+        'KINESIOLOGÍA': {'M': 'Kinesiólogo', 'F': 'Kinesióloga'},
+        'TERAPIA OCUPACIONAL': {'M': 'Terapeuta Ocupacional', 'F': 'Terapeuta Ocupacional'},
+        'PSICOLOGÍA': {'M': 'Psicólogo', 'F': 'Psicóloga'},
+        'NUTRICIÓN': {'M': 'Nutricionista', 'F': 'Nutricionista'},
+        'MEDICINA': {'M': 'Doctor', 'F': 'Doctora'},
+        'ENFERMERÍA': {'M': 'Enfermero', 'F': 'Enfermera'}
+    }
+    
+    if not profesion:
+        return ''
+        
+    profesion = profesion.upper()
+    if profesion not in profesiones:
+        return profesion
+        
+    # Si no hay género explícito, intentar inferirlo del nombre
+    if not genero and nombre:
+        genero = infer_gender_from_name(nombre)
+        logger.info(f"🔍 Género inferido del nombre '{nombre}': {genero}")
+    
+    # Normalizar el género a 'M' o 'F'
+    if genero:
+        genero = genero.upper()
+        if genero.startswith('M'):  # Matches 'M' or 'MASCULINO'
+            genero = 'M'
+        elif genero.startswith('F'):  # Matches 'F' or 'FEMENINO'
+            genero = 'F'
+        else:
+            genero = 'M'  # Default to M for other values
+    else:
+        genero = 'M'  # Default to M if no gender provided
+        
+    logger.info(f"🔍 Usando género normalizado: {genero} para profesión: {profesion}")
+    
+    profesion_gendered = profesiones[profesion].get(genero, profesiones[profesion]['M'])
+    logger.info(f"🔍 Profesión con género generada: {profesion_gendered}")
+    
+    return profesion_gendered
+
 @app.route('/professional')
 @login_required
 def professional_dashboard():
-    """Dashboard para profesionales"""
+    """Ruta para el dashboard del profesional"""
     try:
-        user_data = session.get('user_data', {})
-        just_logged_in = session.pop('just_logged_in', False)  # Obtener y remover el flag
+        user_data = get_current_user()
+        profesional_id = user_data.get('id')
         
-        # Log para debugging
-        if just_logged_in:
-            logger.info(f"🎉 Mostrando mensaje de bienvenida para profesional: {user_data.get('nombre', 'Usuario')}")
+        logger.info(f"🔍 Datos iniciales del usuario: {user_data}")
         
-        return render_template('professional.html', 
+        # Cargar datos completos del profesional
+        if profesional_id:
+            professional_data = auth_manager.get_professional_by_id(profesional_id)
+            if professional_data:
+                # Actualizar datos del usuario con información de la hoja
+                user_data.update({
+                    'profesion': professional_data.get('Profesion', ''),
+                    'especialidad': professional_data.get('Especialidad', ''),
+                    'numero_registro': professional_data.get('Numero_Registro', ''),
+                    'disponible': str(professional_data.get('Disponible', 'true')).lower() == 'true',
+                    'genero': professional_data.get('genero', '')  # Obtenido de la hoja de usuarios
+                })
+                
+                logger.info(f"🔍 Datos después de actualizar con professional_data: {user_data}")
+                
+                # Si no hay género explícito, intentar inferirlo del nombre
+                if not user_data['genero']:
+                    user_data['genero'] = infer_gender_from_name(user_data.get('nombre', ''))
+                    logger.info(f"🔍 Género inferido del nombre: {user_data['genero']}")
+                    
+                # Obtener la profesión con el género correcto
+                user_data['profesion_gendered'] = get_gendered_profession(
+                    user_data['profesion'], 
+                    user_data['genero']
+                )
+                logger.info(f"🔍 Profesión con género: {user_data['profesion_gendered']}")
+                
+                # Actualizar la sesión con los datos actualizados
+                session['user_data'] = user_data
+                logger.info(f"🔍 Sesión actualizada con nuevos datos: {session['user_data']}")
+        
+        return render_template(
+            'professional.html',
                              user=user_data, 
-                             just_logged_in=just_logged_in)
+            just_logged_in=session.pop('just_logged_in', False)
+        )
+        
     except Exception as e:
         logger.error(f"Error en dashboard profesional: {e}")
         return render_template('professional.html', user={}, just_logged_in=False)
@@ -486,12 +607,92 @@ def professional_dashboard():
 @app.route('/profile')
 @login_required
 def profile():
-    """Página de perfil de usuario"""
+    """Página de perfil del usuario"""
     logger.info("🔍 INICIANDO función profile()")
     try:
         user_data = session.get('user_data', {})
         logger.info(f"🔍 Datos del usuario en perfil: {user_data}")
         logger.info(f"🔍 Sesión completa: {dict(session)}")
+        
+        # Verificar si es un profesional
+        if user_data.get('tipo_usuario') == 'profesional':
+            # Agregar campos adicionales para el perfil profesional
+            professional_data = user_data.copy()
+            professional_data.update({
+                'calificacion': 4.5,  # Valor por defecto
+                'total_pacientes': 0,
+                'atenciones_mes': 0,
+                'tiempo_respuesta': '24h',
+                'disponible': True,
+                'numero_registro': 'Por completar',
+                'especialidad': 'Por completar',
+                'subespecialidades': 'Por completar',
+                'anos_experiencia': 0,
+                'idiomas': ['Español'],
+                'direccion_consulta': user_data.get('direccion', 'Por completar'),
+                'horario_atencion': 'Lunes a Viernes 9:00 - 18:00',
+                'certificaciones': [],
+                'areas_especializacion': []
+            })
+            
+            # Intentar obtener datos reales desde Google Sheets
+            try:
+                user_id = user_data.get('id')
+                if user_id:
+                    # Obtener datos completos del profesional
+                    professional_sheet_data = auth_manager.get_professional_by_id(user_id)
+                    if professional_sheet_data:
+                        # Mapear campos específicos
+                        field_mapping = {
+                            'Numero_Registro': 'numero_registro',
+                            'Especialidad': 'especialidad',
+                            'Anos_Experiencia': 'anos_experiencia',
+                            'Calificacion': 'calificacion',
+                            'Direccion_Consulta': 'direccion_consulta',
+                            'Horario_Atencion': 'horario_atencion',
+                            'Idiomas': 'idiomas_str',
+                            'Areas_Especializacion': 'areas_especializacion_str',
+                            'Disponible': 'disponible_str',
+                            'Profesion': 'profesion'
+                        }
+                        
+                        for sheet_field, local_field in field_mapping.items():
+                            if sheet_field in professional_sheet_data:
+                                professional_data[local_field] = professional_sheet_data[sheet_field]
+                        
+                        # Procesar campos especiales
+                        if 'idiomas_str' in professional_data:
+                            idiomas_str = professional_data['idiomas_str'] or 'Español'
+                            professional_data['idiomas'] = [idioma.strip() for idioma in idiomas_str.split(',') if idioma.strip()]
+                        
+                        if 'areas_especializacion_str' in professional_data:
+                            areas_str = professional_data['areas_especializacion_str'] or ''
+                            professional_data['areas_especializacion'] = [area.strip() for area in areas_str.split(',') if area.strip()]
+                        
+                        if 'disponible_str' in professional_data:
+                            professional_data['disponible'] = str(professional_data['disponible_str']).lower() == 'true'
+                        
+                        # Convertir tipos de datos
+                        if 'anos_experiencia' in professional_data:
+                            try:
+                                professional_data['anos_experiencia'] = int(professional_data['anos_experiencia'] or 0)
+                            except:
+                                professional_data['anos_experiencia'] = 0
+                        
+                        if 'calificacion' in professional_data:
+                            try:
+                                professional_data['calificacion'] = float(professional_data['calificacion'] or 4.5)
+                            except:
+                                professional_data['calificacion'] = 4.5
+                    
+                    # Obtener certificaciones del profesional
+                    certificaciones = auth_manager.get_professional_certifications(user_id)
+                    professional_data['certificaciones'] = certificaciones
+                
+            except Exception as e:
+                logger.warning(f"Error accediendo a datos profesionales: {e}")
+            
+            return render_template('profile_professional.html', user=professional_data)
         
         # Crear respuesta sin cache
         response = make_response(render_template('profile.html', user=user_data))
@@ -1969,6 +2170,12 @@ def uploaded_file(filename):
     """Servir archivos médicos subidos"""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+@app.route('/uploads/certifications/<filename>')
+@login_required
+def certification_file(filename):
+    """Servir archivos de certificaciones"""
+    return send_from_directory(os.path.join(app.config['UPLOAD_FOLDER'], 'certifications'), filename)
+
 @app.route('/api/patient/<patient_id>/exams/upload', methods=['POST'])
 @login_required
 def upload_exam_file(patient_id):
@@ -3167,6 +3374,1564 @@ def unlink_telegram():
     except Exception as e:
         logger.error(f"❌ Error desvinculando Telegram: {e}")
         return jsonify({'error': 'Error interno del servidor'}), 500
+
+@app.route('/api/update-professional-profile', methods=['POST'])
+@login_required
+def update_professional_profile():
+    """Actualiza el perfil del profesional"""
+    try:
+        if session.get('user_type') != 'profesional':
+            return jsonify({'error': 'Acceso denegado: Solo para profesionales'}), 403
+
+        user_data = session.get('user_data', {})
+        user_id = user_data.get('id')
+        
+        if not user_id:
+            return jsonify({'error': 'Usuario no identificado'}), 400
+        
+        form_data = request.form.to_dict()
+        logger.info(f"🔄 Actualizando perfil profesional - Usuario: {user_id}, Datos: {form_data}")
+        
+        # Validar datos requeridos según la sección
+        if 'especialidad' in form_data:
+            # Sección profesional
+            required_fields = ['especialidad', 'numero_registro']
+            for field in required_fields:
+                if not form_data.get(field, '').strip():
+                    return jsonify({'error': f'El campo {field} es requerido'}), 400
+
+        if 'email' in form_data:
+            # Sección contacto
+            required_fields = ['email', 'telefono']
+            for field in required_fields:
+                if not form_data.get(field, '').strip():
+                    return jsonify({'error': f'El campo {field} es requerido'}), 400
+
+        # Usar auth_manager para actualizar el profesional
+        success, message = auth_manager.update_professional_profile(user_id, form_data)
+            
+        if success:
+            # Actualizar datos en la sesión si la actualización fue exitosa
+            updated_data = auth_manager.get_professional_by_id(user_id)
+            if updated_data:
+                # Combinar datos actualizados con datos de sesión
+                user_data.update(updated_data)
+                session['user_data'] = user_data
+            
+            logger.info(f"✅ Perfil profesional actualizado - Usuario: {user_id}")
+            return jsonify({'message': message}), 200
+        else:
+            return jsonify({'error': message}), 400
+
+    except Exception as e:
+        logger.error(f"❌ Error en update_professional_profile: {e}")
+        return jsonify({'error': 'Error interno del servidor'}), 500
+
+@app.route('/api/add-specialization-area', methods=['POST'])
+@login_required
+def add_specialization_area():
+    """Agrega un área de especialización al perfil del profesional"""
+    try:
+        if session.get('user_type') != 'profesional':
+            return jsonify({'error': 'Acceso denegado: Solo para profesionales'}), 403
+
+        user_data = session.get('user_data', {})
+        form_data = request.form.to_dict()
+        
+        # Validar datos requeridos
+        if not form_data.get('nombre'):
+            return jsonify({'error': 'El nombre del área es requerido'}), 400
+
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'error': 'Error conectando con la base de datos'}), 500
+
+        try:
+            worksheet = spreadsheet.worksheet('Profesionales')
+            # Buscar al profesional por email
+            cell = worksheet.find(user_data.get('email'))
+            
+            if cell:
+                # Obtener áreas actuales
+                areas_cell = worksheet.cell(cell.row, 13)  # Columna M para áreas
+                areas_actuales = areas_cell.value.split('\n') if areas_cell.value else []
+                
+                # Agregar nueva área
+                nueva_area = form_data.get('nombre')
+                if form_data.get('descripcion'):
+                    nueva_area += f": {form_data.get('descripcion')}"
+                
+                areas_actuales.append(nueva_area)
+                
+                # Actualizar en Google Sheets
+                worksheet.update_cell(cell.row, 13, '\n'.join(areas_actuales))
+                
+                # Actualizar datos en la sesión
+                professional_data = user_data.copy()
+                professional_data['areas_especializacion'] = areas_actuales
+                session['user_data'] = professional_data
+
+                return jsonify({
+                    'message': 'Área de especialización agregada correctamente',
+                    'areas': areas_actuales
+                })
+            else:
+                return jsonify({'error': 'Profesional no encontrado'}), 404
+
+        except Exception as e:
+            logger.error(f"Error agregando área de especialización: {e}")
+            return jsonify({'error': 'Error al actualizar la base de datos'}), 500
+
+    except Exception as e:
+        logger.error(f"Error en add_specialization_area: {e}")
+        return jsonify({'error': 'Error al agregar el área de especialización'}), 500
+
+# === RUTAS PARA GESTIÓN DE ATENCIONES ===
+
+@app.route('/api/test-atencion', methods=['GET'])
+@login_required
+def test_atencion():
+    """Ruta de prueba para verificar el sistema de atenciones"""
+    try:
+        logger.info("🧪 Iniciando test_atencion")
+        
+        user_data = session.get('user_data', {})
+        logger.info(f"👤 Usuario de prueba: {user_data}")
+        
+        # Probar conexión con Google Sheets
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con Google Sheets'})
+        
+        # Probar acceso a la hoja
+        try:
+            worksheet = spreadsheet.worksheet('Atenciones_Medicas')
+            records = worksheet.get_all_records()
+            logger.info(f"📊 Registros en hoja: {len(records)}")
+        except Exception as e:
+            logger.warning(f"⚠️ Hoja no existe, será creada: {e}")
+            records = []
+        
+        return jsonify({
+            'success': True,
+            'message': 'Sistema funcionando correctamente',
+            'user_id': user_data.get('id', session.get('user_id', '')),
+            'user_email': user_data.get('email', ''),
+            'total_records': len(records),
+            'sheets_connected': True
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error en test_atencion: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/register-atencion', methods=['POST'])
+@login_required
+def register_atencion():
+    """Registra una nueva atención médica, incluyendo archivos."""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+
+        # Verificar si es JSON o FormData
+        if request.content_type and 'application/json' in request.content_type:
+            # Datos JSON (sin archivos)
+            data = request.get_json()
+            archivos = []
+            logger.info(f"📋 Datos JSON recibidos: {data}")
+        else:
+            # Datos de formulario (con posibles archivos)
+            data = request.form.to_dict()
+            archivos = request.files.getlist('files[]')
+            logger.info(f"📋 Datos de formulario recibidos: {data}")
+            logger.info(f"📄 Archivos recibidos: {len(archivos)}")
+
+        # Obtener el nombre del profesional
+        try:
+            spreadsheet = get_spreadsheet()
+            profesionales_sheet = spreadsheet.worksheet('Profesionales')
+            profesionales_records = profesionales_sheet.get_all_records()
+            
+            profesional_nombre = "Profesional"
+            for prof in profesionales_records:
+                if str(prof.get('profesional_id', '')) == str(profesional_id):
+                    profesional_nombre = f"{prof.get('nombre', '')} {prof.get('apellido', '')}".strip()
+                    break
+        except Exception as e:
+            logger.warning(f"No se pudo obtener nombre del profesional: {e}")
+            profesional_nombre = "Profesional"
+
+        # Agregar datos faltantes
+        data['profesional_id'] = profesional_id
+        data['profesional_nombre'] = profesional_nombre
+        data['tiene_archivos'] = 'Sí' if archivos else 'No'
+
+        # Registrar la atención en la hoja de cálculo
+        atencion_id, nueva_fila = sheets_db.registrar_atencion(data)
+
+        # Si la atención se registró y hay archivos, procesarlos
+        if atencion_id and archivos:
+            logger.info(f"📎 Procesando {len(archivos)} archivos para atención {atencion_id}...")
+            
+            # Crear subdirectorio para la atención
+            atencion_folder = os.path.join(UPLOAD_FOLDER, atencion_id)
+            if not os.path.exists(atencion_folder):
+                os.makedirs(atencion_folder)
+
+            for archivo in archivos:
+                if archivo and archivo.filename:
+                    try:
+                        # Guardar archivo en el servidor
+                        filename = secure_filename(archivo.filename)
+                        file_path = os.path.join(atencion_folder, filename)
+                        
+                        # Si ya existe un archivo con ese nombre, agregar timestamp
+                        if os.path.exists(file_path):
+                            name, ext = os.path.splitext(filename)
+                            filename = f"{name}_{int(time.time())}{ext}"
+                            file_path = os.path.join(atencion_folder, filename)
+                        
+                        archivo.save(file_path)
+                        tamaño = os.path.getsize(file_path)
+                        
+                        # Registrar archivo en la hoja de cálculo
+                        archivo_data = {
+                            'atencion_id': atencion_id,
+                            'nombre_archivo': filename,
+                            'tipo_archivo': archivo.mimetype,
+                            'ruta_archivo': os.path.join('uploads', atencion_id, filename),
+                            'tamaño': tamaño
+                        }
+                        sheets_db.registrar_archivo_adjunto(archivo_data)
+                        logger.info(f"✅ Archivo '{filename}' guardado y registrado.")
+                    except Exception as e:
+                        logger.error(f"❌ Error procesando archivo {archivo.filename}: {e}")
+                        continue
+            
+        logger.info(f"✅ Atención {atencion_id} registrada exitosamente.")
+        return jsonify({
+                'success': True, 
+                'message': 'Atención registrada exitosamente',
+            'atencion_id': atencion_id,
+            'atencion': nueva_fila
+        })
+            
+    except Exception as e:
+        logger.error(f"❌ Error en register_atencion: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {e}'}), 500
+
+@app.route('/api/get-atenciones', methods=['GET'])
+@login_required
+def get_atenciones():
+    """Obtiene las atenciones registradas por el profesional"""
+    try:
+        logger.info("🔍 Iniciando get_atenciones")
+        
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        logger.info(f"👤 Datos del usuario: {user_data}")
+        logger.info(f"👨‍⚕️ Profesional ID: {profesional_id}")
+        
+        if not profesional_id:
+            logger.error("❌ Usuario no identificado")
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener la hoja de cálculo
+        logger.info("📊 Obteniendo spreadsheet...")
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            logger.error("❌ No se pudo obtener el spreadsheet")
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        logger.info("✅ Spreadsheet obtenido correctamente")
+        
+        try:
+            logger.info("📄 Obteniendo hoja Atenciones_Medicas...")
+            worksheet = spreadsheet.worksheet('Atenciones_Medicas')
+            logger.info("✅ Hoja encontrada, obteniendo registros...")
+            
+            records = worksheet.get_all_records()
+            logger.info(f"📋 Total de registros encontrados: {len(records)}")
+            
+            # Filtrar atenciones del profesional actual
+            atenciones_profesional = []
+            for i, record in enumerate(records):
+                record_profesional_id = str(record.get('profesional_id', ''))
+                logger.info(f"🔍 Registro {i+1}: profesional_id='{record_profesional_id}', buscando='{profesional_id}'")
+                
+                if record_profesional_id == str(profesional_id):
+                    logger.info(f"✅ Atención encontrada para el profesional: {record.get('atencion_id', '')}")
+                    atenciones_profesional.append({
+                        'atencion_id': record.get('atencion_id', ''),
+                        'paciente_nombre': record.get('paciente_nombre', ''),
+                        'paciente_rut': record.get('paciente_rut', ''),
+                        'paciente_edad': record.get('paciente_edad', ''),
+                        'fecha_hora': record.get('fecha_hora', ''),
+                        'tipo_atencion': record.get('tipo_atencion', ''),
+                        'motivo_consulta': record.get('motivo_consulta', ''),
+                        'diagnostico': record.get('diagnostico', ''),
+                        'tratamiento': record.get('tratamiento', ''),
+                        'fecha_registro': record.get('fecha_registro', ''),
+                        'estado': record.get('estado', '')
+                    })
+            
+            logger.info(f"📊 Total atenciones del profesional: {len(atenciones_profesional)}")
+            
+            # Ordenar por fecha más reciente
+            atenciones_profesional.sort(
+                key=lambda x: x.get('fecha_registro', ''), 
+                reverse=True
+            )
+            
+            logger.info("✅ Atenciones procesadas y ordenadas")
+            
+            return jsonify({
+                'success': True,
+                'atenciones': atenciones_profesional,
+                'total': len(atenciones_profesional)
+            })
+            
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo atenciones: {e}")
+            import traceback
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
+            return jsonify({'success': False, 'message': f'Error al consultar la base de datos: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"❌ Error en get_atenciones: {e}")
+        import traceback
+        logger.error(f"❌ Traceback completo: {traceback.format_exc()}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/get-atencion/<atencion_id>', methods=['GET'])
+@login_required
+def get_atencion(atencion_id):
+    """Obtiene los detalles de una atención específica"""
+    try:
+        logger.info(f"🔍 Obteniendo detalles de atención: {atencion_id}")
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            logger.error("❌ Usuario no identificado")
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            logger.error("❌ Error conectando con la base de datos")
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Atenciones_Medicas')
+            records = worksheet.get_all_records()
+            
+            # Buscar el registro
+            atencion = None
+            for record in records:
+                if str(record.get('atencion_id', '')) == str(atencion_id):
+                    atencion = record
+                    break
+            
+            if not atencion:
+                logger.error("❌ Atención no encontrada")
+                return jsonify({'success': False, 'message': 'Atención no encontrada'}), 404
+            
+            # Verificar que el profesional tiene acceso a esta atención
+            if str(atencion.get('profesional_id', '')) != str(profesional_id):
+                logger.error("❌ Acceso no autorizado a la atención")
+                return jsonify({'success': False, 'message': 'No tiene permisos para ver esta atención'}), 403
+            
+            try:
+                # Obtener archivos adjuntos
+                archivos = sheets_db.get_archivos_atencion(atencion_id)
+                logger.info(f"📎 Archivos encontrados: {len(archivos)}")
+            except Exception as e:
+                logger.error(f"❌ Error obteniendo archivos adjuntos: {e}")
+                archivos = []
+            
+            return jsonify({
+                'success': True,
+                'atencion': {
+                    'atencion_id': atencion.get('atencion_id', ''),
+                    'paciente_id': atencion.get('paciente_id', ''),
+                    'paciente_nombre': atencion.get('paciente_nombre', ''),
+                    'paciente_rut': atencion.get('paciente_rut', ''),
+                    'paciente_edad': atencion.get('paciente_edad', ''),
+                    'fecha_hora': atencion.get('fecha_hora', ''),
+                    'tipo_atencion': atencion.get('tipo_atencion', ''),
+                    'motivo_consulta': atencion.get('motivo_consulta', ''),
+                    'diagnostico': atencion.get('diagnostico', ''),
+                    'tratamiento': atencion.get('tratamiento', ''),
+                    'observaciones': atencion.get('observaciones', ''),
+                    'estado': atencion.get('estado', ''),
+                    'tiene_archivos': atencion.get('tiene_archivos', False)
+                },
+                'archivos': archivos
+            })
+            
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo atención: {e}")
+            return jsonify({'success': False, 'message': 'Error al consultar la base de datos'}), 500
+            
+    except Exception as e:
+        logger.error(f"❌ Error en get_atencion: {e}")
+        return jsonify({'success': False, 'message': 'Error interno del servidor'}), 500
+
+@app.route('/api/update-atencion/<atencion_id>', methods=['PUT'])
+@login_required
+def update_atencion(atencion_id):
+    """Actualiza una atención específica"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener datos del formulario
+        data = request.get_json()
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Atenciones_Medicas')
+            records = worksheet.get_all_records()
+            
+            # Buscar y actualizar el registro
+            for i, record in enumerate(records, start=2):  # start=2 porque la fila 1 son headers
+                if (record.get('atencion_id') == atencion_id and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    
+                    # Actualizar los campos específicos
+                    if 'fecha_hora' in data:
+                        worksheet.update_cell(i, 7, data['fecha_hora'])
+                    if 'tipo_atencion' in data:
+                        worksheet.update_cell(i, 8, data['tipo_atencion'])
+                    if 'motivo_consulta' in data:
+                        worksheet.update_cell(i, 9, data['motivo_consulta'])
+                    if 'diagnostico' in data:
+                        worksheet.update_cell(i, 10, data['diagnostico'])
+                    if 'tratamiento' in data:
+                        worksheet.update_cell(i, 11, data['tratamiento'])
+                    if 'observaciones' in data:
+                        worksheet.update_cell(i, 12, data['observaciones'])
+                    if 'requiere_seguimiento' in data:
+                        worksheet.update_cell(i, 15, 'Sí' if data['requiere_seguimiento'] else 'No')
+                    
+                    logger.info(f"Atención {atencion_id} actualizada por profesional {profesional_id}")
+                    return jsonify({'success': True, 'message': 'Atención actualizada exitosamente'})
+            
+            return jsonify({'success': False, 'message': 'Atención no encontrada'}), 404
+            
+        except Exception as e:
+            logger.error(f"Error actualizando atención: {e}")
+            return jsonify({'success': False, 'message': 'Error al actualizar en la base de datos'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en update_atencion: {e}")
+        return jsonify({'success': False, 'message': 'Error interno del servidor'}), 500
+
+@app.route('/api/professional/patients', methods=['GET'])
+@login_required
+def get_professional_patients():
+    """Obtiene la lista de pacientes del profesional"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            # Intentar obtener o crear la hoja
+            try:
+                worksheet = spreadsheet.worksheet('Pacientes_Profesional')
+            except:
+                # Si no existe, crearla
+                headers = ['paciente_id', 'profesional_id', 'nombre_completo', 'rut', 'edad',
+                          'fecha_nacimiento', 'genero', 'telefono', 'email', 'direccion',
+                          'antecedentes_medicos', 'fecha_primera_consulta', 'ultima_consulta',
+                          'num_atenciones', 'estado_relacion', 'fecha_registro', 'notas']
+                worksheet = spreadsheet.add_worksheet(title='Pacientes_Profesional', rows=1000, cols=len(headers))
+                worksheet.append_row(headers)
+                logger.info("✅ Hoja Pacientes_Profesional creada")
+            
+            records = worksheet.get_all_records()
+            
+            # Filtrar pacientes del profesional actual
+            pacientes_profesional = []
+            for record in records:
+                if str(record.get('profesional_id', '')) == str(profesional_id):
+                    pacientes_profesional.append({
+                        'paciente_id': record.get('paciente_id', ''),
+                        'nombre_completo': record.get('nombre_completo', ''),
+                        'rut': record.get('rut', ''),
+                        'edad': record.get('edad', ''),
+                        'fecha_nacimiento': record.get('fecha_nacimiento', ''),
+                        'genero': record.get('genero', ''),
+                        'telefono': record.get('telefono', ''),
+                        'email': record.get('email', ''),
+                        'direccion': record.get('direccion', ''),
+                        'antecedentes_medicos': record.get('antecedentes_medicos', ''),
+                        'fecha_primera_consulta': record.get('fecha_primera_consulta', ''),
+                        'ultima_consulta': record.get('ultima_consulta', ''),
+                        'num_atenciones': record.get('num_atenciones', 0),
+                        'estado_relacion': record.get('estado_relacion', 'activo'),
+                        'fecha_registro': record.get('fecha_registro', ''),
+                        'notas': record.get('notas', '')
+                    })
+            
+            # Ordenar por fecha de registro más reciente
+            pacientes_profesional.sort(
+                key=lambda x: x.get('fecha_registro', ''), 
+                reverse=True
+            )
+            
+            logger.info(f"📊 Total pacientes del profesional {profesional_id}: {len(pacientes_profesional)}")
+            
+            return jsonify({
+                'success': True,
+                'pacientes': pacientes_profesional,
+                'total': len(pacientes_profesional)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo pacientes: {e}")
+            return jsonify({'success': False, 'message': f'Error al consultar la base de datos: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en get_professional_patients: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/patients', methods=['POST'])
+@login_required
+def add_professional_patient():
+    """Agrega un nuevo paciente al profesional"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener datos del formulario
+        data = request.get_json()
+        logger.info(f"📝 Datos del nuevo paciente: {data}")
+        
+        # Validar campos requeridos
+        required_fields = ['nombre_completo', 'rut']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'message': f'El campo {field} es requerido'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Pacientes_Profesional')
+            
+            # Verificar si el paciente ya existe para este profesional
+            records = worksheet.get_all_records()
+            for record in records:
+                if (str(record.get('profesional_id', '')) == str(profesional_id) and 
+                    record.get('rut', '').strip().lower() == data.get('rut', '').strip().lower()):
+                    return jsonify({'success': False, 'message': 'Este paciente ya está registrado en tu lista'}), 400
+            
+            # Generar ID único para el paciente
+            paciente_id = f"PAC_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            # Preparar datos para insertar
+            nuevo_paciente = [
+                paciente_id,
+                profesional_id,
+                data.get('nombre_completo', ''),
+                data.get('rut', ''),
+                data.get('edad', ''),
+                data.get('fecha_nacimiento', ''),
+                data.get('genero', ''),
+                data.get('telefono', ''),
+                data.get('email', ''),
+                data.get('direccion', ''),
+                data.get('antecedentes_medicos', ''),
+                '',  # fecha_primera_consulta (se actualiza con la primera atención)
+                '',  # ultima_consulta
+                0,   # num_atenciones
+                'activo',  # estado_relacion
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                data.get('notas', '')
+            ]
+            
+            # Insertar en Google Sheets
+            worksheet.append_row(nuevo_paciente)
+            logger.info(f"✅ Paciente {paciente_id} agregado al profesional {profesional_id}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Paciente agregado exitosamente',
+                'paciente_id': paciente_id
+            })
+            
+        except Exception as e:
+            logger.error(f"Error agregando paciente: {e}")
+            return jsonify({'success': False, 'message': f'Error al agregar en la base de datos: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en add_professional_patient: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/patients/<paciente_id>', methods=['GET'])
+@login_required
+def get_professional_patient(paciente_id):
+    """Obtiene los detalles de un paciente específico"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Pacientes_Profesional')
+            records = worksheet.get_all_records()
+            
+            # Buscar el paciente
+            for record in records:
+                if (record.get('paciente_id') == paciente_id and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    
+                    # También obtener el historial de atenciones del paciente
+                    atenciones_worksheet = spreadsheet.worksheet('Atenciones_Medicas')
+                    atenciones_records = atenciones_worksheet.get_all_records()
+                    
+                    atenciones_paciente = []
+                    for atencion in atenciones_records:
+                        if (str(atencion.get('profesional_id', '')) == str(profesional_id) and 
+                            atencion.get('paciente_rut', '').strip().lower() == record.get('rut', '').strip().lower()):
+                            atenciones_paciente.append({
+                                'atencion_id': atencion.get('atencion_id', ''),
+                                'fecha_hora': atencion.get('fecha_hora', ''),
+                                'tipo_atencion': atencion.get('tipo_atencion', ''),
+                                'motivo_consulta': atencion.get('motivo_consulta', ''),
+                                'diagnostico': atencion.get('diagnostico', ''),
+                                'estado': atencion.get('estado', '')
+                            })
+                    
+                    return jsonify({
+                        'success': True,
+                        'paciente': record,
+                        'atenciones': atenciones_paciente,
+                        'total_atenciones': len(atenciones_paciente)
+                    })
+            
+            return jsonify({'success': False, 'message': 'Paciente no encontrado'}), 404
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo paciente: {e}")
+            return jsonify({'success': False, 'message': f'Error al consultar la base de datos: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en get_professional_patient: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/patients/<paciente_id>', methods=['PUT'])
+@login_required
+def update_professional_patient(paciente_id):
+    """Actualiza la información de un paciente"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener datos del formulario
+        data = request.get_json()
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Pacientes_Profesional')
+            records = worksheet.get_all_records()
+            
+            # Buscar y actualizar el paciente
+            for i, record in enumerate(records, start=2):  # start=2 porque la fila 1 son headers
+                if (record.get('paciente_id') == paciente_id and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    
+                    # Actualizar los campos específicos
+                    if 'nombre_completo' in data:
+                        worksheet.update_cell(i, 3, data['nombre_completo'])
+                    if 'rut' in data:
+                        worksheet.update_cell(i, 4, data['rut'])
+                    if 'edad' in data:
+                        worksheet.update_cell(i, 5, data['edad'])
+                    if 'fecha_nacimiento' in data:
+                        worksheet.update_cell(i, 6, data['fecha_nacimiento'])
+                    if 'genero' in data:
+                        worksheet.update_cell(i, 7, data['genero'])
+                    if 'telefono' in data:
+                        worksheet.update_cell(i, 8, data['telefono'])
+                    if 'email' in data:
+                        worksheet.update_cell(i, 9, data['email'])
+                    if 'direccion' in data:
+                        worksheet.update_cell(i, 10, data['direccion'])
+                    if 'antecedentes_medicos' in data:
+                        worksheet.update_cell(i, 11, data['antecedentes_medicos'])
+                    if 'notas' in data:
+                        worksheet.update_cell(i, 17, data['notas'])
+                    
+                    logger.info(f"Paciente {paciente_id} actualizado por profesional {profesional_id}")
+                    return jsonify({'success': True, 'message': 'Paciente actualizado exitosamente'})
+            
+            return jsonify({'success': False, 'message': 'Paciente no encontrado'}), 404
+            
+        except Exception as e:
+            logger.error(f"Error actualizando paciente: {e}")
+            return jsonify({'success': False, 'message': f'Error al actualizar en la base de datos: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en update_professional_patient: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/patients/<paciente_id>', methods=['DELETE'])
+@login_required
+def remove_professional_patient(paciente_id):
+    """Elimina un paciente de la lista del profesional"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Pacientes_Profesional')
+            records = worksheet.get_all_records()
+            
+            # Buscar el paciente para eliminar la relación
+            for i, record in enumerate(records, start=2):  # start=2 porque la fila 1 son headers
+                if (record.get('paciente_id') == paciente_id and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    
+                    # Eliminar la fila
+                    worksheet.delete_rows(i)
+                    logger.info(f"Relación profesional-paciente eliminada: {profesional_id} - {paciente_id}")
+                    return jsonify({'success': True, 'message': 'Paciente eliminado de tu lista exitosamente'})
+            
+            return jsonify({'success': False, 'message': 'Paciente no encontrado'}), 404
+            
+        except Exception as e:
+            logger.error(f"Error eliminando relación profesional-paciente: {e}")
+            return jsonify({'success': False, 'message': f'Error al eliminar de la base de datos: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en remove_professional_patient: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/delete-atencion/<atencion_id>', methods=['DELETE'])
+@login_required
+def delete_atencion(atencion_id):
+    """Elimina una atención específica"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Atenciones_Medicas')
+            
+            # Buscar la atención
+            records = worksheet.get_all_records()
+            row_to_delete = None
+            
+            for i, record in enumerate(records, start=2):  # start=2 porque la fila 1 son headers
+                if (record.get('atencion_id') == atencion_id and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    row_to_delete = i
+                    break
+            
+            if row_to_delete:
+                worksheet.delete_rows(row_to_delete)
+                logger.info(f"Atención {atencion_id} eliminada por profesional {profesional_id}")
+                return jsonify({
+                    'success': True,
+                    'message': 'Atención eliminada exitosamente'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Atención no encontrada o no tienes permisos para eliminarla'
+                }), 404
+                
+        except Exception as e:
+            logger.error(f"Error eliminando atención: {e}")
+            return jsonify({'success': False, 'message': 'Error al eliminar de la base de datos'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en delete_atencion: {e}")
+        return jsonify({'success': False, 'message': 'Error interno del servidor'}), 500
+
+@app.route('/api/update-professional-status/<int:professional_id>', methods=['PUT'])
+@login_required
+def update_professional_status(professional_id):
+    """Actualizar estado y disponibilidad de un profesional"""
+    try:
+        # Verificar que el usuario actual sea administrador o el mismo profesional
+        current_user = session.get('user_data', {})
+        if current_user.get('tipo_usuario') != 'profesional' and current_user.get('id') != professional_id:
+            # Aquí podrías agregar lógica para verificar si es administrador
+            pass
+        
+        # Obtener datos del formulario
+        estado = request.json.get('estado')
+        disponible = request.json.get('disponible')
+        
+        if not estado and not disponible:
+            return jsonify({'error': 'Se debe proporcionar al menos estado o disponible'}), 400
+        
+        # Actualizar en la base de datos
+        success, message = auth_manager.update_professional_status(
+            professional_id, 
+            estado=estado, 
+            disponible=disponible
+        )
+        
+        if success:
+            return jsonify({'message': message}), 200
+        else:
+            return jsonify({'error': message}), 400
+            
+    except Exception as e:
+        logger.error(f"❌ Error actualizando estado de profesional: {e}")
+        return jsonify({'error': 'Error interno del servidor'}), 500
+
+@app.route('/api/get-professional/<int:professional_id>', methods=['GET'])
+@login_required
+def get_professional_details(professional_id):
+    """Obtener detalles completos de un profesional"""
+    try:
+        professional_data = auth_manager.get_professional_by_id(professional_id)
+        
+        if professional_data:
+            return jsonify(professional_data), 200
+        else:
+            return jsonify({'error': 'Profesional no encontrado'}), 404
+            
+    except Exception as e:
+        logger.error(f"❌ Error obteniendo profesional: {e}")
+        return jsonify({'error': 'Error interno del servidor'}), 500
+
+@app.route('/api/add-certification', methods=['POST'])
+@login_required
+def add_certification():
+    """Agregar certificación a un profesional"""
+    try:
+        # Obtener datos del usuario actual
+        user_data = session.get('user_data', {})
+        user_id = user_data.get('id')
+        
+        if not user_id:
+            return jsonify({'error': 'Usuario no autenticado'}), 401
+        
+        # Verificar que sea un profesional
+        if user_data.get('tipo_usuario') != 'profesional':
+            return jsonify({'error': 'Solo los profesionales pueden agregar certificaciones'}), 403
+        
+        # Obtener datos del formulario
+        titulo = request.form.get('titulo', '').strip()
+        institucion = request.form.get('institucion', '').strip()
+        ano = request.form.get('ano', '').strip()
+        
+        # Validar campos requeridos
+        if not titulo or not institucion or not ano:
+            return jsonify({'error': 'Título, institución y año son requeridos'}), 400
+        
+        # Manejar archivo si se subió
+        archivo_url = ''
+        if 'certificado' in request.files:
+            file = request.files['certificado']
+            if file and file.filename:
+                if allowed_file(file.filename):
+                    # Generar nombre único para el archivo
+                    filename = generate_unique_filename(file.filename)
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], 'certifications', filename)
+                    
+                    # Crear directorio si no existe
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                    
+                    # Guardar archivo
+                    file.save(file_path)
+                    archivo_url = f'/uploads/certifications/{filename}'
+                    logger.info(f"✅ Archivo de certificación guardado: {archivo_url}")
+                else:
+                    return jsonify({'error': 'Tipo de archivo no permitido. Solo PDF'}), 400
+        
+        # Agregar certificación a Google Sheets
+        success, message = auth_manager.add_professional_certification(
+            user_id, titulo, institucion, ano, archivo_url
+        )
+        
+        if success:
+            logger.info(f"✅ Certificación agregada para profesional ID: {user_id}")
+            return jsonify({'message': message}), 200
+        else:
+            return jsonify({'error': message}), 400
+            
+    except Exception as e:
+        logger.error(f"❌ Error agregando certificación: {e}")
+        return jsonify({'error': 'Error interno del servidor'}), 500
+
+@app.route('/api/get-certifications/<int:professional_id>', methods=['GET'])
+@login_required
+def get_professional_certifications(professional_id):
+    """Obtener certificaciones de un profesional"""
+    try:
+        # Verificar que el usuario actual sea el mismo profesional o un administrador
+        current_user = session.get('user_data', {})
+        if current_user.get('id') != professional_id:
+            # Aquí podrías agregar lógica para verificar si es administrador
+            pass
+        
+        # Obtener certificaciones
+        certifications = auth_manager.get_professional_certifications(professional_id)
+        
+        return jsonify({'certifications': certifications}), 200
+            
+    except Exception as e:
+        logger.error(f"❌ Error obteniendo certificaciones: {e}")
+        return jsonify({'error': 'Error interno del servidor'}), 500
+
+@app.route('/api/atencion-pdf/<atencion_id>')
+@login_required
+def generar_pdf_atencion(atencion_id):
+    """Genera un PDF con los detalles de la atención médica usando ReportLab"""
+    try:
+        # Obtener datos de la atención
+        user_data = get_current_user()
+        if not user_data:
+            return jsonify({'error': 'Usuario no autenticado'}), 401
+
+        # Obtener el cliente de Google Sheets y la hoja de cálculo
+        sheets_client = get_google_sheets_client()
+        if not sheets_client:
+            logger.error("Error: No se pudo obtener el cliente de Google Sheets")
+            return jsonify({'error': 'Error interno del servidor'}), 500
+
+        spreadsheet = sheets_client.open_by_key(app.config['GOOGLE_SHEETS_ID'])
+        
+        try:
+            worksheet = spreadsheet.worksheet('Atenciones_Medicas')
+            records = worksheet.get_all_records()
+            atencion = None
+            
+            for record in records:
+                if str(record.get('atencion_id', '')) == str(atencion_id):
+                    atencion = record
+                    break
+            
+            if not atencion:
+                return jsonify({'error': 'Atención no encontrada'}), 404
+
+        except Exception as e:
+            logger.error(f"Error obteniendo atención: {e}")
+            return jsonify({'error': 'Error interno del servidor'}), 500
+
+        try:
+            # Importar las dependencias necesarias para ReportLab
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import letter
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import inch
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+            from reportlab.pdfbase import pdfmetrics
+            from reportlab.pdfbase.ttfonts import TTFont
+            from reportlab.lib.enums import TA_CENTER, TA_LEFT
+            from PIL import Image as PILImage
+
+            # Colores del proyecto
+            COLOR_PRIMARY = colors.HexColor('#2C3E50')  # Azul oscuro
+            COLOR_SECONDARY = colors.HexColor('#3498DB')  # Azul claro
+            COLOR_ACCENT = colors.HexColor('#E74C3C')  # Rojo
+            COLOR_TEXT = colors.HexColor('#2C3E50')  # Texto principal
+            COLOR_SUBTEXT = colors.HexColor('#7F8C8D')  # Texto secundario
+
+            # Crear un buffer para el PDF
+            buffer = BytesIO()
+
+            # Crear el documento PDF
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=letter,
+                rightMargin=72,
+                leftMargin=72,
+                topMargin=100,  # Aumentado para el logo
+                bottomMargin=72
+            )
+
+            # Obtener estilos
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(
+                name='CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=24,
+                spaceAfter=30,
+                alignment=TA_CENTER,
+                textColor=COLOR_PRIMARY
+            ))
+            styles.add(ParagraphStyle(
+                name='SectionTitle',
+                parent=styles['Heading2'],
+                fontSize=14,
+                spaceBefore=20,
+                spaceAfter=10,
+                textColor=COLOR_SECONDARY,
+                borderColor=COLOR_SECONDARY,
+                borderWidth=1,
+                borderPadding=5,
+                borderRadius=5
+            ))
+            styles.add(ParagraphStyle(
+                name='Label',
+                parent=styles['Normal'],
+                fontSize=11,
+                textColor=COLOR_TEXT,
+                fontName='Helvetica-Bold'
+            ))
+            # Modificar el estilo Normal existente en lugar de crear uno nuevo
+            styles['Normal'].fontSize = 10
+            styles['Normal'].textColor = COLOR_TEXT
+            styles['Normal'].alignment = TA_LEFT
+            styles['Normal'].leading = 14
+
+            # Lista de elementos para el PDF
+            elements = []
+
+            # Agregar logo
+            logo_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'images', 'logo.png')
+            if os.path.exists(logo_path):
+                logo = Image(logo_path)
+                logo.drawHeight = 0.5*inch
+                logo.drawWidth = 0.5*inch
+                elements.append(logo)
+                elements.append(Spacer(1, 20))
+
+            # Título
+            elements.append(Paragraph('Registro de Atención Médica', styles['CustomTitle']))
+            elements.append(Spacer(1, 20))
+
+            # Información del Paciente
+            elements.append(Paragraph('Información del Paciente', styles['SectionTitle']))
+            patient_data = [
+                ['Nombre:', atencion.get('paciente_nombre', '')],
+                ['RUT:', atencion.get('paciente_rut', '')],
+                ['Edad:', f"{atencion.get('paciente_edad', '')} años"]
+            ]
+
+            # Estilo común para las tablas
+            table_style = TableStyle([
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 11),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                ('TEXTCOLOR', (0, 0), (0, -1), COLOR_SECONDARY),
+                ('TEXTCOLOR', (1, 0), (-1, -1), COLOR_TEXT),
+                ('GRID', (0, 0), (-1, -1), 0.5, COLOR_SUBTEXT),
+                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F8F9FA')),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                ('TOPPADDING', (0, 0), (-1, -1), 12),
+                ('LEFTPADDING', (0, 0), (-1, -1), 15),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 15),
+            ])
+
+            t = Table(patient_data, colWidths=[150, 350])
+            t.setStyle(table_style)
+            elements.append(t)
+            elements.append(Spacer(1, 20))
+
+            # Detalles de la Atención
+            elements.append(Paragraph('Detalles de la Atención', styles['SectionTitle']))
+            attention_data = [
+                ['Fecha y Hora:', atencion.get('fecha_hora', '')],
+                ['Tipo de Atención:', atencion.get('tipo_atencion', '')],
+                ['Profesional:', f"{user_data.get('nombre', '')} {user_data.get('apellido', '')}"]
+            ]
+            t = Table(attention_data, colWidths=[150, 350])
+            t.setStyle(table_style)
+            elements.append(t)
+            elements.append(Spacer(1, 20))
+
+            # Evaluación Clínica
+            elements.append(Paragraph('Evaluación Clínica', styles['SectionTitle']))
+            
+            # Motivo de Consulta
+            elements.append(Paragraph('Motivo de Consulta:', styles['Label']))
+            elements.append(Paragraph(atencion.get('motivo_consulta', ''), styles['Normal']))
+            elements.append(Spacer(1, 10))
+            
+            # Diagnóstico
+            elements.append(Paragraph('Diagnóstico:', styles['Label']))
+            elements.append(Paragraph(atencion.get('diagnostico', ''), styles['Normal']))
+            elements.append(Spacer(1, 10))
+            
+            # Plan de Tratamiento
+            elements.append(Paragraph('Plan de Tratamiento:', styles['Label']))
+            elements.append(Paragraph(atencion.get('tratamiento', ''), styles['Normal']))
+            elements.append(Spacer(1, 10))
+            
+            # Observaciones
+            elements.append(Paragraph('Observaciones Adicionales:', styles['Label']))
+            elements.append(Paragraph(atencion.get('observaciones', 'Sin observaciones adicionales'), styles['Normal']))
+            elements.append(Spacer(1, 20))
+
+            # Agregar imagen de la atención si existe
+            imagen_path = atencion.get('imagen_path')
+            if imagen_path and os.path.exists(os.path.join('static', imagen_path)):
+                elements.append(Paragraph('Imagen Adjunta:', styles['SectionTitle']))
+                img = Image(os.path.join('static', imagen_path))
+                
+                # Calcular dimensiones manteniendo la proporción
+                desired_width = 400  # Ancho deseado en puntos
+                img_ratio = img.imageHeight / float(img.imageWidth)
+                img.drawWidth = desired_width
+                img.drawHeight = desired_width * img_ratio
+                
+                # Centrar la imagen
+                elements.append(img)
+                elements.append(Spacer(1, 20))
+
+            # Pie de página
+            elements.append(Spacer(1, 40))
+            footer_style = ParagraphStyle(
+                'Footer',
+                parent=styles['Normal'],
+                fontSize=8,
+                textColor=COLOR_SUBTEXT,
+                alignment=TA_CENTER
+            )
+            elements.append(Paragraph(
+                f'Documento generado por MedConnect - Sistema de Gestión de Atenciones Médicas<br/>'
+                f'Fecha de emisión: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
+                footer_style
+            ))
+
+            # Generar el PDF
+            doc.build(elements)
+
+            # Preparar el PDF para enviar
+            buffer.seek(0)
+            return send_file(
+                buffer,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=f'atencion_{atencion_id}.pdf'
+            )
+
+        except Exception as e:
+            logger.error(f"Error generando PDF con ReportLab: {e}")
+            return jsonify({'error': 'Error generando el PDF'}), 500
+
+    except Exception as e:
+        logger.error(f"Error general generando PDF: {e}")
+        return jsonify({'error': 'Error interno del servidor'}), 500
+
+@app.route('/api/archivos/<atencion_id>')
+@login_required
+def get_archivos_atencion(atencion_id):
+    """Obtiene los archivos adjuntos de una atención"""
+    try:
+        archivos = sheets_db.get_archivos_atencion(atencion_id)
+        return jsonify({
+            'success': True,
+            'archivos': archivos
+        })
+    except Exception as e:
+        logger.error(f"Error obteniendo archivos: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/archivos/upload', methods=['POST'])
+@login_required
+def upload_archivos():
+    """Sube archivos adjuntos para una atención"""
+    try:
+        logger.info("🔍 Iniciando subida de archivos")
+        
+        if 'files[]' not in request.files:
+            logger.error("❌ No se enviaron archivos")
+            return jsonify({'success': False, 'error': 'No se enviaron archivos'}), 400
+
+        atencion_id = request.form.get('atencion_id')
+        if not atencion_id:
+            logger.error("❌ No se especificó la atención")
+            return jsonify({'success': False, 'error': 'No se especificó la atención'}), 400
+
+        logger.info(f"📂 Procesando archivos para atención {atencion_id}")
+        files = request.files.getlist('files[]')
+        uploaded_files = []
+
+        # Crear directorio base si no existe
+        if not os.path.exists(UPLOAD_FOLDER):
+            os.makedirs(UPLOAD_FOLDER)
+
+        # Crear subdirectorio para la atención
+        atencion_folder = os.path.join(UPLOAD_FOLDER, atencion_id)
+        if not os.path.exists(atencion_folder):
+            os.makedirs(atencion_folder)
+
+        for file in files:
+            if file and allowed_file(file.filename):
+                try:
+                    # Asegurar nombre de archivo seguro
+                    filename = secure_filename(file.filename)
+                    file_path = os.path.join(atencion_folder, filename)
+                    
+                    # Si ya existe un archivo con ese nombre, agregar timestamp
+                    if os.path.exists(file_path):
+                        name, ext = os.path.splitext(filename)
+                        filename = f"{name}_{int(time.time())}{ext}"
+                        file_path = os.path.join(atencion_folder, filename)
+
+                    logger.info(f"💾 Guardando archivo: {filename}")
+                    file.save(file_path)
+                    
+                    # Registrar en la base de datos
+                    archivo_data = {
+                        'atencion_id': atencion_id,
+                        'nombre_archivo': filename,
+                        'tipo_archivo': file.content_type,
+                        'ruta_archivo': os.path.join('uploads', atencion_id, filename),
+                        'tamaño': os.path.getsize(file_path)
+                    }
+                    
+                    logger.info("📝 Registrando archivo en la base de datos")
+                    archivo_id = sheets_db.registrar_archivo_adjunto(archivo_data)
+                    uploaded_files.append({
+                        'archivo_id': archivo_id,
+                        'nombre_archivo': filename
+                    })
+                    logger.info(f"✅ Archivo {filename} subido y registrado correctamente")
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error procesando archivo {file.filename}: {e}")
+                    continue
+            else:
+                logger.warning(f"⚠️ Archivo no permitido o vacío: {file.filename if file else 'Sin archivo'}")
+
+        # Actualizar el estado de archivos en la atención
+        if uploaded_files:
+            try:
+                spreadsheet = get_spreadsheet()
+                worksheet = spreadsheet.worksheet('Atenciones_Medicas')
+                records = worksheet.get_all_records()
+                
+                for i, record in enumerate(records, start=2):
+                    if str(record.get('atencion_id', '')) == str(atencion_id):
+                        worksheet.update_cell(i, 17, 'Sí')  # Columna tiene_archivos
+                        logger.info(f"✅ Estado de archivos actualizado para atención {atencion_id}")
+                        break
+            except Exception as e:
+                logger.warning(f"⚠️ No se pudo actualizar estado de archivos: {e}")
+
+            return jsonify({
+                'success': True,
+                'message': f'{len(uploaded_files)} archivos subidos correctamente',
+                'archivos': uploaded_files
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'No se pudo procesar ningún archivo'
+            }), 400
+
+    except Exception as e:
+        logger.error(f"❌ Error subiendo archivos: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/archivos/<archivo_id>', methods=['DELETE'])
+@login_required
+def delete_archivo(archivo_id):
+    """Elimina un archivo adjunto"""
+    try:
+        if sheets_db.delete_archivo(archivo_id):
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Archivo no encontrado'}), 404
+    except Exception as e:
+        logger.error(f"Error eliminando archivo: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/archivos/<archivo_id>/download')
+@login_required
+def download_archivo(archivo_id):
+    """Descarga un archivo adjunto"""
+    try:
+        # Obtener información del archivo
+        archivo = sheets_db.get_archivo_by_id(archivo_id)
+        if not archivo:
+            return jsonify({'success': False, 'message': 'Archivo no encontrado'}), 404
+            
+        # Construir la ruta del archivo
+        ruta_archivo = archivo.get('ruta_archivo', '')
+        
+        # Si la ruta incluye 'uploads', usar directamente; si no, construir la ruta
+        if ruta_archivo.startswith('uploads'):
+            file_path = os.path.join(app.root_path, 'static', ruta_archivo)
+        else:
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], ruta_archivo)
+            
+        logger.info(f"🔍 Buscando archivo en: {file_path}")
+        
+        if not os.path.exists(file_path):
+            logger.error(f"❌ Archivo no encontrado en: {file_path}")
+            return jsonify({'success': False, 'message': 'Archivo no encontrado en el servidor'}), 404
+            
+        # Enviar archivo
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=archivo.get('nombre_archivo'),
+            mimetype=archivo.get('tipo_archivo')
+        )
+            
+    except Exception as e:
+        logger.error(f"Error descargando archivo: {e}")
+        return jsonify({'success': False, 'message': 'Error interno del servidor'}), 500
+
+@app.route('/api/archivos/<archivo_id>/view')
+@login_required
+def view_archivo(archivo_id):
+    """Sirve un archivo adjunto para visualización (no descarga)"""
+    try:
+        # Obtener información del archivo
+        archivo = sheets_db.get_archivo_by_id(archivo_id)
+        if not archivo:
+            logger.error(f"❌ Archivo no encontrado: {archivo_id}")
+            abort(404)
+            
+        # Construir la ruta del archivo
+        ruta_archivo = archivo.get('ruta_archivo', '')
+        
+        # Si la ruta incluye 'uploads', usar directamente; si no, construir la ruta
+        if ruta_archivo.startswith('uploads'):
+            file_path = os.path.join(app.root_path, 'static', ruta_archivo)
+        elif ruta_archivo.startswith('static'):
+            file_path = os.path.join(app.root_path, ruta_archivo)
+        else:
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], ruta_archivo)
+            
+        logger.info(f"🔍 Sirviendo archivo para visualización: {file_path}")
+        
+        # Probar rutas alternativas si no existe (como en el endpoint temporal que funciona)
+        if not os.path.exists(file_path):
+            rutas_alternativas = [
+                ruta_archivo,  # Ruta directa
+                os.path.join('static', 'uploads', atencion_id, archivo.get('nombre_archivo', '')),  # Ruta reconstruida
+                os.path.join(app.root_path, 'static', 'uploads', atencion_id, archivo.get('nombre_archivo', '')),
+                f'static/uploads/{atencion_id}/{archivo.get("nombre_archivo", "")}'
+            ]
+            
+            for ruta_alt in rutas_alternativas:
+                if os.path.exists(ruta_alt):
+                    logger.info(f"✅ Archivo encontrado en ruta alternativa: {ruta_alt}")
+                    file_path = ruta_alt
+                    break
+            else:
+                logger.error(f"❌ Archivo no encontrado en ninguna ruta: {file_path}")
+                abort(404)
+            
+        # Verificar que el usuario tiene acceso a esta atención
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        atencion_id = archivo.get('atencion_id', '')
+        
+        # Verificar permisos de acceso a la atención
+        try:
+            spreadsheet = get_spreadsheet()
+            worksheet = spreadsheet.worksheet('Atenciones_Medicas')
+            records = worksheet.get_all_records()
+            
+            tiene_acceso = False
+            for record in records:
+                if (str(record.get('atencion_id', '')) == str(atencion_id) and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    tiene_acceso = True
+                    break
+                    
+            if not tiene_acceso:
+                logger.warning(f"⚠️ Acceso denegado al archivo {archivo_id} para profesional {profesional_id}")
+                abort(403)
+                
+        except Exception as e:
+            logger.error(f"Error verificando permisos: {e}")
+            abort(500)
+            
+        # Servir el archivo para visualización (sin forzar descarga)
+        return send_file(
+            file_path,
+            as_attachment=False,  # Clave: no forzar descarga
+            mimetype=archivo.get('tipo_archivo')
+        )
+            
+    except Exception as e:
+        logger.error(f"Error sirviendo archivo para visualización: {e}")
+        abort(500)
+
+@app.route('/api/test-archivo/<archivo_id>')
+def test_view_archivo(archivo_id):
+    """Endpoint de prueba sin autenticación para verificar servido de archivos"""
+    try:
+        logger.info(f"🧪 Test endpoint llamado para archivo: {archivo_id}")
+        
+        # Obtener información del archivo
+        archivo = sheets_db.get_archivo_by_id(archivo_id)
+        if not archivo:
+            logger.error(f"❌ Archivo no encontrado: {archivo_id}")
+            return jsonify({'error': 'Archivo no encontrado'}), 404
+            
+        logger.info(f"📄 Información del archivo: {archivo}")
+        logger.info(f"🔍 Tipo de archivo: {type(archivo)}")
+        logger.info(f"🔍 Keys del archivo: {list(archivo.keys()) if archivo else 'None'}")
+        
+        # Construir la ruta del archivo
+        ruta_archivo = archivo.get('ruta_archivo', '')
+        logger.info(f"🔍 ruta_archivo: {ruta_archivo} (tipo: {type(ruta_archivo)})")
+        
+        # Asegurar que ruta_archivo sea string
+        ruta_archivo = str(ruta_archivo) if ruta_archivo else ''
+        
+        # Si la ruta incluye 'uploads', usar directamente; si no, construir la ruta
+        if ruta_archivo.startswith('uploads'):
+            file_path = os.path.join(app.root_path, 'static', ruta_archivo)
+        elif ruta_archivo.startswith('static'):
+            file_path = os.path.join(app.root_path, ruta_archivo)
+        else:
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], ruta_archivo)
+            
+        logger.info(f"🔍 Buscando archivo en: {file_path}")
+        logger.info(f"🔍 app.root_path: {app.root_path}")
+        logger.info(f"🔍 UPLOAD_FOLDER: {app.config.get('UPLOAD_FOLDER', 'Not set')}")
+        
+        # Probar rutas alternativas si no existe
+        if not os.path.exists(file_path):
+            rutas_alternativas = [
+                ruta_archivo,  # Ruta directa
+                os.path.join('static', 'uploads', 'ATN_20250701_152633', 'test_image.jpg'),  # Ruta reconstruida
+                os.path.join(app.root_path, 'static', 'uploads', 'ATN_20250701_152633', 'test_image.jpg'),
+                'static/uploads/ATN_20250701_152633/test_image.jpg'
+            ]
+            
+            for ruta_alt in rutas_alternativas:
+                logger.info(f"🔍 Probando ruta alternativa: {ruta_alt}")
+                if os.path.exists(ruta_alt):
+                    logger.info(f"✅ ¡Archivo encontrado en ruta alternativa!: {ruta_alt}")
+                    file_path = ruta_alt
+                    break
+            else:
+                logger.error(f"❌ Archivo no encontrado en ninguna ruta")
+                logger.error(f"❌ Rutas probadas: {[file_path] + rutas_alternativas}")
+                return jsonify({'error': 'Archivo físico no encontrado'}), 404
+            
+        logger.info(f"✅ Archivo encontrado, sirviendo...")
+        
+        # Crear respuesta personalizada para evitar descarga forzada
+        response = make_response(send_file(
+            file_path,
+            as_attachment=False,  # No forzar descarga
+            mimetype=archivo.get('tipo_archivo')
+        ))
+        
+        # Headers específicos para evitar descarga automática
+        response.headers['Content-Disposition'] = 'inline'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['Cache-Control'] = 'no-cache'
+        
+        return response
+            
+    except Exception as e:
+        logger.error(f"❌ Error en test endpoint: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/uploads/atenciones/<atencion_id>/<filename>')
+@login_required
+def serve_atencion_file(atencion_id, filename):
+    """Sirve archivos adjuntos de atenciones para visualización"""
+    try:
+        # Verificar que el archivo existe
+        file_path = os.path.join(UPLOAD_FOLDER, atencion_id, filename)
+        if not os.path.exists(file_path):
+            abort(404)
+            
+        # Verificar que el usuario tiene acceso a esta atención
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        # Obtener información de la atención para verificar permisos
+        try:
+            spreadsheet = get_spreadsheet()
+            worksheet = spreadsheet.worksheet('Atenciones_Medicas')
+            records = worksheet.get_all_records()
+            
+            tiene_acceso = False
+            for record in records:
+                if (str(record.get('atencion_id', '')) == str(atencion_id) and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    tiene_acceso = True
+                    break
+                    
+            if not tiene_acceso:
+                abort(403)
+                
+        except Exception as e:
+            logger.error(f"Error verificando permisos: {e}")
+            abort(500)
+            
+        # Servir el archivo
+        return send_from_directory(
+            os.path.join(UPLOAD_FOLDER, atencion_id), 
+            filename
+        )
+        
+    except Exception as e:
+        logger.error(f"Error sirviendo archivo: {e}")
+        abort(500)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

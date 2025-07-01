@@ -8,6 +8,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import json
 from datetime import datetime
+from config import SHEETS_STANDARD_CONFIG
 
 # Configuración
 SCOPES = [
@@ -18,33 +19,8 @@ SCOPES = [
 SERVICE_ACCOUNT_FILE = 'service-account.json'
 SHEET_ID = '1UvnO2lpZSyv13Hf2eG--kQcTff5BBh7jrZ6taFLJypU'
 
-# Configuración de las hojas
-SHEETS_CONFIG = {
-    'Pacientes': [
-        'id', 'nombre', 'edad', 'telefono', 'email', 
-        'fecha_registro', 'plan', 'estado'
-    ],
-    'Consultas': [
-        'id', 'patient_id', 'doctor', 'specialty', 'date', 
-        'diagnosis', 'treatment', 'notes', 'status'
-    ],
-    'Medicamentos': [
-        'id', 'patient_id', 'medication', 'dosage', 'frequency',
-        'start_date', 'end_date', 'prescribed_by', 'status'
-    ],
-    'Examenes': [
-        'id', 'patient_id', 'exam_type', 'date', 'results',
-        'lab', 'doctor', 'file_url', 'status'
-    ],
-    'Familiares': [
-        'id', 'patient_id', 'name', 'relationship', 'phone',
-        'email', 'access_level', 'emergency_contact', 'status'
-    ],
-    'Interacciones_Bot': [
-        'id', 'user_id', 'username', 'message', 'response',
-        'timestamp', 'action_type', 'status'
-    ]
-}
+# Usar configuración estandarizada
+SHEETS_CONFIG = SHEETS_STANDARD_CONFIG
 
 def get_google_client():
     """Inicializa el cliente de Google Sheets"""
@@ -138,61 +114,78 @@ def add_sample_data(spreadsheet):
     print(f"\n📝 Agregando datos de ejemplo...")
     
     try:
-        # Datos de ejemplo para Pacientes
-        patients_sheet = spreadsheet.worksheet('Pacientes')
-        sample_patients = [
-            [1, 'María González', 78, '+56 9 8765 4321', 'maria.gonzalez@email.com', 
-             datetime.now().strftime('%Y-%m-%d'), 'Gratuito', 'Activo'],
-            [2, 'Carmen Rodríguez', 82, '+56 9 1234 5678', 'carmen.rodriguez@email.com',
-             datetime.now().strftime('%Y-%m-%d'), 'Premium', 'Activo']
+        # Datos de ejemplo para Profesionales
+        profesionales_sheet = spreadsheet.worksheet('Profesionales')
+        sample_profesionales = [
+            [1, 'Carlos', 'Mendoza', 'Cardiología', 'carlos.mendoza@medconnect.com', 
+             '+56 9 8765 4321', 'Av. Providencia 1234', 'foto1.jpg', 'true', 'true',
+             datetime.now().strftime('%Y-%m-%d'), '09:00', '18:00', 'L,M,X,J,V', 'Activo'],
+            [2, 'Ana', 'Rodríguez', 'Traumatología', 'ana.rodriguez@medconnect.com',
+             '+56 9 1234 5678', 'Av. Las Condes 5678', 'foto2.jpg', 'true', 'true',
+             datetime.now().strftime('%Y-%m-%d'), '08:00', '17:00', 'L,M,J,V', 'Activo']
         ]
         
-        for i, patient in enumerate(sample_patients, start=2):
-            patients_sheet.insert_row(patient, i)
+        for i, profesional in enumerate(sample_profesionales, start=2):
+            profesionales_sheet.insert_row(profesional, i)
+        print("   ✅ Datos agregados a 'Profesionales'")
         
-        print("   ✅ Datos agregados a 'Pacientes'")
-        
-        # Datos de ejemplo para Consultas
-        consultations_sheet = spreadsheet.worksheet('Consultas')
-        sample_consultations = [
-            [1, 1, 'Dr. Carlos Mendoza', 'Cardiología', '2024-11-15', 
-             'Control rutinario', 'Continuar medicación', 'Paciente estable', 'Completada'],
-            [2, 1, 'Dra. Ana Rodríguez', 'Traumatología', '2024-11-08',
-             'Dolor rodilla', 'Fisioterapia', 'Mejoría progresiva', 'Completada']
+        # Datos de ejemplo para Atenciones_Medicas
+        atenciones_sheet = spreadsheet.worksheet('Atenciones_Medicas')
+        sample_atenciones = [
+            [1, 1, 1, '2024-03-15 10:00', 'Consulta', 'Control rutinario',
+             'Hipertensión controlada', 'Mantener medicación actual', 'Paciente estable',
+             'archivo1.pdf', False, 'Completada', datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+             datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+            [2, 1, 2, '2024-03-15 11:00', 'Control', 'Seguimiento tratamiento',
+             'Evolución favorable', 'Ajuste de medicación', 'Próximo control en 1 mes',
+             'archivo2.pdf', True, 'En Seguimiento', datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+             datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
         ]
         
-        for i, consultation in enumerate(sample_consultations, start=2):
-            consultations_sheet.insert_row(consultation, i)
+        for i, atencion in enumerate(sample_atenciones, start=2):
+            atenciones_sheet.insert_row(atencion, i)
+        print("   ✅ Datos agregados a 'Atenciones_Medicas'")
         
-        print("   ✅ Datos agregados a 'Consultas'")
-        
-        # Datos de ejemplo para Medicamentos
-        medications_sheet = spreadsheet.worksheet('Medicamentos')
-        sample_medications = [
-            [1, 1, 'Losartán 50mg', '50mg', 'Cada 12 horas', '2024-01-01',
-             '2024-12-31', 'Dr. Carlos Mendoza', 'Activo'],
-            [2, 1, 'Omeprazol 20mg', '20mg', 'En ayunas', '2024-01-01',
-             '2024-12-31', 'Dr. Miguel Torres', 'Activo']
+        # Datos de ejemplo para Agenda
+        agenda_sheet = spreadsheet.worksheet('Agenda')
+        sample_agenda = [
+            [1, 1, 1, '2024-03-20', '10:00', '10:30', 'Control',
+             'Seguimiento tratamiento', 'Programada', 'Control mensual', False,
+             datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+            [2, 1, 2, '2024-03-20', '11:00', '11:30', 'Primera Vez',
+             'Consulta inicial', 'Programada', '', False,
+             datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
         ]
         
-        for i, medication in enumerate(sample_medications, start=2):
-            medications_sheet.insert_row(medication, i)
+        for i, cita in enumerate(sample_agenda, start=2):
+            agenda_sheet.insert_row(cita, i)
+        print("   ✅ Datos agregados a 'Agenda'")
         
-        print("   ✅ Datos agregados a 'Medicamentos'")
-        
-        # Datos de ejemplo para Familiares
-        family_sheet = spreadsheet.worksheet('Familiares')
-        sample_family = [
-            [1, 1, 'Juan González', 'Hijo', '+56 9 8765 4321', 'juan.gonzalez@email.com',
-             'Total', True, 'Activo'],
-            [2, 1, 'Carmen Pérez', 'Hija', '+56 9 1234 5678', 'carmen.perez@email.com',
-             'Familiar', False, 'Activo']
+        # Datos de ejemplo para Horarios Disponibles
+        horarios_sheet = spreadsheet.worksheet('Horarios_Disponibles')
+        sample_horarios = [
+            [1, 1, 'Lunes', '09:00', '18:00', 30, 'Activo'],
+            [2, 1, 'Martes', '09:00', '18:00', 30, 'Activo'],
+            [3, 1, 'Miércoles', '09:00', '18:00', 30, 'Activo'],
+            [4, 1, 'Jueves', '09:00', '18:00', 30, 'Activo'],
+            [5, 1, 'Viernes', '09:00', '18:00', 30, 'Activo']
         ]
         
-        for i, family in enumerate(sample_family, start=2):
-            family_sheet.insert_row(family, i)
+        for i, horario in enumerate(sample_horarios, start=2):
+            horarios_sheet.insert_row(horario, i)
+        print("   ✅ Datos agregados a 'Horarios_Disponibles'")
         
-        print("   ✅ Datos agregados a 'Familiares'")
+        # Datos de ejemplo para Especialidades
+        especialidades_sheet = spreadsheet.worksheet('Especialidades')
+        sample_especialidades = [
+            [1, 'Cardiología', 'Especialidad en enfermedades del corazón', 'heart', 'Activo'],
+            [2, 'Traumatología', 'Especialidad en sistema músculo-esquelético', 'bone', 'Activo'],
+            [3, 'Pediatría', 'Especialidad en atención infantil', 'baby', 'Activo']
+        ]
+        
+        for i, especialidad in enumerate(sample_especialidades, start=2):
+            especialidades_sheet.insert_row(especialidad, i)
+        print("   ✅ Datos agregados a 'Especialidades'")
         
     except Exception as e:
         print(f"   ⚠️  Algunos datos de ejemplo no se pudieron agregar: {e}")

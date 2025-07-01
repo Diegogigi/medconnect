@@ -274,6 +274,25 @@ def create_atencion(current_user_id):
         logger.error(f"Error creando atención: {e}")
         return jsonify({'error': 'Error interno del servidor'}), 500
 
+@app.route('/api/get-atencion/<atencion_id>', methods=['GET'])
+def get_atencion(atencion_id):
+    try:
+        # Obtener detalles de la atención
+        atencion = sheets_db.get_atencion_by_id(atencion_id)
+        if not atencion:
+            return jsonify({'error': 'Atención no encontrada'}), 404
+
+        # Obtener archivos adjuntos
+        archivos = sheets_db.get_archivos_atencion(atencion_id)
+        
+        # Agregar archivos a la respuesta
+        atencion['archivos'] = archivos
+        
+        return jsonify(atencion)
+    except Exception as e:
+        logger.error(f"Error en get_atencion: {e}")
+        return jsonify({'error': 'Error interno del servidor'}), 500
+
 # === RUTAS DE MEDICAMENTOS ===
 
 @app.route('/api/medicamentos', methods=['GET'])

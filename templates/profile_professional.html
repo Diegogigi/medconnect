@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil Profesional - MedConnect</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        :root {
+            --primary-color: #5D3E8F;
+            --primary-light: #7A5CB7;
+            --primary-dark: #452C6B;
+            --secondary-color: #FF5765;
+            --secondary-light: #FF7A85;
+            --secondary-dark: #D13848;
+            --accent-color: #FDA83D;
+            --info-color: #40BEE2;
+        }
+
+        body.dashboard-body {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--gray-50);
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--gray-700);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        /* Navigation con logo de MedConnect */
+        .navbar {
+            background: white !important;
+            border-bottom: 1px solid var(--gray-200);
+            box-shadow: var(--shadow-sm);
+            padding: 8px 0;
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            z-index: 1000;
+            height: 56px;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--primary-color) !important;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .navbar-brand img {
+            height: 32px;
+            margin-right: 8px;
+        }
+
+        /* Dropdown del usuario */
+        .dropdown-toggle {
+            color: var(--gray-700) !important;
+            transition: var(--transition);
+        }
+
+        .dropdown-toggle:hover {
+            color: var(--primary-color) !important;
+        }
+
+        .dropdown-toggle::after {
+            margin-left: 8px;
+            border-top-color: var(--gray-500);
+        }
+
+        .dropdown-menu {
+            border: 1px solid var(--gray-200);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            padding: 8px 0;
+            min-width: 200px;
+        }
+
+        .dropdown-item {
+            padding: 8px 16px;
+            font-size: 14px;
+            color: var(--gray-700);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--gray-50);
+            color: var(--primary-color);
+        }
+
+        .dropdown-item i {
+            width: 16px;
+            font-size: 14px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+            color: white;
+            box-shadow: var(--shadow);
+            margin-top: 56px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background: radial-gradient(circle at top right, rgba(255,255,255,0.1) 0%, transparent 60%);
+        }
+
+        .profile-header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background: radial-gradient(circle at bottom left, rgba(0,0,0,0.1) 0%, transparent 60%);
+        }
+
+        .profile-header > .container-fluid {
+            position: relative;
+            z-index: 1;
+        }
+
+        .professional-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            object-fit: cover;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .professional-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .container-fluid {
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+
+        .nav-link {
+            color: var(--gray-700);
+            transition: var(--transition);
+        }
+
+        .nav-link:hover {
+            color: var(--primary-color);
+        }
+
+        .btn-light {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            transition: var(--transition);
+        }
+
+        .btn-light:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .badge {
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: 500;
+        }
+
+        .badge.bg-success {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important;
+        }
+
+        .badge.bg-warning {
+            background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%) !important;
+        }
+
+        .badge.bg-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
+        }
+
+        /* Estilos para certificaciones */
+        .certification-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef !important;
+            transition: all 0.3s ease;
+        }
+
+        .certification-item:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-color: var(--primary-color) !important;
+        }
+
+        .certification-status .badge {
+            font-size: 0.75rem;
+        }
+
+        .info-group {
+            margin-bottom: 1rem;
+        }
+
+        .info-group label {
+            font-weight: 600;
+            color: var(--gray-600);
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+
+        .info-group p {
+            color: var(--gray-800);
+            font-size: 0.9rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            color: var(--primary-color);
+        }
+
+        .edit-button {
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .edit-button:hover {
+            opacity: 1;
+        }
+
+        .specialization-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .specialization-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-color: var(--primary-color);
+        }
+
+        .idioma-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .container-fluid {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+            
+            .certification-item {
+                margin-bottom: 1rem;
+            }
+            
+            .d-flex.justify-content-between {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo">
+                MedConnect
+            </a>
+            <div class="d-flex align-items-center">
+                <a class="nav-link me-3" href="{{ url_for('professional_dashboard') }}">
+                    <i class="fas fa-arrow-left me-2"></i>Dashboard
+                </a>
+                <div class="dropdown">
+                    <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="user-avatar me-2">
+                            {% if user.foto_perfil %}
+                                <img src="{{ user.foto_perfil }}" alt="Foto de perfil" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                            {% else %}
+                                <i class="fas fa-user"></i>
+                            {% endif %}
+                        </div>
+                        <span class="fw-medium">{{ user.nombre }} {{ user.apellido }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-2 text-danger"></i>
+                                Cerrar sesión
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Profile Content -->
+    <div class="profile-header">
+        <div class="row align-items-center mx-0">
+            <div class="col-auto">
+                <img src="{{ user.profile_image or url_for('static', filename='images/default-avatar.png') }}" 
+                     alt="Foto de perfil" 
+                     class="professional-avatar"
+                     title="Haz clic para cambiar la foto">
+            </div>
+            <div class="col">
+                <h1 class="h3 mb-1">{{ user.nombre }} {{ user.apellido }}</h1>
+                <p class="mb-1 fw-semibold">{{ user.profesion_gendered or 'Profesional de la Salud' }}</p>
+                <p class="mb-2 text-light opacity-90">{{ user.especialidad or user.Especialidad or 'Especialidad no especificada' }}</p>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge {{ 'bg-success' if user.verificado == 'true' else 'bg-warning' }}">
+                        <i class="fas {{ 'fa-check-circle' if user.verificado == 'true' else 'fa-clock' }} me-1"></i>
+                        {{ 'Verificado' if user.verificado == 'true' else 'Pendiente de verificación' }}
+                    </span>
+                    <span class="badge {{ 'bg-success' if user.disponible else 'bg-danger' }}">
+                        <i class="fas {{ 'fa-check' if user.disponible else 'fa-times' }} me-1"></i>
+                        {{ 'Disponible' if user.disponible else 'No Disponible' }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-light" onclick="editarPerfil()">
+                    <i class="fas fa-edit me-2"></i>Editar Perfil
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="container pb-5">
+            <div class="row g-4">
+                <!-- Información Profesional -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-user-md me-2 text-primary"></i>
+                                    Información Profesional
+                                </h5>
+                                <button class="btn btn-sm btn-outline-primary edit-button" onclick="editarSeccion('profesional')">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="info-group mb-3">
+                                <label>Número de Registro</label>
+                                <p class="mb-0" data-field="numero_registro">{{ user.numero_registro }}</p>
+                            </div>
+                            <div class="info-group mb-3">
+                                <label>Especialidad</label>
+                                <p class="mb-0" data-field="especialidad">{{ user.especialidad }}</p>
+                            </div>
+                            <div class="info-group mb-3">
+                                <label>Años de Experiencia</label>
+                                <p class="mb-0" data-field="anos_experiencia">{{ user.anos_experiencia }}</p>
+                            </div>
+                            <div class="info-group">
+                                <label>Idiomas</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for idioma in user.idiomas %}
+                                        <span class="badge bg-light text-dark idioma-badge">{{ idioma }}</span>
+                                    {% endfor %}
+                                </div>
+                                <!-- Campo oculto para JavaScript -->
+                                <span class="d-none" data-field="idiomas">{{ user.idiomas|join(', ') if user.idiomas else 'Español' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información de Contacto -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-address-card me-2 text-primary"></i>
+                                    Información de Contacto
+                                </h5>
+                                <button class="btn btn-sm btn-outline-primary edit-button" onclick="editarSeccion('contacto')">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="info-group mb-3">
+                                <label>Email Profesional</label>
+                                <p class="mb-0" data-field="email">{{ user.email }}</p>
+                            </div>
+                            <div class="info-group mb-3">
+                                <label>Teléfono</label>
+                                <p class="mb-0" data-field="telefono">{{ user.telefono }}</p>
+                            </div>
+                            <div class="info-group mb-3">
+                                <label>Dirección de Consulta</label>
+                                <p class="mb-0" data-field="direccion_consulta">{{ user.direccion_consulta }}</p>
+                            </div>
+                            <div class="info-group">
+                                <label>Horario de Atención</label>
+                                <p class="mb-0" data-field="horario_atencion">{{ user.horario_atencion }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estadísticas -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header py-3">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-bar me-2 text-primary"></i>
+                                Estadísticas Profesionales
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-4">
+                                <div class="col-6">
+                                    <div class="stat-card text-center p-3">
+                                        <div class="stat-icon mb-2">
+                                            <i class="fas fa-users fa-2x"></i>
+                                        </div>
+                                        <h3 class="mb-1">{{ user.total_pacientes }}</h3>
+                                        <p class="mb-0 text-muted">Pacientes</p>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-card text-center p-3">
+                                        <div class="stat-icon mb-2">
+                                            <i class="fas fa-calendar-check fa-2x text-success"></i>
+                                        </div>
+                                        <h3 class="mb-1">{{ user.atenciones_mes }}</h3>
+                                        <p class="mb-0 text-muted">Atenciones</p>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-card text-center p-3">
+                                        <div class="stat-icon mb-2">
+                                            <i class="fas fa-star fa-2x text-warning"></i>
+                                        </div>
+                                        <h3 class="mb-1">{{ "%.1f"|format(user.calificacion|float) }}</h3>
+                                        <p class="mb-0 text-muted">Calificación</p>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-card text-center p-3">
+                                        <div class="stat-icon mb-2">
+                                            <i class="fas fa-clock fa-2x text-info"></i>
+                                        </div>
+                                        <h3 class="mb-1">{{ user.tiempo_respuesta }}</h3>
+                                        <p class="mb-0 text-muted">Respuesta</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Certificaciones -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-graduation-cap me-2 text-primary"></i>
+                                    Certificaciones
+                                </h5>
+                                <button class="btn btn-sm btn-primary" onclick="agregarCertificacion()">
+                                    <i class="fas fa-plus me-1"></i>Agregar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="certificaciones-list">
+                                {% if user.certificaciones %}
+                                    {% for cert in user.certificaciones %}
+                                    <div class="certification-item mb-3 p-3 border rounded">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 fw-bold">{{ cert.Titulo }}</h6>
+                                                <p class="text-muted mb-1">
+                                                    <i class="fas fa-university me-1"></i>
+                                                    {{ cert.Institucion }}
+                                                </p>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-calendar me-1"></i>
+                                                    {{ cert.Ano }}
+                                                </small>
+                                                {% if cert.Archivo_URL %}
+                                                <div class="mt-2">
+                                                    <a href="{{ cert.Archivo_URL }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-file-pdf me-1"></i>Ver Certificado
+                                                    </a>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="certification-status">
+                                                {% if cert.Verificado == 'verificado' %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check-circle me-1"></i>Verificado
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-clock me-1"></i>Pendiente
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">No hay certificaciones registradas</p>
+                                        <button class="btn btn-primary" onclick="agregarCertificacion()">
+                                            <i class="fas fa-plus me-1"></i>Agregar Primera Certificación
+                                        </button>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Áreas de Especialización -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header py-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-stethoscope me-2 text-primary"></i>
+                                    Áreas de Especialización
+                                </h5>
+                                <button class="btn btn-sm btn-primary" onclick="agregarArea()">
+                                    <i class="fas fa-plus me-1"></i>Agregar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-4">
+                                {% if user.areas_especializacion %}
+                                    {% for area in user.areas_especializacion %}
+                                    <div class="col-md-4">
+                                        <div class="specialization-card p-3">
+                                            <h6 class="mb-2 area-especializacion">{{ area }}</h6>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="col-12">
+                                        <p class="text-muted text-center my-4">No hay áreas de especialización registradas</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/profile_professional.js') }}"></script>
+</body>
+</html> 
