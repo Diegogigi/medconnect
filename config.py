@@ -140,6 +140,92 @@ RAILWAY_CONFIG = {
     'domain': 'medconnect.cl'
 }
 
+# Configuración estandarizada de Google Sheets para MedConnect
+SHEETS_STANDARD_CONFIG = {
+    # Hoja principal de usuarios (pacientes)
+    'Usuarios': [
+        'user_id', 'telegram_id', 'nombre', 'apellido', 'edad', 
+        'rut', 'telefono', 'email', 'direccion', 'fecha_registro', 
+        'estado', 'plan'
+    ],
+    
+    # Hoja de profesionales médicos
+    'Profesionales': [
+        'profesional_id', 'nombre', 'apellido', 'especialidad', 'email', 'telefono',
+        'direccion', 'numero_registro', 'anos_experiencia', 'calificacion',
+        'fecha_registro', 'estado', 'disponible'
+    ],
+    
+    # Hoja principal de atenciones médicas
+    'Atenciones_Medicas': [
+        'atencion_id', 'profesional_id', 'profesional_nombre', 'paciente_id', 
+        'paciente_nombre', 'paciente_rut', 'paciente_edad', 'fecha_hora', 
+        'tipo_atencion', 'motivo_consulta', 'diagnostico', 'tratamiento', 
+        'observaciones', 'fecha_registro', 'estado', 'requiere_seguimiento', 
+        'tiene_archivos'
+    ],
+    
+    # Hoja de medicamentos
+    'Medicamentos': [
+        'medicamento_id', 'user_id', 'atencion_id', 'nombre_medicamento',
+        'dosis', 'frecuencia', 'duracion', 'indicaciones',
+        'fecha_inicio', 'fecha_fin', 'estado'
+    ],
+    
+    # Hoja de exámenes médicos
+    'Examenes': [
+        'examen_id', 'user_id', 'atencion_id', 'tipo_examen',
+        'nombre_examen', 'fecha_solicitud', 'fecha_realizacion',
+        'resultado', 'archivo_url', 'observaciones', 'estado'
+    ],
+    
+    # Hoja de familiares autorizados
+    'Familiares_Autorizados': [
+        'familiar_id', 'user_id', 'nombre_familiar', 'parentesco',
+        'telefono', 'email', 'telegram_id', 'permisos', 
+        'fecha_autorizacion', 'estado', 'notificaciones'
+    ],
+    
+    # Hoja de recordatorios
+    'Recordatorios': [
+        'reminder_id', 'user_id', 'tipo', 'titulo', 'mensaje',
+        'fecha_programada', 'hora_programada', 'frecuencia',
+        'notificar_familiares', 'fecha_creacion', 'estado'
+    ],
+    
+    # Hoja de logs de acceso
+    'Logs_Acceso': [
+        'log_id', 'user_id', 'accion', 'detalle', 'ip_address',
+        'timestamp', 'resultado'
+    ],
+    
+    # Hoja de agenda/citas (para profesionales)
+    'Agenda': [
+        'cita_id', 'profesional_id', 'paciente_id', 'fecha', 'hora_inicio',
+        'hora_fin', 'tipo_cita', 'motivo', 'estado', 'notas',
+        'recordatorio_enviado', 'fecha_creacion'
+    ],
+    
+    # Hoja de especialidades médicas
+    'Especialidades': [
+        'especialidad_id', 'nombre', 'descripcion', 'icono', 'estado'
+    ],
+    
+    # Hoja de pacientes por profesional
+    'Pacientes_Profesional': [
+        'paciente_id', 'profesional_id', 'nombre_completo', 'rut', 'edad',
+        'fecha_nacimiento', 'genero', 'telefono', 'email', 'direccion',
+        'antecedentes_medicos', 'fecha_primera_consulta', 'ultima_consulta',
+        'num_atenciones', 'estado_relacion', 'fecha_registro', 'notas'
+    ],
+    
+    # Hoja de archivos adjuntos
+    'Archivos_Adjuntos': [
+        'archivo_id', 'atencion_id', 'nombre_archivo', 'tipo_archivo',
+        'ruta_archivo', 'fecha_subida', 'tamaño', 'estado'
+    ]
+}
+
 # Configuración según el entorno
 config = {
     'development': DevelopmentConfig,

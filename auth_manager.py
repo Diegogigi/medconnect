@@ -144,6 +144,7 @@ class AuthManager:
         Registrar nuevo usuario
         user_data debe contener: email, password, nombre, apellido, telefono, 
         fecha_nacimiento, genero, direccion, ciudad, tipo_usuario
+        Para profesionales también incluye: profesion, especialidad, numero_registro, etc.
         """
         try:
             # Validaciones
@@ -162,6 +163,13 @@ class AuthManager:
             for field in required_fields:
                 if not user_data.get(field):
                     return False, f"El campo {field} es requerido"
+            
+            # Validaciones específicas para profesionales
+            if user_data['tipo_usuario'] == 'profesional':
+                professional_required = ['profesion', 'numero_registro', 'institucion', 'titulo']
+                for field in professional_required:
+                    if not user_data.get(field):
+                        return False, f"Para profesionales, el campo {field} es requerido"
             
             # Preparar datos del usuario
             user_id = self.get_next_user_id()
@@ -189,12 +197,73 @@ class AuthManager:
             # Agregar usuario a la hoja
             self.users_sheet.append_row(row_data)
             
+            # Si es profesional, agregar a la hoja de profesionales
+            if user_data['tipo_usuario'] == 'profesional':
+                self._add_professional_to_sheet(user_id, user_data)
+            
             logger.info(f"✅ Usuario registrado: {user_data['email']}")
             return True, "Usuario registrado exitosamente"
             
         except Exception as e:
             logger.error(f"❌ Error registrando usuario: {e}")
             return False, "Error interno del servidor"
+
+    def _add_professional_to_sheet(self, user_id, user_data):
+        """Agregar profesional a la hoja de profesionales"""
+        try:
+            # Obtener o crear hoja de profesionales
+            try:
+                professional_sheet = self.spreadsheet.worksheet('Profesionales')
+            except gspread.exceptions.WorksheetNotFound:
+                # Crear hoja si no existe
+                professional_sheet = self.spreadsheet.add_worksheet(
+                    title='Profesionales', 
+                    rows=1000, 
+                    cols=20
+                )
+                # Agregar encabezados
+                headers = [
+                    'ID', 'Email', 'Nombre', 'Apellido', 'Teléfono', 
+                    'Número de Registro', 'Especialidad', 'Años de Experiencia',
+                    'Calificación', 'Dirección de Consulta', 'Horario de Atención',
+                    'Idiomas', 'Áreas de Especialización', 'Profesión', 'Institución',
+                    'Título', 'Año de Egreso', 'Certificaciones', 'Fecha_Registro',
+                    'Estado', 'Disponible'
+                ]
+                professional_sheet.append_row(headers)
+            
+            # Preparar datos del profesional
+            current_time = datetime.now().isoformat()
+            professional_data = [
+                user_id,
+                user_data['email'].lower(),
+                user_data['nombre'],
+                user_data['apellido'],
+                user_data.get('telefono', ''),
+                user_data.get('numero_registro', ''),
+                user_data.get('especialidad', ''),
+                user_data.get('anos_experiencia', '0'),
+                '4.5',  # calificación por defecto
+                user_data.get('direccion_consulta', ''),
+                user_data.get('horario_atencion', ''),
+                user_data.get('idiomas', 'Español'),
+                user_data.get('areas_especializacion', ''),
+                user_data.get('profesion', ''),
+                user_data.get('institucion', ''),
+                user_data.get('titulo', ''),
+                user_data.get('ano_egreso', ''),
+                user_data.get('certificaciones', ''),
+                current_time,  # Fecha_Registro
+                'activo',      # Estado (activo por defecto)
+                'true'         # Disponible (disponible por defecto)
+            ]
+            
+            professional_sheet.append_row(professional_data)
+            logger.info(f"✅ Profesional agregado a hoja especializada: {user_data['email']}")
+            
+        except Exception as e:
+            logger.error(f"❌ Error agregando profesional a hoja especializada: {e}")
+            # No fallar el registro principal si esto falla
 
     def login_user(self, email, password):
         """
@@ -511,4 +580,235 @@ class AuthManager:
         except Exception as e:
             logger.error(f"❌ Error vinculando Telegram por ID: {e}")
             return False, "Error interno del servidor", None
+    
+    def update_professional_status(self, user_id, estado=None, disponible=None):
+        """
+        Actualizar estado y disponibilidad de un profesional
+        estado: 'activo', 'inactivo', 'suspendido'
+        disponible: 'true', 'false'
+        """
+        try:
+            # Obtener hoja de profesionales
+            try:
+                prof_sheet = self.spreadsheet.worksheet('Profesionales')
+            except gspread.exceptions.WorksheetNotFound:
+                return False, "Hoja de profesionales no encontrada"
+            
+            # Buscar profesional por ID
+            all_records = prof_sheet.get_all_records()
+            row_index = None
+            
+            for i, record in enumerate(all_records, start=2):  # Start=2 porque row 1 son headers
+                if str(record.get('ID', '')) == str(user_id):
+                    row_index = i
+                    break
+            
+            if not row_index:
+                return False, "Profesional no encontrado"
+            
+            # Actualizar estado (columna T - posición 20)
+            if estado is not None:
+                if estado not in ['activo', 'inactivo', 'suspendido']:
+                    return False, "Estado debe ser: activo, inactivo o suspendido"
+                prof_sheet.update(f'T{row_index}', estado)
+                logger.info(f"✅ Estado actualizado a '{estado}' para profesional ID: {user_id}")
+            
+            # Actualizar disponibilidad (columna U - posición 21)
+            if disponible is not None:
+                if disponible not in ['true', 'false']:
+                    return False, "Disponible debe ser: true o false"
+                prof_sheet.update(f'U{row_index}', disponible)
+                logger.info(f"✅ Disponibilidad actualizada a '{disponible}' para profesional ID: {user_id}")
+            
+            return True, "Estado del profesional actualizado exitosamente"
+            
+        except Exception as e:
+            logger.error(f"❌ Error actualizando estado del profesional: {e}")
+            return False, "Error interno del servidor"
+
+    def get_professional_by_id(self, user_id):
+        """Obtener datos completos de un profesional por ID"""
+        try:
+            # Obtener hoja de profesionales
+            try:
+                prof_sheet = self.spreadsheet.worksheet('Profesionales')
+                users_sheet = self.spreadsheet.worksheet('Usuarios')
+            except gspread.exceptions.WorksheetNotFound:
+                logger.error("❌ Hojas no encontradas")
+                return None
+            
+            # Buscar profesional y datos de usuario
+            prof_records = prof_sheet.get_all_records()
+            user_records = users_sheet.get_all_records()
+            
+            professional_data = None
+            user_data = None
+            
+            # Buscar datos profesionales
+            for record in prof_records:
+                if str(record.get('ID', '')) == str(user_id):
+                    professional_data = record
+                    logger.info(f"✅ Datos profesionales encontrados: {professional_data}")
+                    break
+                
+            # Buscar datos de usuario (para obtener el género)
+            for record in user_records:
+                if str(record.get('id', '')) == str(user_id):
+                    user_data = record
+                    logger.info(f"✅ Datos de usuario encontrados: {user_data}")
+                    break
+            
+            if professional_data and user_data:
+                # Combinar datos profesionales con el género del usuario
+                professional_data['genero'] = user_data.get('genero', '')
+                logger.info(f"✅ Datos combinados: {professional_data}")
+                return professional_data
+            
+            logger.error("❌ No se encontraron datos completos")
+            return None
+            
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo profesional: {e}")
+            return None
+
+    def add_professional_certification(self, user_id, titulo, institucion, ano, archivo_url=''):
+        """Agregar certificación a un profesional"""
+        try:
+            # Obtener o crear hoja de certificaciones
+            try:
+                cert_sheet = self.spreadsheet.worksheet('Certificaciones')
+            except gspread.exceptions.WorksheetNotFound:
+                # Crear hoja si no existe
+                cert_sheet = self.spreadsheet.add_worksheet(
+                    title='Certificaciones', 
+                    rows=1000, 
+                    cols=10
+                )
+                # Agregar encabezados
+                headers = [
+                    'ID', 'Profesional_ID', 'Titulo', 'Institucion', 'Ano',
+                    'Archivo_URL', 'Fecha_Agregado', 'Estado', 'Verificado'
+                ]
+                cert_sheet.append_row(headers)
+                logger.info("✅ Hoja 'Certificaciones' creada")
+            
+            # Generar ID único para la certificación
+            try:
+                all_records = cert_sheet.get_all_records()
+                if all_records:
+                    max_id = max([int(record.get('ID', 0)) for record in all_records if record.get('ID')])
+                    cert_id = max_id + 1
+                else:
+                    cert_id = 1
+            except:
+                cert_id = 1
+            
+            # Preparar datos de la certificación
+            current_time = datetime.now().isoformat()
+            cert_data = [
+                cert_id,
+                user_id,
+                titulo,
+                institucion,
+                ano,
+                archivo_url,
+                current_time,
+                'activo',
+                'pendiente'  # verificación pendiente
+            ]
+            
+            # Agregar certificación
+            cert_sheet.append_row(cert_data)
+            
+            logger.info(f"✅ Certificación agregada - ID: {cert_id}, Profesional: {user_id}")
+            return True, "Certificación agregada exitosamente"
+            
+        except Exception as e:
+            logger.error(f"❌ Error agregando certificación: {e}")
+            return False, "Error interno del servidor"
+
+    def get_professional_certifications(self, user_id):
+        """Obtener todas las certificaciones de un profesional"""
+        try:
+            # Obtener hoja de certificaciones
+            try:
+                cert_sheet = self.spreadsheet.worksheet('Certificaciones')
+            except gspread.exceptions.WorksheetNotFound:
+                return []
+            
+            # Buscar certificaciones del profesional
+            all_records = cert_sheet.get_all_records()
+            certifications = []
+            
+            for record in all_records:
+                if str(record.get('Profesional_ID', '')) == str(user_id):
+                    certifications.append(record)
+            
+            return certifications
+            
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo certificaciones: {e}")
+            return []
+
+    def update_professional_profile(self, user_id, form_data):
+        """Actualizar el perfil de un profesional"""
+        try:
+            # Obtener hoja de profesionales
+            try:
+                prof_sheet = self.spreadsheet.worksheet('Profesionales')
+            except gspread.exceptions.WorksheetNotFound:
+                return False, "Hoja de profesionales no encontrada"
+            
+            # Buscar el profesional por ID
+            all_records = prof_sheet.get_all_records()
+            professional_row = None
+            row_index = None
+            
+            for i, record in enumerate(all_records):
+                if str(record.get('ID', '')) == str(user_id):
+                    professional_row = record
+                    row_index = i + 2  # +2 porque enumerate empieza en 0 y hay header
+                    break
+            
+            if not professional_row:
+                return False, "Profesional no encontrado"
+            
+            # Mapear campos del formulario a columnas de la hoja
+            field_mapping = {
+                # Información profesional
+                'numero_registro': 'F',      # Columna F
+                'especialidad': 'G',         # Columna G  
+                'anos_experiencia': 'H',     # Columna H
+                'idiomas': 'L',              # Columna L
+                # Información de contacto
+                'email': 'B',                # Columna B
+                'telefono': 'E',             # Columna E
+                'direccion_consulta': 'J',   # Columna J
+                'horario_atencion': 'K'      # Columna K
+            }
+            
+            # Actualizar campos modificados
+            updates = []
+            for field, column in field_mapping.items():
+                if field in form_data:
+                    value = str(form_data[field]).strip()
+                    cell_address = f"{column}{row_index}"
+                    updates.append({
+                        'range': cell_address,
+                        'values': [[value]]
+                    })
+                    logger.info(f"📝 Actualizando {field}: {value} en {cell_address}")
+            
+            # Aplicar todas las actualizaciones
+            if updates:
+                # Usar batch_update para eficiencia
+                prof_sheet.batch_update(updates)
+                logger.info(f"✅ Perfil profesional actualizado - {len(updates)} campos")
+                return True, "Perfil actualizado correctamente"
+            else:
+                return True, "No hay cambios para actualizar"
+                
+        except Exception as e:
+            logger.error(f"❌ Error actualizando perfil profesional: {e}")
+            return False, "Error interno del servidor"
     

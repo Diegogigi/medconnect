@@ -11,6 +11,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/patient-styles.css">
+    
+    <!-- Librerías para exportación y PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
     <style>
         /* Estilos específicos para profesionales */
         .dashboard-header.professional {
@@ -413,7 +419,13 @@
             </div>
             <div>
                 <h5 class="mb-1">¡Bienvenido/a de vuelta!</h5>
-                <p class="mb-0">Dr./Dra. {{ user.nombre if user else 'Usuario' }}, sesión iniciada exitosamente</p>
+                <p class="mb-0">
+                    {% if user and user.profesion_gendered %}
+                        {{ user.profesion_gendered }} {{ user.nombre if user else 'Usuario' }}, sesión iniciada exitosamente
+                    {% else %}
+                        {{ user.nombre if user else 'Usuario' }}, sesión iniciada exitosamente
+                    {% endif %}
+                </p>
             </div>
         </div>
     </div>
@@ -433,13 +445,16 @@
                             <i class="fas fa-user-md"></i>
                             </div>
                         <span class="fw-medium">
-                            {% if user and user.genero == 'Masculino' %}Dr.{% else %}Dra.{% endif %} 
-                            {{ user.nombre if user else 'Usuario' }} {{ user.apellido if user else '' }}
+                            {% if user and user.profesion_gendered %}
+                                {{ user.profesion_gendered }} {{ user.nombre if user else 'Usuario' }} {{ user.apellido if user else '' }}
+                            {% else %}
+                                {{ user.nombre if user else 'Usuario' }} {{ user.apellido if user else '' }}
+                            {% endif %}
                         </span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
                         <li>
-                            <a class="dropdown-item" href="/profile">
+                            <a class="dropdown-item" href="{{ url_for('profile') }}">
                                 <i class="fas fa-user-circle me-2 text-primary"></i>
                                 Mi Perfil
                             </a>
@@ -480,11 +495,24 @@
                             </div>
                             <div>
                             <h1 class="mb-1">
-                                ¡Hola, 
-                                {% if user and user.genero == 'Masculino' %}Dr.{% else %}Dra.{% endif %} 
-                                {{ user.nombre if user else 'Usuario' }}!
+                                {% if user and user.profesion_gendered %}
+                                    ¡Hola, {{ user.profesion_gendered }} {{ user.nombre if user else 'Usuario' }}!
+                                {% else %}
+                                    ¡Hola, {{ user.nombre if user else 'Usuario' }}!
+                                {% endif %}
                             </h1>
-                            <p class="mb-0">Sistema de Gestión de Atenciones Médicas</p>
+                            <p class="mb-0">
+                                {% if user and user.profesion_gendered %}
+                                    {{ user.profesion_gendered }} {{ user.nombre if user else 'Usuario' }} {{ user.apellido if user else '' }}
+                                {% else %}
+                                    {{ user.nombre if user else 'Usuario' }} {{ user.apellido if user else '' }}
+                                {% endif %}
+                                {% if user and user.especialidad %}
+                                    <br>{{ user.especialidad }} - Sistema de Gestión de Atenciones Médicas
+                                {% else %}
+                                    <br>Sistema de Gestión de Atenciones Médicas
+                                {% endif %}
+                            </p>
                             {% if user and user.ultimo_acceso %}
                             <small>Último acceso: {{ user.ultimo_acceso[:10] if user.ultimo_acceso else 'Primera vez' }}</small>
                             {% endif %}
@@ -573,10 +601,10 @@
                         <div class="registration-form mt-4">
                             <h4 class="form-section-title">
                                 <i class="fas fa-plus-circle me-2"></i>
-                                Registrar Nueva Atención Médica
+                                Registrar Nueva Atención de Salud
                             </h4>
                             
-                            <form id="atencionForm">
+                            <form id="atencionForm" enctype="multipart/form-data">
                                 <div class="row">
                                     <div class="col-md-6">
                                         <h6 class="text-muted mb-3">Información del Paciente</h6>
@@ -584,62 +612,92 @@
                                         <div class="mb-3">
                                             <label for="pacienteNombre" class="form-label">Nombre Completo</label>
                                             <input type="text" class="form-control" id="pacienteNombre" placeholder="Ej: Juan Pérez López" required>
-                            </div>
+                                        </div>
 
                                         <div class="row g-2 mb-3">
                                             <div class="col-8">
                                                 <label for="pacienteRut" class="form-label">RUT</label>
                                                 <input type="text" class="form-control" id="pacienteRut" placeholder="12.345.678-9">
-                                </div>
+                                            </div>
                                             <div class="col-4">
                                                 <label for="pacienteEdad" class="form-label">Edad</label>
                                                 <input type="number" class="form-control" id="pacienteEdad" placeholder="25">
-                            </div>
-                        </div>
+                                            </div>
+                                        </div>
 
                                         <div class="mb-3">
                                             <label for="tipoAtencion" class="form-label">Tipo de Atención</label>
                                             <select class="form-select" id="tipoAtencion" required>
                                                 <option value="">Seleccionar...</option>
-                                                <option value="consulta_general">Consulta General</option>
+                                                <option value="medicina_general">Medicina General</option>
                                                 <option value="fisioterapia">Fisioterapia</option>
                                                 <option value="terapia_ocupacional">Terapia Ocupacional</option>
                                                 <option value="enfermeria">Enfermería</option>
                                                 <option value="psicologia">Psicología</option>
                                                 <option value="nutricion">Nutrición</option>
+                                                <option value="kinesiologia">Kinesiología</option>
+                                                <option value="fonoaudiologia">Fonoaudiología</option>
                                                 <option value="urgencia">Urgencia</option>
                                             </select>
-                    </div>
+                                        </div>
 
                                         <div class="mb-3">
                                             <label for="fechaAtencion" class="form-label">Fecha y Hora</label>
                                             <input type="datetime-local" class="form-control" id="fechaAtencion" required>
-                </div>
-            </div>
+                                        </div>
+                                    </div>
 
                                     <div class="col-md-6">
-                                        <h6 class="text-muted mb-3">Información Médica</h6>
+                                        <h6 class="text-muted mb-3">Información de la Atención</h6>
                                         
                                         <div class="mb-3">
-                                            <label for="motivoConsulta" class="form-label">Motivo de Consulta</label>
-                                            <textarea class="form-control" id="motivoConsulta" rows="3" placeholder="Describe el motivo de la consulta..." required></textarea>
-        </div>
+                                            <label for="motivoConsulta" class="form-label">Motivo de la Atención</label>
+                                            <textarea class="form-control" id="motivoConsulta" rows="3" placeholder="Describe el motivo de la atención..." required></textarea>
+                                        </div>
 
                                         <div class="mb-3">
-                                            <label for="diagnostico" class="form-label">Diagnóstico/Observaciones</label>
-                                            <textarea class="form-control" id="diagnostico" rows="3" placeholder="Diagnóstico inicial u observaciones relevantes..."></textarea>
-                        </div>
+                                            <label for="diagnostico" class="form-label">Evaluación/Observaciones</label>
+                                            <textarea class="form-control" id="diagnostico" rows="3" placeholder="Evaluación inicial u observaciones relevantes..."></textarea>
+                                        </div>
 
                                         <div class="mb-3">
-                                            <label for="tratamiento" class="form-label">Tratamiento/Plan</label>
-                                            <textarea class="form-control" id="tratamiento" rows="3" placeholder="Tratamiento prescrito o plan de acción..."></textarea>
-                    </div>
-                </div>
-            </div>
+                                            <label for="tratamiento" class="form-label">Plan de Intervención</label>
+                                            <textarea class="form-control" id="tratamiento" rows="3" placeholder="Plan de intervención o indicaciones..."></textarea>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="atencionObservaciones" class="form-label">Observaciones Adicionales</label>
+                                            <textarea class="form-control" id="atencionObservaciones" rows="3"></textarea>
+                                        </div>
+
+                                        <!-- Campo para adjuntar archivos -->
+                                        <div class="mb-3">
+                                            <label for="fileUpload" class="form-label">
+                                                <i class="fas fa-paperclip me-2"></i>Adjuntar Archivos
+                                                <span class="badge bg-info ms-2">PDF, JPG, PNG, GIF</span>
+                                            </label>
+                                            <input type="file" class="form-control" id="fileUpload" name="files[]" 
+                                                   multiple accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx">
+                                            <small class="text-muted d-block mt-1">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Máximo 16MB por archivo
+                                            </small>
+                                            <div id="fileList" class="mt-2">
+                                                <!-- Los archivos seleccionados se mostrarán aquí -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
 
                                 <div class="row mt-4">
                                     <div class="col-12">
                                         <div class="d-flex gap-2 justify-content-end">
+                                            <button type="button" class="btn btn-warning" onclick="probarRegistroAtencion()">
+                                                <i class="fas fa-flask me-2"></i>
+                                                Prueba
+                                            </button>
                                             <button type="reset" class="btn btn-secondary">
                                                 <i class="fas fa-undo me-2"></i>
                                                 Limpiar
@@ -648,189 +706,87 @@
                                                 <i class="fas fa-save me-2"></i>
                                                 Registrar Atención
                                             </button>
-                        </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
                     </div>
-                            </form>
-                </div>
-            </div>
 
                     <!-- Historial de Atenciones -->
                     <div class="tab-pane fade" id="history" role="tabpanel">
-                        <div class="card mt-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">
-                                    <i class="fas fa-history me-2 text-primary"></i>
-                                    Registro de Atenciones
-                                </h5>
-                                <div class="d-flex gap-2">
-                                    <input type="text" class="form-control form-control-sm" placeholder="Buscar paciente..." style="width: 200px;">
-                                    <button class="btn btn-outline-primary btn-sm">
-                                        <i class="fas fa-search"></i>
-                            </button>
-                                    <button class="btn btn-accent btn-sm">
-                                        <i class="fas fa-download me-1"></i>
-                                        Exportar
-                                    </button>
-                        </div>
-                        </div>
-                            <div class="card-body p-0">
-                                <div class="table-container">
-                                    <table class="table table-hover mb-0">
-                                        <thead class="table-light">
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Historial de Atenciones</h5>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Buscar..." id="searchAtencion">
+                                    <select class="form-select form-select-sm" id="filterAtencion">
+                                        <option value="all">Todos</option>
+                                        <option value="today">Hoy</option>
+                                        <option value="week">Esta semana</option>
+                                        <option value="month">Este mes</option>
+                                    </select>
+                                    <div class="dropdown">
+                                        <button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="exportarBtn" data-bs-toggle="dropdown">
+                                            <i class="fas fa-download me-1"></i>Exportar
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#" onclick="exportarHistorial('excel')">
+                                                <i class="fas fa-file-excel me-2 text-success"></i>Excel
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#" onclick="exportarHistorial('csv')">
+                                                <i class="fas fa-file-csv me-2 text-primary"></i>CSV
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
                                             <tr>
-                                                <th class="ps-4" style="width: 35%;">Paciente</th>
-                                                <th style="width: 20%;">Tipo</th>
-                                                <th style="width: 20%;">Fecha</th>
-                                                <th style="width: 15%;">Estado</th>
-                                                <th class="text-end pe-4" style="width: 10%;">Acciones</th>
+                                                <th>Fecha</th>
+                                                <th>Paciente</th>
+                                                <th>Tipo</th>
+                                                <th>Diagnóstico</th>
+                                                <th>Estado</th>
+                                                <th class="text-center">Acciones</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                                                                        <tr>
-                                                <td class="ps-4">
-                                                    <div class="patient-info-vertical">
-                                                        <div class="user-avatar-sm me-3">
-                                                            <i class="fas fa-user"></i>
-                    </div>
-                                                        <div>
-                                                            <div class="fw-medium mb-1">María González</div>
-                                                            <small class="text-muted d-block">RUT: 12.345.678-9</small>
-                                                            <small class="text-muted d-block">Edad: 35 años</small>
-                </div>
-            </div>
+                                        <tbody id="historialAtenciones">
+                                            {% for atencion in atenciones %}
+                                            <tr>
+                                                <td>{{ atencion.fecha_hora }}</td>
+                                                <td>{{ atencion.paciente_nombre }}</td>
+                                                <td><span class="badge bg-primary">{{ atencion.tipo }}</span></td>
+                                                <td>{{ atencion.diagnostico }}</td>
+                                                <td>
+                                                    <span class="badge {{ 'bg-success' if atencion.completada else 'bg-warning' }}">
+                                                        {{ 'Completada' if atencion.completada else 'En Seguimiento' }}
+                                                    </span>
                                                 </td>
                                                 <td>
-                                                    <div class="service-info">
-                                                        <span class="badge bg-primary d-block mb-1">Fisioterapia</span>
-                                                        <small class="text-muted">Rehabilitación</small>
-                        </div>
-                                                </td>
-                                                <td>
-                                                    <div class="date-info">
-                                                        <div class="fw-medium">15/01/2025</div>
-                                                        <small class="text-muted d-block">10:30 AM</small>
-                                                        <small class="text-muted d-block">Hace 2 días</small>
-                        </div>
-                                                </td>
-                                                <td>
-                                                    <div class="status-info">
-                                                        <span class="badge bg-success d-block mb-1">Completada</span>
-                                                        <small class="text-muted">Pagado</small>
-                    </div>
-                                                </td>
-                                                <td class="text-end pe-4">
-                                                    <div class="d-flex flex-column gap-1">
-                                                        <button class="btn btn-outline-primary btn-sm" title="Ver detalles">
-                                                            <i class="fas fa-eye me-1"></i>Ver
+                                                    <div class="d-flex justify-content-center gap-2">
+                                                        <button class="btn btn-sm btn-info" onclick="verDetalleAtencion('{{ atencion.id }}')" title="Ver Detalle">
+                                                            <i class="fas fa-eye"></i>
                                                         </button>
-                                                        <button class="btn btn-outline-secondary btn-sm" title="Editar">
-                                                            <i class="fas fa-edit me-1"></i>Edit
+                                                        <button class="btn btn-sm btn-primary" onclick="editarAtencion('{{ atencion.id }}')" title="Editar">
+                                                            <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <button class="btn btn-outline-accent btn-sm" title="Generar informe">
-                                                            <i class="fas fa-file-pdf me-1"></i>PDF
-                                                        </button>
-                </div>
-                                                </td>
-                                            </tr>
-                                                                                        <tr>
-                                                <td class="ps-4">
-                                                    <div class="patient-info-vertical">
-                                                        <div class="user-avatar-sm me-3">
-                                                            <i class="fas fa-user"></i>
-            </div>
-                                                        <div>
-                                                            <div class="fw-medium mb-1">Carlos Rodríguez</div>
-                                                            <small class="text-muted d-block">RUT: 98.765.432-1</small>
-                                                            <small class="text-muted d-block">Edad: 42 años</small>
-        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="service-info">
-                                                        <span class="badge bg-info d-block mb-1">Consulta General</span>
-                                                        <small class="text-muted">Control rutinario</small>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="date-info">
-                                                        <div class="fw-medium">14/01/2025</div>
-                                                        <small class="text-muted d-block">3:15 PM</small>
-                                                        <small class="text-muted d-block">Hace 3 días</small>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <div class="status-info">
-                                                        <span class="badge bg-success d-block mb-1">Completada</span>
-                                                        <small class="text-muted">Pagado</small>
-                                                    </div>
-                                                </td>
-                                                <td class="text-end pe-4">
-                                                    <div class="d-flex flex-column gap-1">
-                                                        <button class="btn btn-outline-primary btn-sm" title="Ver detalles">
-                                                            <i class="fas fa-eye me-1"></i>Ver
-                            </button>
-                                                        <button class="btn btn-outline-secondary btn-sm" title="Editar">
-                                                            <i class="fas fa-edit me-1"></i>Edit
-                                                        </button>
-                                                        <button class="btn btn-outline-accent btn-sm" title="Generar informe">
-                                                            <i class="fas fa-file-pdf me-1"></i>PDF
-                                                        </button>
-                        </div>
-                                                </td>
-                                            </tr>
-                                                                                        <tr>
-                                                <td class="ps-4">
-                                                    <div class="patient-info-vertical">
-                                                        <div class="user-avatar-sm me-3">
-                                                            <i class="fas fa-user"></i>
-                    </div>
-                                                        <div>
-                                                            <div class="fw-medium mb-1">Ana Martín</div>
-                                                            <small class="text-muted d-block">RUT: 15.678.943-2</small>
-                                                            <small class="text-muted d-block">Edad: 28 años</small>
-                            </div>
-                        </div>
-                                                </td>
-                                                <td>
-                                                    <div class="service-info">
-                                                        <span class="badge bg-warning d-block mb-1">Enfermería</span>
-                                                        <small class="text-muted">Control post-op</small>
-                            </div>
-                                                </td>
-                                                <td>
-                                                    <div class="date-info">
-                                                        <div class="fw-medium">16/01/2025</div>
-                                                        <small class="text-muted d-block">9:00 AM</small>
-                                                        <small class="text-muted d-block">Mañana</small>
-                        </div>
-                                                </td>
-                                                <td>
-                                                    <div class="status-info">
-                                                        <span class="badge bg-warning d-block mb-1">Programada</span>
-                                                        <small class="text-muted">Pendiente</small>
-                    </div>
-                                                </td>
-                                                <td class="text-end pe-4">
-                                                    <div class="d-flex flex-column gap-1">
-                                                        <button class="btn btn-outline-primary btn-sm" title="Ver detalles">
-                                                            <i class="fas fa-eye me-1"></i>Ver
-                                                        </button>
-                                                        <button class="btn btn-outline-secondary btn-sm" title="Editar">
-                                                            <i class="fas fa-edit me-1"></i>Edit
-                                                        </button>
-                                                        <button class="btn btn-outline-danger btn-sm" title="Cancelar">
-                                                            <i class="fas fa-times me-1"></i>Cancel
+                                                        <button class="btn btn-sm btn-secondary" onclick="generarPDF('{{ atencion.id }}')" title="Generar PDF">
+                                                            <i class="fas fa-file-pdf"></i>
                                                         </button>
                                                     </div>
                                                 </td>
                                             </tr>
+                                            {% endfor %}
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
-                </div>
-            </div>
+                        </div>
+                    </div>
 
                     <!-- Mis Pacientes -->
                     <div class="tab-pane fade" id="patients" role="tabpanel">
@@ -1196,9 +1152,9 @@
                             <label for="patientAddress">Dirección</label>
                         </div>
                         <div class="form-floating mb-3">
-                            <textarea class="form-control" id="patientMedicalHistory" style="height: 100px" placeholder="Antecedentes médicos"></textarea>
-                            <label for="patientMedicalHistory">Antecedentes médicos relevantes</label>
-                    </div>
+                            <textarea class="form-control" id="patientMedicalHistory" style="height: 100px" placeholder="Antecedentes de salud"></textarea>
+                            <label for="patientMedicalHistory">Antecedentes de salud relevantes</label>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -1250,13 +1206,15 @@
                                 <option value="terapia_ocupacional">Terapia Ocupacional</option>
                                 <option value="psicologia">Psicología</option>
                                 <option value="nutricion">Nutrición</option>
+                                <option value="kinesiologia">Kinesiología</option>
+                                <option value="fonoaudiologia">Fonoaudiología</option>
                             </select>
-                            <label for="appointmentType">Tipo de consulta</label>
-                                        </div>
+                            <label for="appointmentType">Tipo de atención</label>
+                        </div>
                         <div class="form-floating mb-3">
                             <textarea class="form-control" id="appointmentNotes" style="height: 80px" placeholder="Notas adicionales"></textarea>
                             <label for="appointmentNotes">Notas adicionales</label>
-                                            </div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -1295,401 +1253,170 @@
                                 </div>
                             </div>
                             
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Script para funcionalidad completa -->
-    <script>
-        // Variables globales
-        let currentDate = new Date();
-        let patients = [];
-        let appointments = [];
-        let attentions = [];
-
-        // Inicialización al cargar la página
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeApp();
-            setCurrentDateTime();
-            updateCurrentDate();
-            
-            // Ocultar toast de bienvenida
-            const welcomeToast = document.getElementById('welcomeToast');
-            if (welcomeToast) {
-                setTimeout(() => {
-                    welcomeToast.style.opacity = '0';
-                    setTimeout(() => welcomeToast.remove(), 500);
-                }, 5000);
-            }
-        });
-
-        function initializeApp() {
-            // Configurar event listeners
-            setupEventListeners();
-            
-            // Configurar fecha por defecto en formularios
-            const today = new Date().toISOString().split('T')[0];
-            const appointmentDateField = document.getElementById('appointmentDate');
-            if (appointmentDateField) {
-                appointmentDateField.value = today;
-            }
-        }
-
-        function setupEventListeners() {
-            // Formulario de nueva atención
-            const atencionForm = document.getElementById('atencionForm');
-            if (atencionForm) {
-                atencionForm.addEventListener('submit', handleAttentionSubmit);
-            }
-            
-            // Búsqueda de pacientes
-            const searchPatients = document.getElementById('searchPatients');
-            const filterPatients = document.getElementById('filterPatients');
-            if (searchPatients) searchPatients.addEventListener('input', filterPatients);
-            if (filterPatients) filterPatients.addEventListener('change', filterPatients);
-        }
-
-        // === FUNCIONES PARA ATENCIONES ===
-        function handleAttentionSubmit(e) {
-            e.preventDefault();
-            
-            const attentionData = {
-                id: Date.now(),
-                pacienteNombre: document.getElementById('pacienteNombre').value,
-                pacienteRut: document.getElementById('pacienteRut').value,
-                pacienteEdad: document.getElementById('pacienteEdad').value,
-                tipoAtencion: document.getElementById('tipoAtencion').value,
-                fechaAtencion: document.getElementById('fechaAtencion').value,
-                motivoConsulta: document.getElementById('motivoConsulta').value,
-                diagnostico: document.getElementById('diagnostico').value,
-                tratamiento: document.getElementById('tratamiento').value,
-                fecha: new Date().toLocaleString()
-            };
-
-            // Guardar atención
-            attentions.push(attentionData);
-            
-            // Mostrar mensaje de éxito
-            showSuccessAlert('Atención registrada exitosamente');
-            
-            // Limpiar formulario
-            e.target.reset();
-            setCurrentDateTime();
-            
-            // Actualizar estadísticas
-            updateStatistics();
-        }
-
-        function setCurrentDateTime() {
-            const now = new Date();
-            const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-            const fechaAtencion = document.getElementById('fechaAtencion');
-            if (fechaAtencion) {
-                fechaAtencion.value = localDateTime;
-            }
-        }
-
-        // === FUNCIONES PARA PACIENTES ===
-        function showAddPatientModal() {
-            const modal = new bootstrap.Modal(document.getElementById('addPatientModal'));
-            modal.show();
-        }
-
-        function savePatient() {
-            const patientData = {
-                id: Date.now(),
-                nombre: document.getElementById('patientName').value,
-                rut: document.getElementById('patientRut').value,
-                edad: document.getElementById('patientAge').value,
-                genero: document.getElementById('patientGender').value,
-                fechaNacimiento: document.getElementById('patientBirthdate').value,
-                telefono: document.getElementById('patientPhone').value,
-                email: document.getElementById('patientEmail').value,
-                direccion: document.getElementById('patientAddress').value,
-                antecedentes: document.getElementById('patientMedicalHistory').value,
-                fechaRegistro: new Date().toLocaleString(),
-                estado: 'Activo'
-            };
-
-            // Validar datos
-            if (!patientData.nombre || !patientData.rut) {
-                showErrorAlert('Por favor complete los campos obligatorios');
-                return;
-            }
-
-            // Guardar paciente
-            patients.push(patientData);
-            
-            // Cerrar modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('addPatientModal'));
-            modal.hide();
-            
-            // Limpiar formulario
-            document.getElementById('addPatientForm').reset();
-            
-            // Mostrar mensaje de éxito
-            showSuccessAlert('Paciente agregado exitosamente');
-            
-            // Actualizar estadísticas
-            updateStatistics();
-        }
-
-        function filterPatients() {
-            const searchTerm = document.getElementById('searchPatients')?.value.toLowerCase() || '';
-            const filterValue = document.getElementById('filterPatients')?.value || '';
-            
-            console.log('Filtrando pacientes:', searchTerm, filterValue);
-            // Aquí iría la lógica de filtrado real
-        }
-
-        function viewPatientHistory(rut) {
-            const modal = new bootstrap.Modal(document.getElementById('patientHistoryModal'));
-            
-            // Mostrar contenido de carga
-            const content = document.getElementById('patientHistoryContent');
-            content.innerHTML = `
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando historial...</span>
-                                    </div>
-                    <p class="mt-2">Cargando historial del paciente...</p>
-                                            </div>
-            `;
-            
-            modal.show();
-            
-            // Simular carga de datos
-            setTimeout(() => {
-                content.innerHTML = `
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Información del Paciente</h6>
-                                        </div>
-                                <div class="card-body">
-                                    <p><strong>RUT:</strong> ${rut}</p>
-                                    <p><strong>Nombre:</strong> Paciente Demo</p>
-                                    <p><strong>Edad:</strong> 35 años</p>
-                                    <p><strong>Teléfono:</strong> +56 9 1234-5678</p>
-                                    <p><strong>Email:</strong> paciente@email.com</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                        <div class="col-md-8">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h6 class="mb-0">Historial de Atenciones</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="list-group">
-                                        <div class="list-group-item">
-                                            <div class="d-flex w-100 justify-content-between">
-                                                <h6 class="mb-1">Fisioterapia</h6>
-                                                <small>15/01/2025</small>
-                            </div>
-                                            <p class="mb-1">Sesión de rehabilitación post-operatoria</p>
-                                            <small class="text-success">Completada</small>
-                        </div>
-                                        <div class="list-group-item">
-                                            <div class="d-flex w-100 justify-content-between">
-                                                <h6 class="mb-1">Consulta General</h6>
-                                                <small>10/01/2025</small>
-                        </div>
-                                            <p class="mb-1">Control rutinario, paciente en buen estado</p>
-                                            <small class="text-success">Completada</small>
+    <!-- Modal de Detalle de Atención -->
+    <div class="modal fade" id="detalleAtencionModal" tabindex="-1" aria-labelledby="detalleAtencionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detalleAtencionModalLabel">Detalle de la Atención</h5>
+                    <div class="ms-auto">
+                        <button type="button" class="btn btn-outline-primary me-2" onclick="descargarPDFAtencion(atencionActualId)">
+                            <i class="fas fa-file-pdf"></i> Descargar PDF
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
+                </div>
+                <div class="modal-body">
+                    <div id="detalleAtencionContent">
+                        <!-- Información básica de la atención -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-id-card me-2"></i>ID de Atención:</strong></p>
+                                <p id="detalleAtencionId" class="text-muted"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-toggle-on me-2"></i>Estado:</strong></p>
+                                <p><span id="detalleEstado" class="badge"></span></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Información del paciente -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-user me-2"></i>Paciente:</strong></p>
+                                <p id="detallePacienteNombre"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-id-badge me-2"></i>RUT:</strong></p>
+                                <p id="detallePacienteRUT"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Información de la atención -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-calendar me-2"></i>Fecha y Hora:</strong></p>
+                                <p id="detalleFechaHora"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-stethoscope me-2"></i>Tipo de Atención:</strong></p>
+                                <p id="detalleTipoAtencion"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Detalles clínicos -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <p><strong><i class="fas fa-question-circle me-2"></i>Motivo de Consulta:</strong></p>
+                                <p id="detalleMotivoConsulta"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <p><strong><i class="fas fa-diagnoses me-2"></i>Diagnóstico:</strong></p>
+                                <p id="detalleDiagnostico"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <p><strong><i class="fas fa-prescription-bottle-alt me-2"></i>Tratamiento:</strong></p>
+                                <p id="detalleTratamiento"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <p><strong><i class="fas fa-notes-medical me-2"></i>Observaciones:</strong></p>
+                                <p id="detalleObservaciones"></p>
+                            </div>
+                        </div>
+
+                        <hr>
+                        
+                        <!-- Sección de Archivos Adjuntos -->
+                        <h5><i class="fas fa-paperclip me-2"></i>Archivos Adjuntos</h5>
+                        <div id="detalleArchivosContainer" class="mt-3">
+                            <!-- Los archivos se cargarán aquí dinámicamente -->
+                            <p id="noArchivos" class="text-muted">No hay archivos adjuntos para esta atención.</p>
+                            <ul id="listaArchivos" class="list-group"></ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Vista Previa de Archivos -->
+    <div class="modal fade" id="filePreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Vista Previa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- El contenido se cargará dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template para archivo adjunto -->
+    <template id="archivoAdjuntoTemplate">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-file fa-2x me-2"></i>
+                        <div class="flex-grow-1">
+                            <h6 class="card-title mb-1 archivo-nombre"></h6>
+                            <p class="card-text small text-muted archivo-fecha"></p>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary btn-ver" title="Ver archivo">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger btn-eliminar" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-                `;
-            }, 2000);
-        }
+    </template>
 
-        function editPatient(rut) {
-            showInfoAlert(`Editando paciente con RUT: ${rut}`);
-        }
+    <!-- Contenedor de Notificaciones -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <!-- Los toasts se agregarán dinámicamente aquí -->
+    </div>
 
-        function newConsultation(rut) {
-            // Cambiar a tab de registro y prellenar datos
-            document.getElementById('register-tab').click();
-            setTimeout(() => {
-                const rutField = document.getElementById('pacienteRut');
-                if (rutField) {
-                    rutField.value = rut;
-                }
-                showInfoAlert('Formulario preparado para nueva consulta');
-            }, 100);
-        }
+    <!-- Modal para previsualizar imágenes -->
+    <div class="modal fade" id="imagenModal" tabindex="-1" aria-labelledby="imagenModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imagenModalLabel">Vista Previa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="imagenPreview" class="img-fluid" alt="Vista previa">
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // === FUNCIONES PARA AGENDA ===
-        function showScheduleModal() {
-            const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
-            modal.show();
-        }
-
-        function saveAppointment() {
-            const appointmentData = {
-                id: Date.now(),
-                paciente: document.getElementById('appointmentPatient').value,
-                fecha: document.getElementById('appointmentDate').value,
-                hora: document.getElementById('appointmentTime').value,
-                tipo: document.getElementById('appointmentType').value,
-                notas: document.getElementById('appointmentNotes').value,
-                estado: 'Programada'
-            };
-
-            // Validar datos
-            if (!appointmentData.paciente || !appointmentData.fecha || !appointmentData.hora) {
-                showErrorAlert('Por favor complete los campos obligatorios');
-                return;
-            }
-
-            // Guardar cita
-            appointments.push(appointmentData);
-            
-            // Cerrar modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
-            modal.hide();
-            
-            // Limpiar formulario
-            document.getElementById('scheduleForm').reset();
-            
-            // Mostrar mensaje de éxito
-            showSuccessAlert('Cita agendada exitosamente');
-            
-            // Actualizar estadísticas
-            updateStatistics();
-        }
-
-        function scheduleAppointment(time) {
-            showScheduleModal();
-            setTimeout(() => {
-                const timeField = document.getElementById('appointmentTime');
-                if (timeField) {
-                    timeField.value = time;
-                }
-            }, 100);
-        }
-
-        function viewAppointment(id) {
-            showInfoAlert(`Viendo detalles de la cita ID: ${id}`);
-        }
-
-        function updateCurrentDate() {
-            const options = { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            };
-            const dateString = currentDate.toLocaleDateString('es-ES', options);
-            const currentDateElement = document.getElementById('currentDate');
-            if (currentDateElement) {
-                currentDateElement.textContent = dateString;
-            }
-        }
-
-        function prevDay() {
-            currentDate.setDate(currentDate.getDate() - 1);
-            updateCurrentDate();
-            showInfoAlert('Navegando al día anterior');
-        }
-
-        function nextDay() {
-            currentDate.setDate(currentDate.getDate() + 1);
-            updateCurrentDate();
-            showInfoAlert('Navegando al día siguiente');
-        }
-
-        function today() {
-            currentDate = new Date();
-            updateCurrentDate();
-            showInfoAlert('Regresando al día de hoy');
-        }
-
-        // === FUNCIONES PARA ACCIONES RÁPIDAS ===
-        function openRegistrationForm() {
-            const registerTab = document.getElementById('register-tab');
-            if (registerTab) {
-                registerTab.click();
-            }
-        }
-
-        function viewPatients() {
-            const patientsTab = document.getElementById('patients-tab');
-            if (patientsTab) {
-                patientsTab.click();
-            }
-        }
-
-        function viewReports() {
-            showInfoAlert('Función de reportes en desarrollo');
-        }
-
-        function viewSchedule() {
-            const scheduleTab = document.getElementById('schedule-tab');
-            if (scheduleTab) {
-                scheduleTab.click();
-            }
-        }
-
-        // === FUNCIONES PARA ALERTAS ===
-        function showSuccessAlert(message) {
-            showAlert(message, 'success', 'fas fa-check-circle');
-        }
-
-        function showErrorAlert(message) {
-            showAlert(message, 'danger', 'fas fa-exclamation-triangle');
-        }
-
-        function showInfoAlert(message) {
-            showAlert(message, 'info', 'fas fa-info-circle');
-        }
-
-        function showAlert(message, type, icon) {
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
-            alert.style.zIndex = '9999';
-            alert.innerHTML = `
-                <i class="${icon} me-2"></i>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            document.body.appendChild(alert);
-            
-            // Remover alerta automáticamente después de 5 segundos
-            setTimeout(() => {
-                if (alert.parentNode) {
-                    alert.remove();
-                }
-            }, 5000);
-        }
-
-        // === FUNCIONES AUXILIARES ===
-        function updateStatistics() {
-            // Actualizar contador de atenciones
-            const attentionsCount = attentions.length;
-            const patientsCount = patients.length;
-            const appointmentsCount = appointments.length;
-            
-            console.log(`Estadísticas actualizadas: ${attentionsCount} atenciones, ${patientsCount} pacientes, ${appointmentsCount} citas`);
-        }
-
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('es-ES');
-        }
-
-        function formatTime(timeString) {
-            const time = new Date(`2000-01-01T${timeString}`);
-            return time.toLocaleTimeString('es-ES', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
-        }
-    </script>
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/professional.js') }}"></script>
 </body>
 </html>
 

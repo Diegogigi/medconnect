@@ -8,10 +8,15 @@ import pandas as pd
 from datetime import datetime, timedelta
 import logging
 from typing import Dict, List, Optional, Any
-from config import Config
+from config import Config, SHEETS_STANDARD_CONFIG
 import os
+import uuid
 
 logger = logging.getLogger(__name__)
+
+# Definir los encabezados de las hojas de cálculo
+HEADERS_ATENCIONES = SHEETS_STANDARD_CONFIG.get('Atenciones_Medicas', [])
+HEADERS_ARCHIVOS = SHEETS_STANDARD_CONFIG.get('Archivos_Adjuntos', [])
 
 class SheetsManager:
     def __init__(self):
@@ -74,45 +79,8 @@ class SheetsManager:
         return worksheet
     
     def get_sheet_headers(self, sheet_name: str) -> List[str]:
-        """Define los headers para cada tipo de hoja"""
-        headers_map = {
-            'Usuarios': [
-                'user_id', 'telegram_id', 'nombre', 'apellido', 'edad', 
-                'rut', 'telefono', 'email', 'direccion', 'fecha_registro', 
-                'estado', 'plan'
-            ],
-            'Atenciones_Medicas': [
-                'atencion_id', 'user_id', 'fecha', 'hora', 'tipo_atencion',
-                'especialidad', 'profesional', 'centro_salud', 'diagnostico',
-                'tratamiento', 'observaciones', 'proxima_cita', 'estado'
-            ],
-            'Medicamentos': [
-                'medicamento_id', 'user_id', 'atencion_id', 'nombre_medicamento',
-                'dosis', 'frecuencia', 'duracion', 'indicaciones',
-                'fecha_inicio', 'fecha_fin', 'estado'
-            ],
-            'Examenes': [
-                'examen_id', 'user_id', 'atencion_id', 'tipo_examen',
-                'nombre_examen', 'fecha_solicitud', 'fecha_realizacion',
-                'resultado', 'archivo_url', 'observaciones', 'estado'
-            ],
-            'Familiares_Autorizados': [
-                'familiar_id', 'user_id', 'nombre_familiar', 'parentesco',
-                'telefono', 'email', 'telegram_id', 'permisos', 
-                'fecha_autorizacion', 'estado', 'notificaciones'
-            ],
-            'Recordatorios': [
-                'reminder_id', 'user_id', 'tipo', 'titulo', 'mensaje',
-                'fecha_programada', 'hora_programada', 'frecuencia',
-                'notificar_familiares', 'fecha_creacion', 'estado'
-            ],
-            'Logs_Acceso': [
-                'log_id', 'user_id', 'accion', 'detalle', 'ip_address',
-                'timestamp', 'resultado'
-            ]
-        }
-        
-        return headers_map.get(sheet_name, ['id', 'data', 'timestamp'])
+        """Define los headers para cada tipo de hoja usando configuración estándar"""
+        return SHEETS_STANDARD_CONFIG.get(sheet_name, ['id', 'data', 'timestamp'])
     
     # CRUD Operations para Usuarios
     def create_user(self, user_data: Dict[str, Any]) -> str:
@@ -680,6 +648,275 @@ class SheetsManager:
             
         except Exception as e:
             logger.error(f"Error actualizando headers de {sheet_name}: {e}")
+
+    def create_archivo_adjunto(self, archivo_data: Dict[str, Any]) -> str:
+        """
+        Crea un nuevo registro de archivo adjunto
+        """
+        try:
+            # Obtener o crear la hoja de archivos adjuntos
+            try:
+                worksheet = self.spreadsheet.worksheet('Archivos_Adjuntos')
+            except Exception:
+                # Si no existe, crear la hoja con headers
+                worksheet = self.spreadsheet.add_worksheet(title='Archivos_Adjuntos', rows=1000, cols=8)
+                headers = [
+                    'archivo_id',
+                    'atencion_id',
+                    'nombre_archivo',
+                    'tipo_archivo',
+                    'ruta_archivo',
+                    'fecha_subida',
+                    'tamaño',
+                    'estado'
+                ]
+                worksheet.append_row(headers)
+
+            # Generar ID único para el archivo
+            archivo_id = f"FILE_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+
+            # Preparar datos para insertar
+            nuevo_archivo = [
+                archivo_id,
+                archivo_data.get('atencion_id', ''),
+                archivo_data.get('nombre_archivo', ''),
+                archivo_data.get('tipo_archivo', ''),
+                archivo_data.get('ruta_archivo', ''),
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                archivo_data.get('tamaño', 0),
+                'activo'
+            ]
+
+            # Insertar en Google Sheets
+            worksheet.append_row(nuevo_archivo)
+
+            # Actualizar el campo tiene_archivos en la atención
+            self.update_atencion_archivos_status(archivo_data.get('atencion_id', ''))
+
+            return archivo_id
+
+        except Exception as e:
+            logger.error(f"Error creando archivo adjunto: {e}")
+            raise
+
+    def update_atencion_archivos_status(self, atencion_id: str) -> None:
+        """
+        Actualiza el estado de archivos de una atención
+        """
+        try:
+            worksheet = self.spreadsheet.worksheet('Atenciones_Medicas')
+            cell = worksheet.find(atencion_id)
+            if cell:
+                # Actualizar la columna tiene_archivos (asumiendo que es la columna 16)
+                worksheet.update_cell(cell.row, 16, 'Sí')
+        except Exception as e:
+            logger.error(f"Error actualizando estado de archivos: {e}")
+            raise
+
+    def get_archivos_atencion(self, atencion_id):
+        """
+        Obtiene los archivos adjuntos de una atención
+        """
+        try:
+            # Verificar si la hoja existe
+            try:
+                worksheet = self.spreadsheet.worksheet('Archivos_Adjuntos')
+            except Exception as e:
+                logger.warning(f"Hoja Archivos_Adjuntos no encontrada: {e}")
+                return []
+
+            # Obtener registros
+            try:
+                records = worksheet.get_all_records()
+            except Exception as e:
+                logger.error(f"Error obteniendo registros: {e}")
+                return []
+            
+            # Filtrar archivos de la atención
+            archivos = []
+            for record in records:
+                try:
+                    if str(record.get('atencion_id', '')) == str(atencion_id) and record.get('estado', '') == 'activo':
+                        archivos.append({
+                            'archivo_id': record.get('archivo_id', ''),
+                            'nombre_archivo': record.get('nombre_archivo', ''),
+                            'tipo_archivo': record.get('tipo_archivo', ''),
+                            'ruta_archivo': record.get('ruta_archivo', ''),
+                            'fecha_subida': record.get('fecha_subida', ''),
+                            'tamaño': record.get('tamaño', 0)
+                        })
+                except Exception as e:
+                    logger.error(f"Error procesando registro de archivo: {e}")
+                    continue
+            
+            return archivos
+            
+        except Exception as e:
+            logger.error(f"Error en get_archivos_atencion: {e}")
+            return []
+
+    def get_archivo_by_id(self, archivo_id):
+        """
+        Obtiene la información de un archivo por su ID
+        """
+        try:
+            worksheet = self.spreadsheet.worksheet('Archivos_Adjuntos')
+            records = worksheet.get_all_records()
+            
+            for record in records:
+                if str(record.get('archivo_id', '')) == str(archivo_id):
+                    return {
+                        'archivo_id': record.get('archivo_id', ''),
+                        'atencion_id': record.get('atencion_id', ''),
+                        'nombre_archivo': record.get('nombre_archivo', ''),
+                        'tipo_archivo': record.get('tipo_archivo', ''),
+                        'ruta_archivo': record.get('ruta_archivo', ''),
+                        'fecha_subida': record.get('fecha_subida', ''),
+                        'tamaño': record.get('tamaño', 0),
+                        'estado': record.get('estado', '')
+                    }
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo archivo por ID: {e}")
+            return None
+
+    def get_atencion_by_id(self, atencion_id):
+        """
+        Obtiene una atención médica por su ID
+        """
+        try:
+            # Verificar si la hoja existe
+            try:
+                worksheet = self.spreadsheet.worksheet('Atenciones_Medicas')
+            except Exception as e:
+                logger.error(f"Hoja Atenciones_Medicas no encontrada: {e}")
+                return None
+
+            # Obtener registros
+            try:
+                records = worksheet.get_all_records()
+            except Exception as e:
+                logger.error(f"Error obteniendo registros: {e}")
+                return None
+
+            # Buscar la atención
+            for record in records:
+                try:
+                    if str(record.get('atencion_id', '')) == str(atencion_id):
+                        return {
+                            'atencion_id': record.get('atencion_id', ''),
+                            'paciente_id': record.get('paciente_id', ''),
+                            'profesional_id': record.get('profesional_id', ''),
+                            'fecha_atencion': record.get('fecha_atencion', ''),
+                            'hora_atencion': record.get('hora_atencion', ''),
+                            'motivo': record.get('motivo', ''),
+                            'diagnostico': record.get('diagnostico', ''),
+                            'tratamiento': record.get('tratamiento', ''),
+                            'notas': record.get('notas', ''),
+                            'estado': record.get('estado', ''),
+                            'tiene_archivos': record.get('tiene_archivos', False)
+                        }
+                except Exception as e:
+                    logger.error(f"Error procesando registro de atención: {e}")
+                    continue
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error en get_atencion_by_id: {e}")
+            return None
+
+    def registrar_atencion(self, data):
+        """Registra una nueva atención médica en la hoja de cálculo."""
+        try:
+            worksheet = self.get_or_create_worksheet('Atenciones_Medicas', HEADERS_ATENCIONES)
+            
+            atencion_id = f"ATN_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            nueva_fila = {
+                'atencion_id': atencion_id,
+                'profesional_id': data.get('profesional_id', ''),
+                'profesional_nombre': data.get('profesional_nombre', ''),
+                'paciente_id': data.get('pacienteId', ''),
+                'paciente_nombre': data.get('paciente_nombre', ''),
+                'paciente_rut': data.get('paciente_rut', ''),
+                'paciente_edad': data.get('paciente_edad', ''),
+                'fecha_hora': data.get('fecha_hora', ''),
+                'tipo_atencion': data.get('tipo_atencion', ''),
+                'motivo_consulta': data.get('motivo_consulta', ''),
+                'diagnostico': data.get('diagnostico', ''),
+                'tratamiento': data.get('tratamiento', ''),
+                'observaciones': data.get('observaciones', ''),
+                'fecha_registro': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'estado': data.get('estado', 'completada'),
+                'requiere_seguimiento': data.get('requiere_seguimiento', 'No'),
+                'tiene_archivos': data.get('tiene_archivos', 'No')
+            }
+            
+            worksheet.append_row(list(nueva_fila.values()))
+            logger.info(f"✅ Atención registrada en Sheets: {atencion_id}")
+            
+            return atencion_id, nueva_fila
+            
+        except Exception as e:
+            logger.error(f"Error en registrar_atencion: {e}")
+            raise
+
+    def registrar_archivo_adjunto(self, data):
+        """Registra un nuevo archivo adjunto en la hoja de cálculo."""
+        try:
+            worksheet = self.get_or_create_worksheet('Archivos_Adjuntos', HEADERS_ARCHIVOS)
+            
+            archivo_id = f"FILE_{uuid.uuid4().hex[:12].upper()}"
+            
+            nueva_fila = [
+                archivo_id,
+                data.get('atencion_id'),
+                data.get('nombre_archivo'),
+                data.get('tipo_archivo'),
+                data.get('ruta_archivo'),
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                data.get('tamaño'),
+                'activo' # estado
+            ]
+            
+            worksheet.append_row(nueva_fila)
+            logger.info(f"✅ Archivo adjunto registrado en Sheets: {archivo_id} para atención {data.get('atencion_id')}")
+            
+            return archivo_id
+            
+        except Exception as e:
+            logger.error(f"Error en registrar_archivo_adjunto: {e}")
+            raise
+
+    def get_or_create_worksheet(self, title, headers):
+        """
+        Obtiene una hoja de cálculo por su título. Si no existe, la crea con los encabezados especificados.
+        """
+        try:
+            worksheet = self.spreadsheet.worksheet(title)
+            logger.info(f"Hoja '{title}' encontrada.")
+            return worksheet
+        except gspread.exceptions.WorksheetNotFound:
+            logger.warning(f"Hoja '{title}' no encontrada. Creando una nueva...")
+            worksheet = self.spreadsheet.add_worksheet(title=title, rows=1000, cols=len(headers))
+            worksheet.append_row(headers)
+            logger.info(f"✅ Hoja '{title}' creada con éxito.")
+            return worksheet
+        except Exception as e:
+            logger.error(f"Error al obtener o crear la hoja '{title}': {e}")
+            raise
+
+    def get_all_records(self, sheet_name):
+        """Obtiene todos los registros de una hoja de cálculo."""
+        try:
+            worksheet = self.get_worksheet(sheet_name)
+            return worksheet.get_all_records()
+        except Exception as e:
+            logger.error(f"Error obteniendo registros de {sheet_name}: {e}")
+            return []
 
 # Instancia global del gestor
 sheets_db = SheetsManager() 

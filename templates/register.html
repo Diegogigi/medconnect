@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <style>
         .register-container {
-            max-width: 600px;
+            max-width: 700px;
             margin: 50px auto;
             padding: 30px;
             background: white;
@@ -52,7 +52,7 @@
             font-size: 1.1em;
         }
 
-        input, select {
+        input, select, textarea {
             width: 100%;
             padding: 15px;
             border: 2px solid #ddd;
@@ -62,10 +62,15 @@
             box-sizing: border-box;
         }
 
-        input:focus, select:focus {
+        input:focus, select:focus, textarea:focus {
             outline: none;
             border-color: #5D3E8F;
             box-shadow: 0 0 0 3px rgba(93, 62, 143, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
         }
 
         .user-type-selector {
@@ -105,6 +110,40 @@
             margin: 0;
             font-size: 0.95em;
             opacity: 0.8;
+        }
+
+        .professional-fields {
+            display: none;
+            background: #f8f6ff;
+            border: 2px solid #e8e0ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .professional-fields.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            color: #5D3E8F;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e8e0ff;
+            font-size: 1.2em;
         }
 
         .register-btn {
@@ -179,6 +218,11 @@
         .strength-medium { color: #ffc107; }
         .strength-strong { color: #28a745; }
 
+        .required-field::after {
+            content: " *";
+            color: #dc3545;
+        }
+
         @media (max-width: 768px) {
             .register-container {
                 margin: 20px;
@@ -229,12 +273,12 @@
             <!-- Información Personal -->
             <div class="form-row">
                 <div class="form-group">
-                    <label for="nombre">Nombre *</label>
+                    <label for="nombre" class="required-field">Nombre</label>
                     <input type="text" id="nombre" name="nombre" required 
                            placeholder="Ej: María">
                 </div>
                 <div class="form-group">
-                    <label for="apellido">Apellido *</label>
+                    <label for="apellido" class="required-field">Apellido</label>
                     <input type="text" id="apellido" name="apellido" required 
                            placeholder="Ej: González">
                 </div>
@@ -243,7 +287,7 @@
             <!-- Email y Teléfono -->
             <div class="form-row">
                 <div class="form-group">
-                    <label for="email">Email *</label>
+                    <label for="email" class="required-field">Email</label>
                     <input type="email" id="email" name="email" required 
                            placeholder="ejemplo@email.com">
                 </div>
@@ -256,14 +300,14 @@
 
             <!-- Contraseña -->
             <div class="form-group">
-                <label for="password">Contraseña *</label>
+                <label for="password" class="required-field">Contraseña</label>
                 <input type="password" id="password" name="password" required 
                        placeholder="Mínimo 6 caracteres">
                 <div id="passwordStrength" class="password-strength"></div>
             </div>
 
             <div class="form-group">
-                <label for="confirm_password">Confirmar Contraseña *</label>
+                <label for="confirm_password" class="required-field">Confirmar Contraseña</label>
                 <input type="password" id="confirm_password" name="confirm_password" required 
                        placeholder="Repite tu contraseña">
             </div>
@@ -300,6 +344,111 @@
                 </div>
             </div>
 
+            <!-- Campos específicos para profesionales -->
+            <div id="professionalFields" class="professional-fields">
+                <h3 class="section-title">
+                    <i class="fas fa-user-md me-2"></i>
+                    Información Profesional
+                </h3>
+                
+                <!-- Profesión y Especialidad -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="profesion" class="required-field">Profesión</label>
+                        <select id="profesion" name="profesion" required>
+                            <option value="">Seleccionar profesión...</option>
+                            <option value="Medicina General">Medicina General</option>
+                            <option value="Fisioterapia">Fisioterapia</option>
+                            <option value="Terapia Ocupacional">Terapia Ocupacional</option>
+                            <option value="Enfermería">Enfermería</option>
+                            <option value="Psicología">Psicología</option>
+                            <option value="Nutrición">Nutrición</option>
+                            <option value="Kinesiología">Kinesiología</option>
+                            <option value="Fonoaudiología">Fonoaudiología</option>
+                            <option value="Odontología">Odontología</option>
+                            <option value="Farmacia">Farmacia</option>
+                            <option value="Tecnología Médica">Tecnología Médica</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="especialidad">Especialidad</label>
+                        <input type="text" id="especialidad" name="especialidad" 
+                               placeholder="Ej: Cardiología, Pediatría, etc.">
+                    </div>
+                </div>
+
+                <!-- Número de Registro y Años de Experiencia -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="numero_registro" class="required-field">Número de Registro Profesional</label>
+                        <input type="text" id="numero_registro" name="numero_registro" required 
+                               placeholder="Ej: 12345">
+                    </div>
+                    <div class="form-group">
+                        <label for="anos_experiencia">Años de Experiencia</label>
+                        <input type="number" id="anos_experiencia" name="anos_experiencia" 
+                               min="0" max="50" placeholder="0">
+                    </div>
+                </div>
+
+                <!-- Institución y Título -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="institucion" class="required-field">Institución de Formación</label>
+                        <input type="text" id="institucion" name="institucion" required 
+                               placeholder="Ej: Universidad de Chile">
+                    </div>
+                    <div class="form-group">
+                        <label for="titulo" class="required-field">Título Profesional</label>
+                        <input type="text" id="titulo" name="titulo" required 
+                               placeholder="Ej: Médico Cirujano">
+                    </div>
+                </div>
+
+                <!-- Año de Egreso y Idiomas -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ano_egreso">Año de Egreso</label>
+                        <input type="number" id="ano_egreso" name="ano_egreso" 
+                               min="1950" max="2030" placeholder="2020">
+                    </div>
+                    <div class="form-group">
+                        <label for="idiomas">Idiomas</label>
+                        <input type="text" id="idiomas" name="idiomas" 
+                               placeholder="Ej: Español, Inglés, Francés">
+                    </div>
+                </div>
+
+                <!-- Dirección de Consulta y Horario -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="direccion_consulta">Dirección de Consulta</label>
+                        <input type="text" id="direccion_consulta" name="direccion_consulta" 
+                               placeholder="Dirección donde atiende">
+                    </div>
+                    <div class="form-group">
+                        <label for="horario_atencion">Horario de Atención</label>
+                        <input type="text" id="horario_atencion" name="horario_atencion" 
+                               placeholder="Ej: Lunes a Viernes 9:00-18:00">
+                    </div>
+                </div>
+
+                <!-- Áreas de Especialización -->
+                <div class="form-group">
+                    <label for="areas_especializacion">Áreas de Especialización</label>
+                    <textarea id="areas_especializacion" name="areas_especializacion" 
+                              placeholder="Describe tus áreas de especialización, técnicas que manejas, etc."></textarea>
+                </div>
+
+                <!-- Certificaciones -->
+                <div class="form-group">
+                    <label for="certificaciones">Certificaciones Adicionales</label>
+                    <textarea id="certificaciones" name="certificaciones" 
+                              placeholder="Lista de certificaciones, cursos, diplomados, etc."></textarea>
+                </div>
+            </div>
+
             <button type="submit" class="register-btn" id="submitBtn">
                 Crear Cuenta
             </button>
@@ -320,7 +469,16 @@
                 
                 // Seleccionar actual
                 this.classList.add('selected');
-                document.getElementById('tipo_usuario').value = this.dataset.type;
+                const userType = this.dataset.type;
+                document.getElementById('tipo_usuario').value = userType;
+                
+                // Mostrar/ocultar campos de profesional
+                const professionalFields = document.getElementById('professionalFields');
+                if (userType === 'profesional') {
+                    professionalFields.classList.add('show');
+                } else {
+                    professionalFields.classList.remove('show');
+                }
             });
         });
 
@@ -382,6 +540,25 @@
                 alert('La contraseña debe tener al menos 6 caracteres');
                 e.preventDefault();
                 return;
+            }
+            
+            // Validación específica para profesionales
+            if (tipoUsuario === 'profesional') {
+                const requiredFields = ['profesion', 'numero_registro', 'institucion', 'titulo'];
+                const missingFields = [];
+                
+                requiredFields.forEach(field => {
+                    const element = document.getElementById(field);
+                    if (!element.value.trim()) {
+                        missingFields.push(element.previousElementSibling.textContent.replace(' *', ''));
+                    }
+                });
+                
+                if (missingFields.length > 0) {
+                    alert(`Para profesionales, los siguientes campos son obligatorios:\n${missingFields.join('\n')}`);
+                    e.preventDefault();
+                    return;
+                }
             }
             
             // Deshabilitar botón durante el envío

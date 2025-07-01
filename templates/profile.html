@@ -23,7 +23,7 @@
             
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('patient_dashboard') }}">
+                    <a class="nav-link" href="{% if user and user.tipo == 'profesional' %}{{ url_for('professional_dashboard') }}{% else %}{{ url_for('patient_dashboard') }}{% endif %}">
                         <i class="fas fa-arrow-left me-2"></i>Volver al historial
                     </a>
                 </li>
@@ -92,6 +92,20 @@
                                 <i class="fas fa-calendar-check ms-3 me-2"></i>{{ 'Usuari' + ('a' if user and user.genero == 'Femenino' else 'o') }} desde {{ user.fecha_registro[:10] if user and user.fecha_registro else 'Recientemente' }}
                             </p>
                             <div class="profile-badges">
+                                {% if user and user.tipo == 'profesional' %}
+                                <div class="profile-badge">
+                                    <i class="fas fa-user-md"></i>
+                                    Profesional de la Salud
+                                </div>
+                                <div class="profile-badge">
+                                    <i class="fas fa-certificate"></i>
+                                    Especialidad Verificada
+                                </div>
+                                <div class="profile-badge">
+                                    <i class="fas fa-calendar-check"></i>
+                                    Agenda Activa
+                                </div>
+                                {% else %}
                                 <div class="profile-badge">
                                     <i class="fas fa-shield-check"></i>
                                     Plan Gratuito
@@ -104,6 +118,7 @@
                                     <i class="fas fa-mobile-alt"></i>
                                     ChatBot conectado
                                 </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
