@@ -40,7 +40,6 @@ try:
         credentials_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
         GOOGLE_CREDS = json.loads(credentials_json)
         logger.info("✅ Credenciales cargadas desde variable de entorno JSON")
-    
     # Intentar cargar desde archivo
     elif os.environ.get('GOOGLE_CREDENTIALS_FILE'):
         logger.info("📁 Cargando credenciales desde archivo...")
@@ -48,7 +47,6 @@ try:
         with open(credentials_file, 'r') as f:
             GOOGLE_CREDS = json.load(f)
         logger.info("✅ Credenciales cargadas desde archivo")
-    
     # Intentar archivos por defecto
     else:
         logger.info("🔍 Buscando archivos de credenciales por defecto...")
@@ -58,7 +56,6 @@ try:
             'google-credentials.json',
             'medconnect-credentials.json'
         ]
-        
         GOOGLE_CREDS = None
         for file_path in possible_files:
             if os.path.exists(file_path):
@@ -66,7 +63,6 @@ try:
                 with open(file_path, 'r') as f:
                     GOOGLE_CREDS = json.load(f)
                 break
-        
         if GOOGLE_CREDS is None:
             logger.error("❌ No se encontraron credenciales de Google")
             
