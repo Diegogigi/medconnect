@@ -1502,15 +1502,25 @@ user_contexts = {}
 
 # Palabras clave para reconocimiento de intenciones
 INTENT_KEYWORDS = {
+    # Funcionalidades para pacientes
     'consulta': ['consulta', 'médico', 'doctor', 'cita', 'visita', 'chequeo', 'revisión', 'control'],
     'medicamento': ['medicamento', 'medicina', 'pastilla', 'píldora', 'remedio', 'fármaco', 'droga', 'tratamiento', 'nuevo medicamento', 'empezar medicamento', 'comenzar tratamiento', 'recetaron', 'prescribieron', 'como va', 'efectos', 'reacción', 'funciona', 'mejora', 'empeora'],
     'examen': ['examen', 'análisis', 'estudio', 'prueba', 'laboratorio', 'radiografía', 'ecografía', 'resonancia', 'me hice', 'ya me hice', 'tengo resultados', 'salieron', 'completé', 'terminé examen', 'tengo que hacerme', 'debo hacerme', 'programado', 'agendado', 'próximo examen', 'me van a hacer'],
     'historial': ['historial', 'historia', 'registro', 'datos', 'información', 'ver', 'mostrar', 'consultar'],
+    'recordatorio': ['recordar', 'recordatorio', 'alerta', 'avisar', 'notificar', 'programar aviso'],
+    'documento': ['documento', 'imagen', 'archivo', 'pdf', 'resultado', 'informe', 'reporte', 'subir', 'cargar'],
+    
+    # Funcionalidades para profesionales
+    'agenda': ['agenda', 'horario', 'disponibilidad', 'cupos', 'citas', 'calendario', 'programar'],
+    'cita_profesional': ['nueva cita', 'agendar paciente', 'reservar hora', 'confirmar cita', 'cancelar cita'],
+    'paciente_profesional': ['paciente', 'historial paciente', 'datos paciente', 'información paciente'],
+    'notificacion_profesional': ['notificar', 'aviso', 'recordatorio paciente', 'mensaje paciente'],
+    
+    # Funcionalidades compartidas
     'saludo': ['hola', 'buenos', 'buenas', 'saludos', 'hey', 'qué tal', 'cómo estás'],
     'despedida': ['adiós', 'chao', 'hasta luego', 'nos vemos', 'bye', 'gracias'],
     'ayuda': ['ayuda', 'help', 'auxilio', 'socorro', 'no entiendo', 'qué puedes hacer'],
     'emergencia': ['emergencia', 'urgente', 'grave', 'dolor fuerte', 'sangre', 'desmayo', 'accidente'],
-    'recordatorio': ['recordar', 'recordatorio', 'alerta', 'avisar', 'notificar', 'programar aviso'],
     'cita_futura': ['próxima cita', 'agendar cita', 'programar cita', 'reservar hora', 'pedir hora'],
     'seguimiento': ['cómo voy', 'evolución', 'progreso', 'mejorando', 'empeorando', 'seguimiento']
 }
@@ -1570,13 +1580,14 @@ def get_random_response(category):
     return random.choice(RESPONSE_VARIATIONS.get(category, ["¡Perfecto!"]))
 
 def process_telegram_message(text, chat_id, user_id):
-    """Procesa mensajes del bot de Telegram con lenguaje natural mejorado"""
+    """Procesa mensajes del bot de Telegram con funcionalidades duales para pacientes y profesionales"""
     original_text = text
     text = text.lower().strip()
     
     # Intentar obtener información del usuario registrado
     user_info = get_telegram_user_info(user_id)
     user_name = user_info.get('nombre', 'Usuario') if user_info else 'Usuario'
+    is_professional = is_professional_user(user_info)
     
     # Obtener contexto de conversación
     context = get_user_context(user_id)
@@ -1588,30 +1599,62 @@ def process_telegram_message(text, chat_id, user_id):
             apellido = user_info.get('apellido', '')
             nombre_completo = f"{nombre} {apellido}".strip()
             
-            saludos = [
-                f"¡Hola {nombre_completo}! 👋 ¡Qué alegría verte de nuevo! 😊",
-                f"¡{nombre_completo}! 🌟 ¡Bienvenido de vuelta a MedConnect!",
-                f"¡Hola {nombre}! 👨‍⚕️ Listo para ayudarte con tu salud hoy"
-            ]
-            
-            import random
-            saludo = random.choice(saludos)
-            
-            return f"""{saludo}
+            if is_professional:
+                # Mensaje de bienvenida para profesionales
+                saludos = [
+                    f"¡Hola Dr(a). {nombre_completo}! 👨‍⚕️ ¡Bienvenido de vuelta!",
+                    f"¡Dr(a). {nombre_completo}! 🏥 ¡Listo para gestionar tus pacientes!",
+                    f"¡Hola {nombre}! 👩‍⚕️ Tu asistente de gestión médica está listo"
+                ]
+                
+                import random
+                saludo = random.choice(saludos)
+                
+                return f"""{saludo}
 
-Como usuario registrado, estoy aquí para ayudarte con:
+Como profesional médico, puedo ayudarte con:
+
+📅 **Gestión de Agenda** - Maneja tu horario y citas
+👥 **Pacientes** - Accede a historiales y datos
+📋 **Atenciones** - Registra consultas y tratamientos
+🔔 **Notificaciones** - Comunícate con pacientes
+📊 **Reportes** - Estadísticas y seguimientos
+
+**Comandos principales:**
+• "Ver mi agenda" - Consultar horario
+• "Agendar cita" - Programar nueva cita
+• "Pacientes" - Ver lista de pacientes
+• "Notificar paciente" - Enviar mensaje
+
+¿En qué puedo ayudarte hoy? 🤔"""
+            else:
+                # Mensaje de bienvenida para pacientes
+                saludos = [
+                    f"¡Hola {nombre_completo}! 👋 ¡Qué alegría verte de nuevo! 😊",
+                    f"¡{nombre_completo}! 🌟 ¡Bienvenido de vuelta a MedConnect!",
+                    f"¡Hola {nombre}! 👨‍⚕️ Listo para ayudarte con tu salud hoy"
+                ]
+                
+                import random
+                saludo = random.choice(saludos)
+                
+                return f"""{saludo}
+
+Como paciente registrado, estoy aquí para ayudarte con:
 
 📋 **Consultas médicas** - Registra tus visitas al doctor
 💊 **Medicamentos** - Lleva control de tus tratamientos  
 🩺 **Exámenes** - Guarda resultados de laboratorio
 👨‍👩‍👧‍👦 **Familiares** - Notifica a tus seres queridos
 📊 **Historial** - Consulta toda tu información médica
+📄 **Documentos** - Solicita informes e imágenes
 
-Solo dime algo como:
+**Comandos principales:**
 • "Quiero registrar una consulta"
 • "Necesito anotar un medicamento"
 • "Tengo resultados de exámenes"
 • "Muéstrame mi historial"
+• "Solicitar documento"
 
 ¿En qué puedo ayudarte hoy? 🤔"""
         else:
@@ -1662,8 +1705,247 @@ Si estás en una situación de emergencia médica:
 
 Una vez que estés seguro, estaré aquí para ayudarte con el seguimiento. 💙"""
     
+    # ===== FUNCIONALIDADES PARA PROFESIONALES =====
+    if is_professional:
+        return handle_professional_requests(text, user_info, user_id, intent)
+    
+    # ===== FUNCIONALIDADES PARA PACIENTES =====
+    return handle_patient_requests(text, user_info, user_id, intent)
+
+def get_telegram_user_info(telegram_user_id):
+    """Obtiene información del usuario registrado por su ID de Telegram"""
+    try:
+        if not auth_manager:
+            return None
+            
+        user_info = auth_manager.get_user_by_telegram_id(telegram_user_id)
+        return user_info
+    except Exception as e:
+        logger.error(f"Error obteniendo info de usuario Telegram {telegram_user_id}: {e}")
+        return None
+
+def is_professional_user(user_info):
+    """Verifica si el usuario es un profesional médico"""
+    if not user_info:
+        return False
+    return user_info.get('tipo_usuario') == 'profesional'
+
+def get_professional_schedule_for_bot(professional_id, fecha=None):
+    """Obtiene el horario del profesional para el bot"""
+    try:
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return None
+            
+        citas_worksheet = spreadsheet.worksheet('Citas_Agenda')
+        all_records = citas_worksheet.get_all_records()
+        
+        # Filtrar por profesional y fecha
+        citas_profesional = []
+        for record in all_records:
+            if str(record.get('profesional_id', '')) == str(professional_id):
+                if fecha:
+                    cita_fecha = record.get('fecha', '')
+                    if cita_fecha == fecha:
+                        citas_profesional.append(record)
+                else:
+                    citas_profesional.append(record)
+        
+        return citas_profesional
+    except Exception as e:
+        logger.error(f"Error obteniendo agenda del profesional {professional_id}: {e}")
+        return None
+
+def get_available_slots_for_professional(professional_id, fecha):
+    """Obtiene los horarios disponibles del profesional para una fecha específica"""
+    try:
+        # Obtener horario de trabajo del profesional
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return []
+            
+        horarios_worksheet = spreadsheet.worksheet('Horarios_Profesional')
+        all_records = horarios_worksheet.get_all_records()
+        
+        # Buscar horario del profesional
+        horario_profesional = None
+        for record in all_records:
+            if str(record.get('profesional_id', '')) == str(professional_id):
+                horario_profesional = record
+                break
+        
+        if not horario_profesional:
+            return []
+        
+        # Obtener citas existentes para esa fecha
+        citas_existentes = get_professional_schedule_for_bot(professional_id, fecha)
+        
+        # Generar slots disponibles (simplificado)
+        slots_disponibles = []
+        hora_inicio = 9  # 9:00 AM
+        hora_fin = 18    # 6:00 PM
+        
+        for hora in range(hora_inicio, hora_fin):
+            slot = f"{hora:02d}:00"
+            # Verificar si el slot está ocupado
+            ocupado = any(cita.get('hora') == slot for cita in citas_existentes)
+            if not ocupado:
+                slots_disponibles.append(slot)
+        
+        return slots_disponibles
+    except Exception as e:
+        logger.error(f"Error obteniendo slots disponibles: {e}")
+        return []
+
+def send_notification_to_patient(patient_telegram_id, message):
+    """Envía notificación a un paciente específico"""
+    if patient_telegram_id:
+        return send_telegram_message(patient_telegram_id, message)
+    return False
+
+def handle_professional_requests(text, user_info, user_id, intent):
+    """Maneja las solicitudes específicas de profesionales médicos"""
+    user_name = user_info.get('nombre', 'Doctor') if user_info else 'Doctor'
+    professional_id = user_info.get('id') if user_info else None
+    
+    # Gestión de agenda
+    if intent == 'agenda' or 'agenda' in text or 'horario' in text:
+        if professional_id:
+            citas = get_professional_schedule_for_bot(professional_id)
+            if citas:
+                agenda_text = f"📅 **Agenda del Dr(a). {user_name}**\n\n"
+                for cita in citas[:5]:  # Mostrar solo las próximas 5
+                    fecha = cita.get('fecha', 'N/A')
+                    hora = cita.get('hora', 'N/A')
+                    paciente = cita.get('nombre_paciente', 'Paciente')
+                    agenda_text += f"🕐 {fecha} {hora} - {paciente}\n"
+                
+                agenda_text += "\n💡 Para ver más detalles, usa: 'Ver agenda completa'"
+                return agenda_text
+            else:
+                return f"📅 **Agenda del Dr(a). {user_name}**\n\nNo tienes citas programadas actualmente.\n\n💡 Para agendar una nueva cita, escribe: 'Agendar cita'"
+        else:
+            return "❌ No se pudo obtener tu información profesional. Contacta soporte."
+    
+    # Agendar citas
+    elif intent == 'cita_profesional' or 'agendar' in text or 'nueva cita' in text:
+        set_user_context(user_id, 'current_task', 'agendar_cita')
+        return f"""📅 **Agendar Nueva Cita**
+
+Dr(a). {user_name}, para agendar una cita necesito:
+
+👤 **Datos del paciente:**
+• Nombre completo
+• Teléfono (opcional)
+• Email (opcional)
+
+📅 **Detalles de la cita:**
+• Fecha deseada
+• Hora preferida
+• Motivo de la consulta
+• Duración estimada
+
+💡 **Ejemplo:**
+"Agendar cita para María González, teléfono 912345678, el 15 de julio a las 10:00, consulta de control, 30 minutos"
+
+¿Con qué paciente y fecha quieres agendar? 🤔"""
+    
+    # Gestión de pacientes
+    elif intent == 'paciente_profesional' or 'paciente' in text:
+        if professional_id:
+            # Obtener lista de pacientes del profesional
+            spreadsheet = get_spreadsheet()
+            if spreadsheet:
+                try:
+                    pacientes_worksheet = spreadsheet.worksheet('Pacientes_Profesional')
+                    all_records = pacientes_worksheet.get_all_records()
+                    
+                    pacientes_profesional = []
+                    for record in all_records:
+                        if str(record.get('profesional_id', '')) == str(professional_id):
+                            pacientes_profesional.append(record)
+                    
+                    if pacientes_profesional:
+                        response = f"👥 **Pacientes del Dr(a). {user_name}**\n\n"
+                        for paciente in pacientes_profesional[:10]:  # Mostrar solo los primeros 10
+                            nombre = paciente.get('nombre_completo', 'N/A')
+                            edad = paciente.get('edad', 'N/A')
+                            ultima_consulta = paciente.get('ultima_consulta', 'Sin consultas')
+                            response += f"👤 **{nombre}** ({edad} años)\n"
+                            response += f"   📅 Última consulta: {ultima_consulta}\n\n"
+                        
+                        response += "💡 Para ver historial completo de un paciente, escribe: 'Ver paciente [nombre]'"
+                        return response
+                    else:
+                        return f"👥 **Pacientes del Dr(a). {user_name}**\n\nNo tienes pacientes registrados actualmente.\n\n💡 Para agregar un paciente, escribe: 'Agregar paciente'"
+                except Exception as e:
+                    logger.error(f"Error obteniendo pacientes: {e}")
+                    return "❌ Error obteniendo lista de pacientes. Intenta más tarde."
+            else:
+                return "❌ Error conectando con la base de datos."
+        else:
+            return "❌ No se pudo obtener tu información profesional."
+    
+    # Notificaciones a pacientes
+    elif intent == 'notificacion_profesional' or 'notificar' in text:
+        set_user_context(user_id, 'current_task', 'notificar_paciente')
+        return f"""🔔 **Enviar Notificación a Paciente**
+
+Dr(a). {user_name}, para enviar una notificación necesito:
+
+👤 **Paciente:** Nombre del paciente
+📝 **Mensaje:** Lo que quieres comunicar
+
+💡 **Ejemplo:**
+"Notificar a María González: Su cita de mañana se confirma a las 10:00 AM"
+
+¿A qué paciente quieres enviar la notificación? 🤔"""
+    
+    # Comando de ayuda para profesionales
+    elif intent == 'ayuda':
+        return f"""🤝 **Ayuda para Profesionales**
+
+Dr(a). {user_name}, aquí tienes mis funcionalidades:
+
+📅 **Gestión de Agenda:**
+• "Ver mi agenda" - Consultar citas
+• "Agendar cita" - Programar nueva cita
+• "Cancelar cita" - Eliminar cita
+
+👥 **Gestión de Pacientes:**
+• "Pacientes" - Ver lista de pacientes
+• "Ver paciente [nombre]" - Historial específico
+• "Agregar paciente" - Registrar nuevo paciente
+
+🔔 **Comunicación:**
+• "Notificar paciente" - Enviar mensaje
+• "Recordatorio paciente" - Programar aviso
+
+📊 **Reportes:**
+• "Estadísticas" - Ver métricas
+• "Reporte semanal" - Resumen de actividad
+
+¿En qué puedo ayudarte específicamente? 🤔"""
+    
+    # Respuesta por defecto para profesionales
+    else:
+        return f"""🤔 **No entendí tu solicitud**
+
+Dr(a). {user_name}, puedes pedirme:
+
+📅 **Agenda:** "Ver mi agenda", "Agendar cita"
+👥 **Pacientes:** "Pacientes", "Ver paciente [nombre]"
+🔔 **Notificaciones:** "Notificar paciente"
+❓ **Ayuda:** "Ayuda"
+
+¿Qué necesitas hacer? 🤔"""
+
+def handle_patient_requests(text, user_info, user_id, intent):
+    """Maneja las solicitudes específicas de pacientes"""
+    user_name = user_info.get('nombre', 'Usuario') if user_info else 'Usuario'
+    
     # Saludos
-    elif intent == 'saludo' and not text.startswith('/'):
+    if intent == 'saludo' and not text.startswith('/'):
         greeting = get_random_response('greeting')
         if user_info:
             return f"{greeting} {user_name}! ¿En qué puedo ayudarte con tu salud hoy? 😊"
@@ -1837,105 +2119,179 @@ Mientras tanto, cuéntame sobre tu examen y te ayudo a organizarlo. ¿Qué exame
 
 Una vez conectados, podrás consultar toda tu información médica cuando quieras. ¿Te ayudo con la vinculación? 😊"""
     
+    # Documentos e imágenes
+    elif intent == 'documento':
+        if user_info:
+            return f"""📄 **Solicitar Documentos Médicos**
+
+{user_name}, puedo ayudarte a solicitar:
+
+📋 **Informes médicos**
+🩺 **Resultados de exámenes**
+💊 **Recetas médicas**
+📊 **Reportes de salud**
+
+**Para solicitar un documento:**
+1️⃣ Ve a tu perfil web: https://medconnect.cl/patient
+2️⃣ Navega a la sección "Exámenes" o "Consultas"
+3️⃣ Busca el documento que necesitas
+4️⃣ Haz clic en "Descargar" o "Ver"
+
+**También puedes pedirme:**
+• "¿Tengo resultados de exámenes recientes?"
+• "¿Cuándo fue mi última consulta?"
+• "¿Qué medicamentos tengo recetados?"
+
+¿Qué tipo de documento necesitas? 🤔"""
+        else:
+            return """📄 **Documentos Médicos**
+
+Para acceder a tus documentos médicos, necesitas tener una cuenta vinculada.
+
+**¿Ya tienes cuenta?**
+🔗 Ve a: https://medconnect.cl/profile y genera tu código
+
+**¿Primera vez aquí?**
+📝 Regístrate en: https://medconnect.cl/register
+
+Una vez conectado, podrás:
+✅ Ver todos tus documentos médicos
+✅ Descargar informes y resultados
+✅ Acceder a recetas médicas
+✅ Solicitar reportes de salud
+
+¿Te ayudo a crear tu cuenta? 😊"""
+    
+    # Recordatorios
+    elif intent == 'recordatorio':
+        if user_info:
+            return f"""⏰ **Configurar Recordatorios**
+
+{user_name}, puedo ayudarte a configurar recordatorios para:
+
+💊 **Medicamentos** - Horarios de toma
+📅 **Citas médicas** - Fechas de consulta
+🩺 **Exámenes** - Fechas de laboratorio
+📋 **Controles** - Seguimientos médicos
+
+**Para configurar recordatorios:**
+🌐 Ve a tu perfil: https://medconnect.cl/profile
+📱 Navega a "Configuración de Notificaciones"
+🔔 Activa los recordatorios que necesites
+
+**También puedes pedirme:**
+• "¿Tengo alguna cita próxima?"
+• "¿Qué medicamentos debo tomar hoy?"
+• "¿Cuándo es mi próximo control?"
+
+¿Qué tipo de recordatorio necesitas? 🤔"""
+        else:
+            return """⏰ **Recordatorios Médicos**
+
+Para configurar recordatorios personalizados, necesitas tener una cuenta vinculada.
+
+**¿Ya tienes cuenta?**
+🔗 Ve a: https://medconnect.cl/profile y genera tu código
+
+**¿Primera vez aquí?**
+📝 Regístrate en: https://medconnect.cl/register
+
+Una vez conectado, podrás:
+✅ Configurar recordatorios de medicamentos
+✅ Recibir avisos de citas médicas
+✅ Alertas de exámenes y controles
+✅ Notificaciones personalizadas
+
+¿Te ayudo a crear tu cuenta? 😊"""
+    
     # Ayuda
     elif intent == 'ayuda' or text in ['help', '/help']:
         if user_info:
-            return f"""🤝 ¡Por supuesto {user_name}! Estoy aquí para ayudarte.
+            return f"""🤝 **Ayuda para Pacientes**
 
-**Esto es lo que puedo hacer por ti:**
+{user_name}, aquí tienes mis funcionalidades:
 
 📋 **Consultas médicas**
 • "Registrar una consulta"
 • "Anotar visita al doctor"
+• "Ver mis consultas"
 
-💊 **Medicamentos**  
-• "Agregar un medicamento"
-• "Registrar tratamiento"
+💊 **Medicamentos**
+• "Anotar medicamento"
+• "Ver mis medicamentos"
+• "Recordatorio de medicinas"
 
 🩺 **Exámenes**
-• "Guardar resultados de examen"
-• "Registrar análisis de laboratorio"
+• "Registrar examen"
+• "Ver resultados"
+• "Solicitar informe"
 
 📊 **Historial**
 • "Ver mi historial"
-• "Mostrar mis datos médicos"
+• "Consultar datos"
+• "Estadísticas de salud"
 
-🆘 **Comandos especiales:**
-• `/start` - Menú principal
-• `/codigo MED123456` - Vincular cuenta
+📄 **Documentos**
+• "Solicitar documento"
+• "Descargar informe"
+• "Ver resultados"
 
-Solo háblame naturalmente, como "Quiero registrar una consulta" o "Necesito anotar un medicamento". ¡Entiendo el lenguaje cotidiano! 😊
+⏰ **Recordatorios**
+• "Configurar recordatorio"
+• "Ver próximas citas"
+• "Alertas médicas"
 
-¿En qué te ayudo ahora? 🤔"""
+¿En qué puedo ayudarte específicamente? 🤔"""
         else:
-            return """🤝 ¡Claro! Te explico todo lo que puedo hacer por ti.
+            return """🤝 **Ayuda General**
 
-**Mis funcionalidades principales:**
+Soy tu asistente de salud de MedConnect. Puedo ayudarte con:
 
-📋 **Registro médico**
-• Consultas con doctores
-• Medicamentos y tratamientos
-• Resultados de exámenes
-• Información de familiares
+📋 **Registro de información médica**
+💊 **Gestión de medicamentos**
+🩺 **Control de exámenes**
+📊 **Consulta de historial**
+📄 **Solicitud de documentos**
+⏰ **Configuración de recordatorios**
 
-📊 **Consulta de información**
-• Historial médico completo
-• Medicamentos actuales
-• Próximas citas
+**Para acceder a todas las funcionalidades:**
+🔗 Ve a: https://medconnect.cl/profile y genera tu código
 
-🔗 **Vinculación de cuenta**
-• Conectar con tu perfil de MedConnect
-• Sincronizar información
+**¿Primera vez aquí?**
+📝 Regístrate en: https://medconnect.cl/register
 
-**Para aprovechar al máximo:**
-1️⃣ Vincula tu cuenta: https://medconnect.cl/profile
-2️⃣ Genera tu código de vinculación
-3️⃣ Compártelo conmigo: `/codigo MED123456`
-
-¡Habla conmigo naturalmente! Entiendo frases como "quiero registrar una consulta" o "muéstrame mi historial".
-
-¿Te ayudo con algo específico? 😊"""
+¿Qué te gustaría hacer? 🤔"""
     
-    # Mensajes no entendidos
+    # Respuesta por defecto para pacientes
     else:
-        not_understood = get_random_response('not_understood')
-        
         if user_info:
-            return f"""{not_understood}
+            return f"""🤔 **No entendí tu solicitud**
 
-{user_name}, puedo ayudarte con:
-📋 **Consultas médicas** - "registrar consulta"
-💊 **Medicamentos** - "anotar medicamento"  
-🩺 **Exámenes** - "guardar examen"
-📊 **Historial** - "ver mi historial"
+{user_name}, puedes pedirme:
 
-O escribe `/start` para ver el menú completo.
+📋 **Consultas:** "Registrar consulta", "Ver mis consultas"
+💊 **Medicamentos:** "Anotar medicamento", "Ver medicamentos"
+🩺 **Exámenes:** "Registrar examen", "Ver resultados"
+📊 **Historial:** "Ver mi historial", "Consultar datos"
+📄 **Documentos:** "Solicitar documento"
+⏰ **Recordatorios:** "Configurar recordatorio"
+❓ **Ayuda:** "Ayuda"
 
-¿Podrías decirme de otra manera en qué te ayudo? 😊"""
+¿Qué necesitas hacer? 🤔"""
         else:
-            return f"""{not_understood}
+            return """🤔 **No entendí tu solicitud**
 
-Puedo ayudarte con temas de salud como:
-📋 Registrar consultas médicas
+Puedes pedirme:
+📋 Registrar información médica
 💊 Organizar medicamentos
 🩺 Guardar exámenes
-📊 Consultar historial médico
+📊 Consultar historial
+❓ Ayuda
 
-💡 **Tip:** Para una experiencia completa, vincula tu cuenta desde https://medconnect.cl/profile
+**Para funcionalidades completas:**
+🔗 Ve a: https://medconnect.cl/profile y genera tu código
 
-¿Hay algo específico sobre tu salud en lo que pueda ayudarte? 🤔"""
-
-def get_telegram_user_info(telegram_user_id):
-    """Obtiene información del usuario registrado por su ID de Telegram"""
-    try:
-        if not auth_manager:
-            return None
-            
-        user_info = auth_manager.get_user_by_telegram_id(telegram_user_id)
-        return user_info
-    except Exception as e:
-        logger.error(f"Error obteniendo info de usuario Telegram {telegram_user_id}: {e}")
-        return None
+¿Qué te gustaría hacer? 🤔"""
 
 def handle_account_linking(text, telegram_user_id):
     """Maneja la vinculación de cuenta de Telegram"""
