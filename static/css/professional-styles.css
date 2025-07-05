@@ -1,8 +1,8 @@
 /* Professional Dashboard Styles */
 :root {
-    --primary-color: #5D3E8F;
-    --primary-light: #7A5CB7;
-    --primary-dark: #452C6B;
+    --primary-color: rgb(96,75,217);
+    --primary-light: rgb(96,75,217);
+    --primary-dark: rgb(96,75,217);
     --secondary-color: #FF5765;
     --secondary-light: #FF7A85;
     --secondary-dark: #D13848;
@@ -1457,7 +1457,7 @@ body {
 
 /* Header de perfil mejorado */
 .profile-header {
-    background: linear-gradient(135deg, #5D3E8F 0%, #452C6B 100%);
+    background: linear-gradient(135deg, rgb(96,75,217) 0%, rgb(96,75,217) 100%);
     color: white;
     width: 100%;
     margin: 0;

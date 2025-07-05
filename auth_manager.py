@@ -34,33 +34,44 @@ try:
     }
     logger.info(f"🔧 Variables de entorno disponibles: {env_vars}")
     
-    # Priorizar GOOGLE_SERVICE_ACCOUNT_JSON de Railway
+    # Intentar cargar desde JSON en variable de entorno
     if os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON'):
-        json_content = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
-        logger.info(f"📝 JSON content length: {len(json_content)} chars")
-        logger.info(f"📝 JSON starts with: {json_content[:50]}...")
-        
-        GOOGLE_CREDS = json.loads(json_content)
-        logger.info("✅ Credenciales cargadas desde variable de entorno GOOGLE_SERVICE_ACCOUNT_JSON")
-        logger.info(f"🔑 Proyecto: {GOOGLE_CREDS.get('project_id', 'N/A')}")
+        logger.info("📄 Cargando credenciales desde GOOGLE_SERVICE_ACCOUNT_JSON...")
+        credentials_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON')
+        GOOGLE_CREDS = json.loads(credentials_json)
+        logger.info("✅ Credenciales cargadas desde variable de entorno JSON")
+    
+    # Intentar cargar desde archivo
+    elif os.environ.get('GOOGLE_CREDENTIALS_FILE'):
+        logger.info("📁 Cargando credenciales desde archivo...")
+        credentials_file = os.environ.get('GOOGLE_CREDENTIALS_FILE')
+        with open(credentials_file, 'r') as f:
+            GOOGLE_CREDS = json.load(f)
+        logger.info("✅ Credenciales cargadas desde archivo")
+    
+    # Intentar archivos por defecto
     else:
-        # Fallback a archivo local
-        credentials_file = os.environ.get('GOOGLE_CREDENTIALS_FILE', 'credentials.json')
-        logger.info(f"📁 Intentando cargar desde archivo: {credentials_file}")
+        logger.info("🔍 Buscando archivos de credenciales por defecto...")
+        possible_files = [
+            'credentials.json',
+            'service-account.json',
+            'google-credentials.json',
+            'medconnect-credentials.json'
+        ]
         
-        if os.path.exists(credentials_file):
-            with open(credentials_file, 'r') as f:
-                GOOGLE_CREDS = json.load(f)
-            logger.info("✅ Credenciales cargadas desde archivo")
-        else:
-            logger.error(f"❌ Archivo de credenciales no encontrado: {credentials_file}")
-            raise FileNotFoundError(f"Archivo de credenciales no encontrado: {credentials_file}")
+        GOOGLE_CREDS = None
+        for file_path in possible_files:
+            if os.path.exists(file_path):
+                logger.info(f"📁 Encontrado archivo: {file_path}")
+                with open(file_path, 'r') as f:
+                    GOOGLE_CREDS = json.load(f)
+                break
+        
+        if GOOGLE_CREDS is None:
+            logger.error("❌ No se encontraron credenciales de Google")
             
 except Exception as e:
     logger.error(f"❌ Error cargando credenciales: {e}")
-    logger.error(f"❌ Tipo de error: {type(e).__name__}")
-    import traceback
-    logger.error(f"❌ Traceback: {traceback.format_exc()}")
     GOOGLE_CREDS = None
 
 class AuthManager:
@@ -107,16 +118,15 @@ class AuthManager:
         return True, "Contraseña válida"
 
     def hash_password(self, password):
-        """Crear hash de contraseña"""
-        salt = bcrypt.gensalt()
-        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+        """Hashear contraseña usando bcrypt"""
+        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     def verify_password(self, password, hashed):
-        """Verificar contraseña contra hash"""
+        """Verificar contraseña hasheada"""
         return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
     def email_exists(self, email):
-        """Verificar si el email ya está registrado"""
+        """Verificar si el email ya existe"""
         try:
             all_records = self.users_sheet.get_all_records()
             for record in all_records:
@@ -125,15 +135,16 @@ class AuthManager:
             return False
         except Exception as e:
             logger.error(f"Error verificando email: {e}")
-            return True  # En caso de error, asumir que existe para evitar duplicados
+            return False
 
     def get_next_user_id(self):
-        """Obtener el siguiente ID de usuario"""
+        """Obtener el siguiente ID de usuario disponible"""
         try:
             all_records = self.users_sheet.get_all_records()
             if not all_records:
                 return 1
-            max_id = max([int(record.get('id', 0)) for record in all_records])
+            
+            max_id = max([int(record.get('id', 0)) for record in all_records if record.get('id')])
             return max_id + 1
         except Exception as e:
             logger.error(f"Error obteniendo siguiente ID: {e}")
@@ -213,28 +224,23 @@ class AuthManager:
         try:
             # Obtener o crear hoja de profesionales
             try:
-                professional_sheet = self.spreadsheet.worksheet('Profesionales')
+                prof_sheet = self.spreadsheet.worksheet('Profesionales')
             except gspread.exceptions.WorksheetNotFound:
                 # Crear hoja si no existe
-                professional_sheet = self.spreadsheet.add_worksheet(
-                    title='Profesionales', 
-                    rows=1000, 
-                    cols=20
-                )
+                prof_sheet = self.spreadsheet.add_worksheet(title='Profesionales', rows=1000, cols=25)
                 # Agregar encabezados
                 headers = [
-                    'ID', 'Email', 'Nombre', 'Apellido', 'Teléfono', 
-                    'Número de Registro', 'Especialidad', 'Años de Experiencia',
-                    'Calificación', 'Dirección de Consulta', 'Horario de Atención',
-                    'Idiomas', 'Áreas de Especialización', 'Profesión', 'Institución',
-                    'Título', 'Año de Egreso', 'Certificaciones', 'Fecha_Registro',
-                    'Estado', 'Disponible'
+                    'ID', 'Email', 'Nombre', 'Apellido', 'Telefono', 'Numero_Registro',
+                    'Especialidad', 'Anos_Experiencia', 'Profesion', 'Direccion_Consulta',
+                    'Horario_Atencion', 'Idiomas', 'Certificaciones', 'Titulo', 'Institucion',
+                    'Fecha_Graduacion', 'Biografia', 'Foto_URL', 'Calificacion', 'Estado',
+                    'Disponible', 'Fecha_Registro', 'Ultima_Actualizacion', 'Areas_Especializacion'
                 ]
-                professional_sheet.append_row(headers)
+                prof_sheet.append_row(headers)
+                logger.info("✅ Hoja 'Profesionales' creada")
             
             # Preparar datos del profesional
-            current_time = datetime.now().isoformat()
-            professional_data = [
+            prof_data = [
                 user_id,
                 user_data['email'].lower(),
                 user_data['nombre'],
@@ -243,26 +249,30 @@ class AuthManager:
                 user_data.get('numero_registro', ''),
                 user_data.get('especialidad', ''),
                 user_data.get('anos_experiencia', '0'),
-                '4.5',  # calificación por defecto
+                user_data.get('profesion', ''),
                 user_data.get('direccion_consulta', ''),
                 user_data.get('horario_atencion', ''),
                 user_data.get('idiomas', 'Español'),
-                user_data.get('areas_especializacion', ''),
-                user_data.get('profesion', ''),
-                user_data.get('institucion', ''),
-                user_data.get('titulo', ''),
-                user_data.get('ano_egreso', ''),
                 user_data.get('certificaciones', ''),
-                current_time,  # Fecha_Registro
-                'activo',      # Estado (activo por defecto)
-                'true'         # Disponible (disponible por defecto)
+                user_data.get('titulo', ''),
+                user_data.get('institucion', ''),
+                user_data.get('fecha_graduacion', ''),
+                user_data.get('biografia', ''),
+                user_data.get('foto_url', ''),
+                '0.0',  # calificacion inicial
+                'activo',  # estado
+                'true',  # disponible
+                datetime.now().isoformat(),  # fecha_registro
+                datetime.now().isoformat(),  # ultima_actualizacion
+                user_data.get('areas_especializacion', '')
             ]
             
-            professional_sheet.append_row(professional_data)
-            logger.info(f"✅ Profesional agregado a hoja especializada: {user_data['email']}")
+            # Agregar profesional a la hoja
+            prof_sheet.append_row(prof_data)
+            logger.info(f"✅ Profesional agregado: {user_data['email']}")
             
         except Exception as e:
-            logger.error(f"❌ Error agregando profesional a hoja especializada: {e}")
+            logger.error(f"❌ Error agregando profesional: {e}")
             # No fallar el registro principal si esto falla
 
     def login_user(self, email, password):
@@ -298,7 +308,12 @@ class AuthManager:
             
             # Actualizar último acceso
             current_time = datetime.now().isoformat()
-            self.users_sheet.update(f'L{row_index}', current_time)  # Columna L = ultimo_acceso
+            try:
+                self.users_sheet.update(f'L{row_index}', [[current_time]])  # Formato correcto para update
+                logger.info(f"✅ Último acceso actualizado: {current_time}")
+            except Exception as update_error:
+                logger.warning(f"⚠️ Error actualizando último acceso: {update_error}")
+                # Continuar con el login aunque falle la actualización
             
             # Preparar datos del usuario (sin password_hash)
             user_data = {
@@ -364,7 +379,7 @@ class AuthManager:
             # Actualizar campos
             for field, column in updatable_fields.items():
                 if field in update_data:
-                    self.users_sheet.update(f'{column}{row_index}', update_data[field])
+                    self.users_sheet.update(f'{column}{row_index}', [[str(update_data[field])]])
             
             logger.info(f"✅ Perfil actualizado para usuario ID: {user_id}")
             return True, "Perfil actualizado exitosamente"
@@ -401,7 +416,7 @@ class AuthManager:
             
             # Actualizar contraseña
             new_hash = self.hash_password(new_password)
-            self.users_sheet.update(f'C{row_index}', new_hash)  # Columna C = password_hash
+            self.users_sheet.update(f'C{row_index}', [[new_hash]])  # Columna C = password_hash
             
             logger.info(f"✅ Contraseña cambiada para usuario ID: {user_id}")
             return True, "Contraseña actualizada exitosamente"
@@ -470,9 +485,9 @@ class AuthManager:
             # Asumo que las columnas están en las posiciones siguientes después de verificado:
             # P = telegram_id, Q = telegram_username
             try:
-                self.users_sheet.update(f'P{row_index}', str(telegram_id))  # Columna P = telegram_id
+                self.users_sheet.update(f'P{row_index}', [[str(telegram_id)]])  # Columna P = telegram_id
                 if telegram_username:
-                    self.users_sheet.update(f'Q{row_index}', telegram_username)  # Columna Q = telegram_username
+                    self.users_sheet.update(f'Q{row_index}', [[telegram_username]])  # Columna Q = telegram_username
                 
                 # Actualizar el registro en memoria
                 user_record['telegram_id'] = str(telegram_id)
@@ -483,9 +498,9 @@ class AuthManager:
                 # Si las columnas no existen, las creamos al final
                 self._ensure_telegram_columns()
                 # Reintentar
-                self.users_sheet.update(f'P{row_index}', str(telegram_id))
+                self.users_sheet.update(f'P{row_index}', [[str(telegram_id)]])
                 if telegram_username:
-                    self.users_sheet.update(f'Q{row_index}', telegram_username)
+                    self.users_sheet.update(f'Q{row_index}', [[telegram_username]])
             
             logger.info(f"✅ Telegram vinculado para usuario: {email}")
             return True, f"Cuenta vinculada exitosamente para {user_record['nombre']} {user_record['apellido']}", user_record
@@ -513,7 +528,7 @@ class AuthManager:
                 start_col = len(headers) + 1
                 for i, col_name in enumerate(missing_columns):
                     col_letter = self._number_to_letter(start_col + i)
-                    self.users_sheet.update(f'{col_letter}1', col_name)
+                    self.users_sheet.update(f'{col_letter}1', [[col_name]])
                 
                 logger.info(f"✅ Columnas Telegram agregadas: {missing_columns}")
                 
@@ -557,9 +572,9 @@ class AuthManager:
             
             # Actualizar las columnas de Telegram
             try:
-                self.users_sheet.update(f'P{row_index}', str(telegram_id))  # Columna P = telegram_id
+                self.users_sheet.update(f'P{row_index}', [[str(telegram_id)]])  # Columna P = telegram_id
                 if telegram_username:
-                    self.users_sheet.update(f'Q{row_index}', telegram_username)  # Columna Q = telegram_username
+                    self.users_sheet.update(f'Q{row_index}', [[telegram_username]])  # Columna Q = telegram_username
                 
                 # Actualizar el registro en memoria
                 user_record['telegram_id'] = str(telegram_id)
@@ -570,9 +585,9 @@ class AuthManager:
                 # Si las columnas no existen, las creamos al final
                 self._ensure_telegram_columns()
                 # Reintentar
-                self.users_sheet.update(f'P{row_index}', str(telegram_id))
+                self.users_sheet.update(f'P{row_index}', [[str(telegram_id)]])
                 if telegram_username:
-                    self.users_sheet.update(f'Q{row_index}', telegram_username)
+                    self.users_sheet.update(f'Q{row_index}', [[telegram_username]])
             
             logger.info(f"✅ Telegram vinculado para usuario ID: {user_id}")
             return True, f"Cuenta vinculada exitosamente", user_record
@@ -610,14 +625,14 @@ class AuthManager:
             if estado is not None:
                 if estado not in ['activo', 'inactivo', 'suspendido']:
                     return False, "Estado debe ser: activo, inactivo o suspendido"
-                prof_sheet.update(f'T{row_index}', estado)
+                prof_sheet.update(f'T{row_index}', [[estado]])
                 logger.info(f"✅ Estado actualizado a '{estado}' para profesional ID: {user_id}")
             
             # Actualizar disponibilidad (columna U - posición 21)
             if disponible is not None:
                 if disponible not in ['true', 'false']:
                     return False, "Disponible debe ser: true o false"
-                prof_sheet.update(f'U{row_index}', disponible)
+                prof_sheet.update(f'U{row_index}', [[disponible]])
                 logger.info(f"✅ Disponibilidad actualizada a '{disponible}' para profesional ID: {user_id}")
             
             return True, "Estado del profesional actualizado exitosamente"
@@ -801,8 +816,13 @@ class AuthManager:
             
             # Aplicar todas las actualizaciones
             if updates:
-                # Usar batch_update para eficiencia
-                prof_sheet.batch_update(updates)
+                # Usar actualizaciones individuales para evitar errores de formato
+                for update in updates:
+                    cell_address = update['range']
+                    value = update['values'][0][0]  # Extraer el valor
+                    prof_sheet.update(cell_address, [[value]])
+                    logger.info(f"✅ Campo actualizado: {cell_address} = {value}")
+                
                 logger.info(f"✅ Perfil profesional actualizado - {len(updates)} campos")
                 return True, "Perfil actualizado correctamente"
             else:
@@ -811,4 +831,13 @@ class AuthManager:
         except Exception as e:
             logger.error(f"❌ Error actualizando perfil profesional: {e}")
             return False, "Error interno del servidor"
+    
+
+# Crear instancia global (se inicializa cuando se importa el módulo)
+try:
+    auth_manager = AuthManager()
+    logger.info("✅ AuthManager global inicializado")
+except Exception as e:
+    logger.error(f"❌ Error inicializando AuthManager global: {e}")
+    auth_manager = None
     
