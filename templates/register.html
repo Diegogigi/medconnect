@@ -355,7 +355,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="profesion" class="required-field">Profesión</label>
-                        <select id="profesion" name="profesion" required>
+                        <select id="profesion" name="profesion">
                             <option value="">Seleccionar profesión...</option>
                             <option value="Medicina General">Medicina General</option>
                             <option value="Fisioterapia">Fisioterapia</option>
@@ -382,7 +382,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="numero_registro" class="required-field">Número de Registro Profesional</label>
-                        <input type="text" id="numero_registro" name="numero_registro" required 
+                        <input type="text" id="numero_registro" name="numero_registro" 
                                placeholder="Ej: 12345">
                     </div>
                     <div class="form-group">
@@ -396,12 +396,12 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="institucion" class="required-field">Institución de Formación</label>
-                        <input type="text" id="institucion" name="institucion" required 
+                        <input type="text" id="institucion" name="institucion" 
                                placeholder="Ej: Universidad de Chile">
                     </div>
                     <div class="form-group">
                         <label for="titulo" class="required-field">Título Profesional</label>
-                        <input type="text" id="titulo" name="titulo" required 
+                        <input type="text" id="titulo" name="titulo" 
                                placeholder="Ej: Médico Cirujano">
                     </div>
                 </div>
@@ -474,10 +474,26 @@
                 
                 // Mostrar/ocultar campos de profesional
                 const professionalFields = document.getElementById('professionalFields');
+                const professionalRequiredFields = ['profesion', 'numero_registro', 'institucion', 'titulo'];
+                
                 if (userType === 'profesional') {
                     professionalFields.classList.add('show');
+                    // Agregar required a los campos de profesional
+                    professionalRequiredFields.forEach(fieldId => {
+                        const field = document.getElementById(fieldId);
+                        if (field) {
+                            field.setAttribute('required', 'required');
+                        }
+                    });
                 } else {
                     professionalFields.classList.remove('show');
+                    // Remover required de los campos de profesional
+                    professionalRequiredFields.forEach(fieldId => {
+                        const field = document.getElementById(fieldId);
+                        if (field) {
+                            field.removeAttribute('required');
+                        }
+                    });
                 }
             });
         });
@@ -564,6 +580,17 @@
             // Deshabilitar botón durante el envío
             document.getElementById('submitBtn').disabled = true;
             document.getElementById('submitBtn').textContent = 'Creando cuenta...';
+        });
+        
+        // Inicialización: asegurar que los campos de profesional no sean required por defecto
+        document.addEventListener('DOMContentLoaded', function() {
+            const professionalRequiredFields = ['profesion', 'numero_registro', 'institucion', 'titulo'];
+            professionalRequiredFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.removeAttribute('required');
+                }
+            });
         });
     </script>
 </body>

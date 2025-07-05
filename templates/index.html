@@ -568,6 +568,54 @@
             font-size: 24px;
             color: var(--color-dark);
             cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+        
+        .mobile-menu-toggle:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .mobile-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: var(--shadow-lg);
+            padding: 20px;
+            transform: translateY(-10px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .mobile-menu.active {
+            display: block;
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .mobile-menu .nav-link {
+            display: block;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .mobile-menu .nav-link:last-child {
+            border-bottom: none;
+        }
+        
+        .mobile-menu .btn-primary {
+            margin-top: 15px;
+            width: 100%;
+            justify-content: center;
         }
         
         /* Responsive Design */
@@ -589,6 +637,14 @@
             
             .mobile-menu-toggle {
                 display: block;
+            }
+            
+            .header {
+                position: relative;
+            }
+            
+            .nav-container {
+                position: relative;
             }
             
             .hero {
@@ -691,6 +747,17 @@
             <button class="mobile-menu-toggle">
                 <i class="fas fa-bars"></i>
             </button>
+            
+            <!-- Mobile Menu -->
+            <div class="mobile-menu">
+                <a href="#inicio" class="nav-link">Inicio</a>
+                <a href="#servicios" class="nav-link">Servicios</a>
+                <a href="#contacto" class="nav-link">Contacto</a>
+                <a href="{{ url_for('login') }}" class="btn-primary">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Iniciar Sesión
+                </a>
+            </div>
         </div>
     </header>
 
@@ -699,11 +766,11 @@
         <div class="hero-container">
             <div class="hero-content animate-fade-left">
                 <h1>
-                    Gestión médica <span class="hero-highlight">inteligente</span> para toda tu familia
+                    Gestión médica <span class="hero-highlight">inteligente</span> para familias y profesionales
                 </h1>
                 <p class="hero-subtitle">
-                    Revoluciona el cuidado de la salud familiar con nuestra plataforma integral. 
-                    Bot de Telegram, recordatorios inteligentes y gestión centralizada.
+                    Revoluciona el cuidado de la salud familiar y la gestión profesional con nuestra plataforma integral. 
+                    Bot de Telegram como asistente inteligente, recordatorios automáticos y gestión centralizada de pacientes.
                 </p>
                 
                 <div class="hero-buttons">
@@ -720,7 +787,7 @@
                 <div class="hero-stats">
                     <div class="stat-item">
                         <span class="stat-number">1,200+</span>
-                        <span class="stat-label">Familias registradas</span>
+                        <span class="stat-label">Usuarios registrados</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-number">15,000+</span>
@@ -745,8 +812,8 @@
             <div class="section-header">
                 <h2 class="section-title">Todo lo que necesitas en una sola plataforma</h2>
                 <p class="section-subtitle">
-                    Funcionalidades diseñadas para simplificar la gestión médica familiar
-                    y mejorar el cuidado de la salud de todos los miembros de tu familia.
+                    Funcionalidades diseñadas para simplificar la gestión médica familiar y profesional,
+                    mejorando el cuidado de la salud y la administración de consultas médicas.
                 </p>
             </div>
             
@@ -757,8 +824,9 @@
                     </div>
                     <h3 class="feature-title">Bot de Telegram Inteligente</h3>
                     <p class="feature-description">
-                        Interactúa con nuestro asistente de IA para gestionar citas, recordatorios 
-                        y consultas médicas directamente desde tu aplicación favorita.
+                        Asistente de IA que ayuda a profesionales a gestionar citas, recordatorios 
+                        y consultas médicas. Para familias, facilita el seguimiento de la salud 
+                        directamente desde Telegram.
                     </p>
                 </div>
                 
@@ -766,10 +834,11 @@
                     <div class="feature-icon">
                         <i class="fas fa-users"></i>
                     </div>
-                    <h3 class="feature-title">Gestión Familiar Completa</h3>
+                    <h3 class="feature-title">Gestión de Pacientes y Familia</h3>
                     <p class="feature-description">
-                        Administra la información médica de toda tu familia en un solo lugar. 
-                        Perfiles individuales con historial completo y seguro.
+                        Para profesionales: Administra tu cartera de pacientes con historiales completos, 
+                        citas y seguimientos. Para familias: Gestiona la información médica de todos 
+                        los miembros en un solo lugar.
                     </p>
                 </div>
                 
@@ -777,10 +846,11 @@
                     <div class="feature-icon">
                         <i class="fas fa-bell"></i>
                     </div>
-                    <h3 class="feature-title">Recordatorios Personalizados</h3>
+                    <h3 class="feature-title">Recordatorios Inteligentes</h3>
                     <p class="feature-description">
-                        Nunca olvides una cita o medicamento. Sistema de notificaciones 
-                        inteligente adaptado a las necesidades de cada miembro familiar.
+                        Para profesionales: Recordatorios automáticos de citas, seguimientos y 
+                        tareas administrativas. Para familias: Notificaciones de medicamentos, 
+                        citas y controles médicos personalizados.
                     </p>
                 </div>
                 
@@ -812,8 +882,9 @@
                     </div>
                     <h3 class="feature-title">Reportes y Análisis</h3>
                     <p class="feature-description">
-                        Obtén insights valiosos sobre la salud familiar. Reportes 
-                        detallados y tendencias para un mejor cuidado preventivo.
+                        Para profesionales: Reportes de consultas, estadísticas de pacientes y 
+                        análisis de rendimiento. Para familias: Insights sobre la salud familiar, 
+                        tendencias y recomendaciones preventivas.
                     </p>
                 </div>
             </div>
@@ -824,11 +895,11 @@
     <section class="cta">
         <div class="cta-container">
             <h2 class="cta-title">
-                ¿Listo para transformar el cuidado de la salud familiar?
+                ¿Listo para transformar la gestión médica?
             </h2>
             <p class="cta-subtitle">
-                Únete a miles de familias que ya confían en MedConnect para gestionar 
-                su salud de manera inteligente y segura.
+                Únete a miles de familias y profesionales que ya confían en MedConnect para 
+                gestionar la salud de manera inteligente, segura y eficiente.
             </p>
             <a href="{{ url_for('register') }}" class="btn-cta">
                 <i class="fas fa-user-plus"></i>
@@ -846,7 +917,7 @@
             </div>
             
             <p class="footer-text">
-                Transformando la gestión médica familiar con tecnología de vanguardia
+                Transformando la gestión médica familiar y profesional con tecnología de vanguardia
             </p>
             
             <div class="footer-links">
@@ -914,13 +985,40 @@
             observer.observe(card);
         });
 
-        // Mobile menu toggle (funcionalidad básica)
+        // Mobile menu toggle
         const mobileToggle = document.querySelector('.mobile-menu-toggle');
-        const navMenu = document.querySelector('.nav-menu');
+        const mobileMenu = document.querySelector('.mobile-menu');
+        const header = document.querySelector('.header');
         
-        if (mobileToggle) {
+        if (mobileToggle && mobileMenu) {
             mobileToggle.addEventListener('click', () => {
-                navMenu.style.display = navMenu.style.display === 'flex' ? 'none' : 'flex';
+                const isActive = mobileMenu.classList.contains('active');
+                
+                if (isActive) {
+                    // Cerrar menú
+                    mobileMenu.classList.remove('active');
+                    mobileToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                } else {
+                    // Abrir menú
+                    mobileMenu.classList.add('active');
+                    mobileToggle.innerHTML = '<i class="fas fa-times"></i>';
+                }
+            });
+            
+            // Cerrar menú al hacer clic en un enlace
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.remove('active');
+                    mobileToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                });
+            });
+            
+            // Cerrar menú al hacer scroll
+            window.addEventListener('scroll', () => {
+                if (mobileMenu.classList.contains('active')) {
+                    mobileMenu.classList.remove('active');
+                    mobileToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                }
             });
         }
     </script>
