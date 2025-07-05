@@ -858,10 +858,98 @@ class SheetsManager:
             worksheet.append_row(list(nueva_fila.values()))
             logger.info(f"✅ Atención registrada en Sheets: {atencion_id}")
             
+            # Si se proporcionaron datos del paciente, crear/actualizar registro en Pacientes_Profesional
+            if (data.get('paciente_nombre') and data.get('paciente_rut') and 
+                data.get('profesional_id') and not data.get('pacienteId')):
+                
+                logger.info("📝 Creando nuevo paciente en Pacientes_Profesional...")
+                try:
+                    # Crear registro del paciente
+                    paciente_id = self._crear_paciente_desde_atencion(data, atencion_id)
+                    
+                    # Actualizar la atención con el paciente_id generado
+                    nueva_fila['paciente_id'] = paciente_id
+                    
+                    # Actualizar la fila en la hoja (buscar por atencion_id y actualizar)
+                    records = worksheet.get_all_records()
+                    for i, record in enumerate(records):
+                        if record.get('atencion_id') == atencion_id:
+                            worksheet.update(f'D{i+2}', [[paciente_id]])  # Columna D es paciente_id
+                            break
+                    
+                    logger.info(f"✅ Paciente {paciente_id} creado y vinculado a atención {atencion_id}")
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error creando paciente desde atención: {e}")
+                    # La atención ya está registrada, continuamos
+            
             return atencion_id, nueva_fila
             
         except Exception as e:
             logger.error(f"Error en registrar_atencion: {e}")
+            raise
+
+    def _crear_paciente_desde_atencion(self, data, atencion_id):
+        """Crea un nuevo paciente en la hoja Pacientes_Profesional desde los datos de una atención."""
+        try:
+            # Headers para Pacientes_Profesional
+            headers_pacientes = ['paciente_id', 'profesional_id', 'nombre_completo', 'rut', 'edad',
+                               'fecha_nacimiento', 'genero', 'telefono', 'email', 'direccion',
+                               'antecedentes_medicos', 'fecha_primera_consulta', 'ultima_consulta',
+                               'num_atenciones', 'estado_relacion', 'fecha_registro', 'notas']
+            
+            worksheet = self.get_or_create_worksheet('Pacientes_Profesional', headers_pacientes)
+            
+            # Verificar si el paciente ya existe para este profesional
+            records = worksheet.get_all_records()
+            for i, record in enumerate(records):
+                if (str(record.get('profesional_id', '')) == str(data.get('profesional_id', '')) and 
+                    record.get('rut', '').strip().lower() == data.get('paciente_rut', '').strip().lower()):
+                    logger.info(f"📋 Paciente con RUT {data.get('paciente_rut')} ya existe para profesional {data.get('profesional_id')}")
+                    
+                    # Actualizar contador de atenciones y última consulta
+                    try:
+                        num_atenciones = int(record.get('num_atenciones', 0)) + 1
+                        worksheet.update(f'N{i+2}', [[num_atenciones]])  # Columna N es num_atenciones
+                        worksheet.update(f'M{i+2}', [[data.get('fecha_hora', '')]])  # Columna M es ultima_consulta
+                        logger.info(f"✅ Actualizado contador de atenciones para paciente: {num_atenciones}")
+                    except Exception as e:
+                        logger.error(f"❌ Error actualizando contador de atenciones: {e}")
+                    
+                    return record.get('paciente_id', '')
+            
+            # Generar ID único para el paciente
+            paciente_id = f"PAC_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            # Preparar datos del paciente
+            nuevo_paciente = [
+                paciente_id,
+                data.get('profesional_id', ''),
+                data.get('paciente_nombre', ''),
+                data.get('paciente_rut', ''),
+                data.get('paciente_edad', ''),
+                data.get('paciente_fecha_nacimiento', ''),
+                data.get('paciente_genero', ''),
+                data.get('paciente_telefono', ''),
+                data.get('paciente_email', ''),
+                data.get('paciente_direccion', ''),
+                data.get('paciente_antecedentes', ''),
+                data.get('fecha_hora', ''),  # fecha_primera_consulta
+                data.get('fecha_hora', ''),  # ultima_consulta
+                1,  # num_atenciones (esta es la primera)
+                'activo',  # estado_relacion
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                f'Paciente creado automáticamente desde atención {atencion_id}'
+            ]
+            
+            # Insertar en Google Sheets
+            worksheet.append_row(nuevo_paciente)
+            logger.info(f"✅ Paciente {paciente_id} creado automáticamente desde atención")
+            
+            return paciente_id
+            
+        except Exception as e:
+            logger.error(f"Error creando paciente desde atención: {e}")
             raise
 
     def registrar_archivo_adjunto(self, data):

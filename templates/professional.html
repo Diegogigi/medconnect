@@ -20,7 +20,7 @@
     <style>
         /* Estilos específicos para profesionales */
         .dashboard-header.professional {
-            background: linear-gradient(135deg, #5D3E8F 0%, #452C6B 100%);
+            background: linear-gradient(135deg, rgb(96,75,217) 0%, rgb(96,75,217) 100%);
             color: white;
         }
 
@@ -99,7 +99,7 @@
         }
         
         .welcome-toast .toast-body {
-            background: linear-gradient(135deg, #5D3E8F 0%, #7A5CB7 100%);
+            background: linear-gradient(135deg, rgb(96,75,217) 0%, rgb(96,75,217) 100%);
             color: white;
             border-radius: 12px;
             padding: 20px;
@@ -121,6 +121,64 @@
         /* Estilos para la agenda */
         .schedule-timeline {
             padding: 1rem 0;
+        }
+
+        /* Estilos mejorados para el resumen y recordatorios */
+        .reminder-item {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .reminder-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .card.shadow-sm {
+            transition: all 0.3s ease;
+        }
+
+        .card.shadow-sm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+        }
+
+        .bg-light {
+            transition: all 0.3s ease;
+        }
+
+        .bg-light:hover {
+            background-color: #f8f9fa !important;
+            transform: scale(1.02);
+        }
+
+        .border-start {
+            border-left-width: 4px !important;
+        }
+
+        /* Estilos para acciones de recordatorios */
+        .reminder-actions {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .reminder-item:hover .reminder-actions {
+            opacity: 1;
+        }
+
+        .reminder-actions .btn {
+            padding: 2px 6px;
+            font-size: 12px;
+            margin-left: 2px;
+        }
+
+        .reminder-item {
+            position: relative;
+        }
+
+        .reminder-item .d-flex {
+            align-items: flex-start;
         }
 
         .time-slot {
@@ -176,6 +234,168 @@
 
         .appointment-actions {
             margin-left: 1rem;
+        }
+        
+        /* Estilos para vista semanal */
+        .agenda-semanal {
+            font-size: 0.85rem;
+        }
+        
+        .agenda-semanal th {
+            background-color: #f8f9fa;
+            text-align: center;
+            font-weight: 600;
+            padding: 8px 4px;
+        }
+        
+        .agenda-semanal td {
+            height: 45px;
+            padding: 2px;
+            vertical-align: top;
+            position: relative;
+        }
+        
+        .cita-semanal {
+            background-color: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin: 1px 0;
+            font-size: 0.75rem;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .cita-semanal:hover {
+            background-color: #bbdefb;
+        }
+        
+        .cita-semanal.confirmada {
+            background-color: #e8f5e8;
+            border-color: #4caf50;
+        }
+        
+        .cita-semanal.pendiente {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+        }
+        
+        .cita-semanal.cancelada {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+        }
+        
+        .slot-disponible {
+            background-color: #f8f9fa;
+            border: 1px dashed #dee2e6;
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin: 1px 0;
+            font-size: 0.7rem;
+            color: #6c757d;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .slot-disponible:hover {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+            color: #2196f3;
+        }
+        
+        /* Estilos para vista mensual */
+        .calendario-mensual {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: #dee2e6;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .dia-header {
+            background-color: #f8f9fa;
+            padding: 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+        
+        .dia-celda {
+            background-color: white;
+            min-height: 100px;
+            padding: 4px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .dia-celda:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .dia-celda.otro-mes {
+            background-color: #f8f9fa;
+            color: #adb5bd;
+        }
+        
+        .dia-celda.hoy {
+            background-color: #e3f2fd;
+            font-weight: bold;
+        }
+        
+        .dia-numero {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        
+        .cita-mensual {
+            background-color: #2196f3;
+            color: white;
+            border-radius: 3px;
+            padding: 1px 3px;
+            margin: 1px 0;
+            font-size: 0.7rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        
+        .cita-mensual:hover {
+            background-color: #1976d2;
+        }
+        
+        .cita-mensual.confirmada {
+            background-color: #4caf50;
+        }
+        
+        .cita-mensual.pendiente {
+            background-color: #ff9800;
+        }
+        
+        .cita-mensual.cancelada {
+            background-color: #f44336;
+        }
+        
+        .contador-citas {
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            background-color: #6c757d;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .alert-sm {
@@ -525,26 +745,26 @@
                             <div class="stat-card-mini professional text-center">
                                 <div class="stat-icon-mini mx-auto mb-1">
                                     <i class="fas fa-clipboard-list"></i>
-                    </div>
-                                <div class="fw-medium">24</div>
+                                </div>
+                                <div class="fw-medium" id="total-atenciones">0</div>
                                 <small>Atenciones</small>
                             </div>
-                            </div>
+                        </div>
                         <div class="col-3">
                             <div class="stat-card-mini professional text-center">
                                 <div class="stat-icon-mini mx-auto mb-1">
                                     <i class="fas fa-calendar-check"></i>
-                            </div>
-                                <div class="fw-medium">3</div>
+                                </div>
+                                <div class="fw-medium" id="citas-hoy">0</div>
                                 <small>Citas Hoy</small>
                             </div>
-                    </div>
+                        </div>
                         <div class="col-3">
                             <div class="stat-card-mini professional text-center">
                                 <div class="stat-icon-mini mx-auto mb-1">
                                     <i class="fas fa-users"></i>
-                        </div>
-                                <div class="fw-medium">18</div>
+                                </div>
+                                <div class="fw-medium" id="total-pacientes">0</div>
                                 <small>Pacientes</small>
                             </div>
                         </div>
@@ -552,11 +772,11 @@
                             <div class="stat-card-mini professional text-center">
                                 <div class="stat-icon-mini mx-auto mb-1">
                                     <i class="fas fa-clock"></i>
-                    </div>
-                                <div class="fw-medium">2</div>
+                                </div>
+                                <div class="fw-medium" id="atenciones-pendientes">0</div>
                                 <small>Pendientes</small>
-        </div>
-        </div>
+                            </div>
+                        </div>
                         </div>
                         </div>
                     </div>
@@ -609,19 +829,63 @@
                                     <div class="col-md-6">
                                         <h6 class="text-muted mb-3">Información del Paciente</h6>
                                         
+                                        <!-- Selector de paciente existente o nuevo -->
                                         <div class="mb-3">
-                                            <label for="pacienteNombre" class="form-label">Nombre Completo</label>
-                                            <input type="text" class="form-control" id="pacienteNombre" placeholder="Ej: Juan Pérez López" required>
+                                            <label for="seleccionPaciente" class="form-label">
+                                                <i class="fas fa-user me-1"></i>Seleccionar Paciente
+                                            </label>
+                                            <div class="d-flex gap-2">
+                                                <select class="form-select" id="seleccionPaciente" onchange="manejarSeleccionPaciente()">
+                                                    <option value="">Seleccionar paciente existente...</option>
+                                                    <option value="nuevo">➕ Crear nuevo paciente</option>
+                                                </select>
+                                                <button type="button" class="btn btn-outline-primary" onclick="recargarListaPacientes()" title="Actualizar lista">
+                                                    <i class="fas fa-sync-alt"></i>
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        <div class="row g-2 mb-3">
-                                            <div class="col-8">
-                                                <label for="pacienteRut" class="form-label">RUT</label>
-                                                <input type="text" class="form-control" id="pacienteRut" placeholder="12.345.678-9">
+                                        <!-- Campos del paciente (se muestran cuando se selecciona "nuevo" o se edita) -->
+                                        <div id="camposPaciente" style="display: none;">
+                                            <div class="mb-3">
+                                                <label for="pacienteNombre" class="form-label">Nombre Completo</label>
+                                                <input type="text" class="form-control" id="pacienteNombre" placeholder="Ej: Juan Pérez López">
                                             </div>
-                                            <div class="col-4">
-                                                <label for="pacienteEdad" class="form-label">Edad</label>
-                                                <input type="number" class="form-control" id="pacienteEdad" placeholder="25">
+
+                                            <div class="row g-2 mb-3">
+                                                <div class="col-8">
+                                                    <label for="pacienteRut" class="form-label">RUT</label>
+                                                    <input type="text" class="form-control" id="pacienteRut" placeholder="12.345.678-9">
+                                                </div>
+                                                <div class="col-4">
+                                                    <label for="pacienteEdad" class="form-label">Edad</label>
+                                                    <input type="number" class="form-control" id="pacienteEdad" placeholder="25">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Información del paciente seleccionado -->
+                                        <div id="infoPacienteSeleccionado" style="display: none;">
+                                            <div class="card bg-light">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-title mb-2">
+                                                        <i class="fas fa-user-check me-1 text-success"></i>
+                                                        <span id="nombrePacienteSeleccionado"></span>
+                                                    </h6>
+                                                    <div class="row text-sm">
+                                                        <div class="col-6">
+                                                            <small class="text-muted">RUT:</small><br>
+                                                            <span id="rutPacienteSeleccionado"></span>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small class="text-muted">Edad:</small><br>
+                                                            <span id="edadPacienteSeleccionado"></span> años
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="editarDatosPaciente()">
+                                                        <i class="fas fa-edit me-1"></i>Editar datos
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -827,100 +1091,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                                                                        <tr>
-                                                <td>
-                                                    <div class="patient-info-vertical">
-                                                        <div class="user-avatar-sm me-3">
-                                                            <i class="fas fa-user"></i>
-                                    </div>
-                                    <div>
-                                                            <div class="fw-medium mb-1">María González Silva</div>
-                                                            <small class="text-muted d-block">RUT: 12.345.678-9</small>
-                                                            <small class="text-muted d-block">35 años</small>
-                                    </div>
-                                </div>
-                                                </td>
-                                                <td>
-                                                    <div class="contact-info">
-                                                        <div class="fw-medium mb-1">+56 9 8765-4321</div>
-                                                        <small class="text-muted d-block">maria.gonzalez@email.com</small>
-                                                        <small class="text-muted d-block">Las Condes, Santiago</small>
-                            </div>
-                                                </td>
-                                                <td>
-                                                    <div class="date-info">
-                                                        <div class="fw-medium">15/01/2025</div>
-                                                        <small class="text-muted d-block">Fisioterapia</small>
-                                                        <small class="text-muted d-block">Hace 2 días</small>
-                                </div>
-                                                </td>
-                                                <td>
-                                                    <div class="status-info">
-                                                        <span class="badge bg-success d-block mb-1">Activo</span>
-                                                        <small class="text-muted">24 consultas</small>
-                            </div>
-                                                </td>
-                                                <td class="text-end">
-                                                    <div class="d-flex flex-column gap-1">
-                                                        <button class="btn btn-outline-primary btn-sm" title="Ver historial" onclick="viewPatientHistory('12.345.678-9')">
-                                                            <i class="fas fa-history me-1"></i>Historial
-                                </button>
-                                                        <button class="btn btn-outline-secondary btn-sm" title="Editar" onclick="editPatient('12.345.678-9')">
-                                                            <i class="fas fa-edit me-1"></i>Editar
-                                                        </button>
-                                                        <button class="btn btn-outline-info btn-sm" title="Nueva consulta" onclick="newConsultation('12.345.678-9')">
-                                                            <i class="fas fa-plus me-1"></i>Nueva
-                                </button>
-                            </div>
-                                                </td>
-                                            </tr>
-                                                                                        <tr>
-                                                <td>
-                                                    <div class="patient-info-vertical">
-                                                        <div class="user-avatar-sm me-3">
-                                                            <i class="fas fa-user"></i>
-                                    </div>
-                                    <div>
-                                                            <div class="fw-medium mb-1">Carlos Rodríguez Pérez</div>
-                                                            <small class="text-muted d-block">RUT: 98.765.432-1</small>
-                                                            <small class="text-muted d-block">42 años</small>
-                                    </div>
-                                </div>
-                                                </td>
-                                                <td>
-                                                    <div class="contact-info">
-                                                        <div class="fw-medium mb-1">+56 9 1234-5678</div>
-                                                        <small class="text-muted d-block">carlos.rodriguez@email.com</small>
-                                                        <small class="text-muted d-block">Providencia, Santiago</small>
-                            </div>
-                                                </td>
-                                                <td>
-                                                    <div class="date-info">
-                                                        <div class="fw-medium">14/01/2025</div>
-                                                        <small class="text-muted d-block">Consulta General</small>
-                                                        <small class="text-muted d-block">Hace 3 días</small>
-                                </div>
-                                                </td>
-                                                <td>
-                                                    <div class="status-info">
-                                                        <span class="badge bg-success d-block mb-1">Activo</span>
-                                                        <small class="text-muted">18 consultas</small>
-                            </div>
-                                                </td>
-                                                <td class="text-end">
-                                                    <div class="d-flex flex-column gap-1">
-                                                        <button class="btn btn-outline-primary btn-sm" title="Ver historial" onclick="viewPatientHistory('98.765.432-1')">
-                                                            <i class="fas fa-history me-1"></i>Historial
-                                </button>
-                                                        <button class="btn btn-outline-secondary btn-sm" title="Editar" onclick="editPatient('98.765.432-1')">
-                                                            <i class="fas fa-edit me-1"></i>Editar
-                                                        </button>
-                                                        <button class="btn btn-outline-info btn-sm" title="Nueva consulta" onclick="newConsultation('98.765.432-1')">
-                                                            <i class="fas fa-plus me-1"></i>Nueva
-                                </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
+                                            <!-- Los pacientes se cargarán dinámicamente aquí -->
                                         </tbody>
                                     </table>
                                 </div>
@@ -938,141 +1109,191 @@
                                             <i class="fas fa-calendar-alt me-2 text-primary"></i>
                                             Agenda de Hoy - <span id="currentDate">16 de Enero, 2025</span>
                                         </h5>
-                                        <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-primary" onclick="prevDay()">
-                                                <i class="fas fa-chevron-left"></i>
-                                            </button>
-                                            <button class="btn btn-outline-primary" onclick="today()">Hoy</button>
-                                            <button class="btn btn-outline-primary" onclick="nextDay()">
-                                                <i class="fas fa-chevron-right"></i>
-                                            </button>
-                        </div>
+                                        <div class="d-flex gap-2">
+                                            <!-- Selector de vista -->
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <input type="radio" class="btn-check" name="vistaAgenda" id="vistaDiaria" autocomplete="off" checked>
+                                                <label class="btn btn-outline-primary" for="vistaDiaria" onclick="cambiarVista('diaria')">
+                                                    <i class="fas fa-calendar-day me-1"></i>Día
+                                                </label>
+                                                
+                                                <input type="radio" class="btn-check" name="vistaAgenda" id="vistaSemanal" autocomplete="off">
+                                                <label class="btn btn-outline-primary" for="vistaSemanal" onclick="cambiarVista('semanal')">
+                                                    <i class="fas fa-calendar-week me-1"></i>Semana
+                                                </label>
+                                                
+                                                <input type="radio" class="btn-check" name="vistaAgenda" id="vistaMensual" autocomplete="off">
+                                                <label class="btn btn-outline-primary" for="vistaMensual" onclick="cambiarVista('mensual')">
+                                                    <i class="fas fa-calendar me-1"></i>Mes
+                                                </label>
+                                            </div>
+                                            
+                                            <!-- Navegación -->
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="navegarAnterior()">
+                                                    <i class="fas fa-chevron-left"></i>
+                                                </button>
+                                                <button class="btn btn-outline-primary" onclick="irHoy()">Hoy</button>
+                                                <button class="btn btn-outline-primary" onclick="navegarSiguiente()">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
                     </div>
                                     <div class="card-body">
-                                        <div class="schedule-timeline">
-                                            <div class="time-slot">
-                                                <div class="time-label">09:00</div>
-                                                <div class="appointment scheduled">
-                                                    <div class="appointment-info">
-                                                        <h6 class="mb-1">Ana Martín</h6>
-                                                        <p class="mb-0 small text-muted">Enfermería - Control postoperatorio</p>
-                                                        <small class="text-success">Confirmada</small>
+                                        <!-- Vista Diaria -->
+                                        <div id="vistaDiariaContent" class="agenda-view">
+                                            <div class="schedule-timeline" id="scheduleTimeline">
+                                                <!-- El contenido se cargará dinámicamente -->
+                                                <div class="text-center py-4">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="visually-hidden">Cargando agenda...</span>
                                                     </div>
-                                                    <div class="appointment-actions">
-                                                        <button class="btn btn-sm btn-outline-primary" onclick="viewAppointment(1)">
-                                                            <i class="fas fa-eye"></i>
-                                                        </button>
-                </div>
-            </div>
-        </div>
-
-                                            <div class="time-slot">
-                                                <div class="time-label">10:30</div>
-                                                <div class="appointment available" onclick="scheduleAppointment('10:30')">
-                                                    <div class="appointment-info">
-                                                        <p class="mb-0 text-muted">Horario disponible</p>
-                                                        <small class="text-primary">Click para agendar</small>
-                    </div>
-                                </div>
-                                    </div>
-                                            
-                                            <div class="time-slot">
-                                                <div class="time-label">14:30</div>
-                                                <div class="appointment scheduled">
-                                                    <div class="appointment-info">
-                                                        <h6 class="mb-1">Roberto Silva</h6>
-                                                        <p class="mb-0 small text-muted">Fisioterapia - Rehabilitación</p>
-                                                        <small class="text-warning">Pendiente</small>
-                                </div>
-                                                    <div class="appointment-actions">
-                                                        <button class="btn btn-sm btn-outline-primary" onclick="viewAppointment(2)">
-                                                            <i class="fas fa-eye"></i>
-                                    </button>
-                                                    </div>
-                                </div>
-                            </div>
-                            
-                                            <div class="time-slot">
-                                                <div class="time-label">16:00</div>
-                                                <div class="appointment scheduled">
-                                                    <div class="appointment-info">
-                                                        <h6 class="mb-1">Carmen López</h6>
-                                                        <p class="mb-0 small text-muted">Psicología - Seguimiento</p>
-                                                        <small class="text-success">Confirmada</small>
-                                                    </div>
-                                                    <div class="appointment-actions">
-                                                        <button class="btn btn-sm btn-outline-primary" onclick="viewAppointment(3)">
-                                                            <i class="fas fa-eye"></i>
-                                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                                            <div class="time-slot">
-                                                <div class="time-label">17:30</div>
-                                                <div class="appointment available" onclick="scheduleAppointment('17:30')">
-                                                    <div class="appointment-info">
-                                                        <p class="mb-0 text-muted">Horario disponible</p>
-                                                        <small class="text-primary">Click para agendar</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Vista Semanal -->
+                                        <div id="vistaSemanalContent" class="agenda-view d-none">
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered agenda-semanal">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="width: 80px;">Hora</th>
+                                                            <th>Lunes</th>
+                                                            <th>Martes</th>
+                                                            <th>Miércoles</th>
+                                                            <th>Jueves</th>
+                                                            <th>Viernes</th>
+                                                            <th>Sábado</th>
+                                                            <th>Domingo</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="agendaSemanalBody">
+                                                        <!-- El contenido se cargará dinámicamente -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Vista Mensual -->
+                                        <div id="vistaMensualContent" class="agenda-view d-none">
+                                            <div class="calendario-mensual" id="calendarioMensual">
+                                                <!-- El contenido se cargará dinámicamente -->
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                            </div>
-                                        </div>
                                     </div>
                             
                             <div class="col-lg-4">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-clock me-2"></i>
+                                <!-- Resumen del Día -->
+                                <div class="card shadow-sm border-0 mb-4">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0 fw-bold">
+                                            <i class="fas fa-chart-pie me-2"></i>
                                             Resumen del Día
                                         </h6>
-                                </div>
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between mb-3">
-                                            <span>Total citas:</span>
-                                            <strong>5</strong>
-                                            </div>
-                                        <div class="d-flex justify-content-between mb-3">
-                                            <span>Confirmadas:</span>
-                                            <strong class="text-success">2</strong>
-                                        </div>
-                                        <div class="d-flex justify-content-between mb-3">
-                                            <span>Pendientes:</span>
-                                            <strong class="text-warning">1</strong>
                                     </div>
-                                        <div class="d-flex justify-content-between mb-3">
-                                            <span>Disponibles:</span>
-                                            <strong class="text-primary">2</strong>
+                                    <div class="card-body p-4">
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-6">
+                                                <div class="text-center p-3 rounded bg-light">
+                                                    <div class="h4 mb-1 text-primary fw-bold" id="totalCitas">5</div>
+                                                    <small class="text-muted">Total Citas</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="text-center p-3 rounded bg-light">
+                                                    <div class="h4 mb-1 text-success fw-bold" id="confirmadas">2</div>
+                                                    <small class="text-muted">Confirmadas</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="text-center p-3 rounded bg-light">
+                                                    <div class="h4 mb-1 text-warning fw-bold" id="pendientes">1</div>
+                                                    <small class="text-muted">Pendientes</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="text-center p-3 rounded bg-light">
+                                                    <div class="h4 mb-1 text-info fw-bold" id="disponibles">2</div>
+                                                    <small class="text-muted">Disponibles</small>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <hr>
-                                        <button class="btn btn-primary w-100" onclick="showScheduleModal()">
-                                            <i class="fas fa-plus me-2"></i>
-                                            Nueva Cita
-                                        </button>
+                                        
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-primary btn-sm" onclick="showScheduleModal()">
+                                                <i class="fas fa-plus me-2"></i>
+                                                Nueva Cita
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm" onclick="configurarHorarios()">
+                                                <i class="fas fa-clock me-2"></i>
+                                                Configurar Horarios
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                                <div class="card mt-3">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
+                                
+                                <!-- Recordatorios -->
+                                <div class="card shadow-sm border-0">
+                                    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0 fw-bold">
                                             <i class="fas fa-bell me-2"></i>
                                             Recordatorios
                                         </h6>
-                                </div>
-                                    <div class="card-body">
-                                        <div class="alert alert-info alert-sm">
-                                            <i class="fas fa-info-circle me-2"></i>
-                                            Roberto Silva necesita confirmar su cita de las 14:30
+                                        <button class="btn btn-sm btn-outline-light" id="btnCrearRecordatorio" title="Crear Recordatorio">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        <div id="recordatoriosContainer">
+                                            <div class="reminder-item mb-3 p-3 rounded bg-info bg-opacity-10 border-start border-info border-4">
+                                                <div class="d-flex align-items-start">
+                                                    <i class="fas fa-info-circle text-info me-2 mt-1"></i>
+                                                    <div class="flex-grow-1">
+                                                        <small class="text-muted d-block">Confirmación Pendiente</small>
+                                                        <strong class="text-dark">Roberto Silva</strong> necesita confirmar su cita de las <strong>14:30</strong>
+                                                    </div>
+                                                    <div class="reminder-actions">
+                                                        <button class="btn btn-sm btn-outline-info btn-edit-reminder" data-id="1" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger btn-delete-reminder" data-id="1" title="Eliminar">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        <div class="alert alert-warning alert-sm">
-                                            <i class="fas fa-exclamation-triangle me-2"></i>
-                                            Recordar llamar a Ana Martín antes de su cita
+                                            
+                                            <div class="reminder-item mb-3 p-3 rounded bg-warning bg-opacity-10 border-start border-warning border-4">
+                                                <div class="d-flex align-items-start">
+                                                    <i class="fas fa-exclamation-triangle text-warning me-2 mt-1"></i>
+                                                    <div class="flex-grow-1">
+                                                        <small class="text-muted d-block">Llamada Requerida</small>
+                                                        <strong class="text-dark">Recordar llamar a Ana Martín</strong> antes de su cita
+                                                    </div>
+                                                    <div class="reminder-actions">
+                                                        <button class="btn btn-sm btn-outline-warning btn-edit-reminder" data-id="2" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger btn-delete-reminder" data-id="2" title="Eliminar">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-center mt-3">
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>
+                                                Actualizado hace 5 minutos
+                                            </small>
                                         </div>
                                     </div>
-                                            </div>
+                                </div>
+                            </div>
                                         </div>
                                     </div>
                                             </div>
@@ -1184,8 +1405,7 @@
                         <div class="form-floating mb-3">
                             <select class="form-select" id="appointmentPatient" required>
                                 <option value="">Seleccionar paciente...</option>
-                                <option value="12.345.678-9">María González Silva</option>
-                                <option value="98.765.432-1">Carlos Rodríguez Pérez</option>
+                                <!-- Los pacientes se cargarán dinámicamente -->
                             </select>
                             <label for="appointmentPatient">Paciente</label>
                     </div>
@@ -1227,6 +1447,193 @@
                                     </div>
                                 </div>
                             </div>
+
+    <!-- Modal para configurar horarios -->
+    <div class="modal fade" id="horariosModal" tabindex="-1" aria-labelledby="horariosModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="horariosModalLabel">
+                        <i class="fas fa-clock me-2"></i>
+                        Configurar Horarios de Trabajo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="horariosForm">
+                        <div class="row">
+                            <div class="col-12">
+                                <p class="text-muted mb-4">Configure sus horarios de atención para cada día de la semana.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Lunes -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="lunes_disponible" checked>
+                                    <label class="form-check-label fw-bold" for="lunes_disponible">
+                                        Lunes
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="lunes_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="lunes_fin" value="18:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="lunes_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Martes -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="martes_disponible" checked>
+                                    <label class="form-check-label fw-bold" for="martes_disponible">
+                                        Martes
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="martes_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="martes_fin" value="18:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="martes_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Miércoles -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="miercoles_disponible" checked>
+                                    <label class="form-check-label fw-bold" for="miercoles_disponible">
+                                        Miércoles
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="miercoles_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="miercoles_fin" value="18:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="miercoles_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Jueves -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="jueves_disponible" checked>
+                                    <label class="form-check-label fw-bold" for="jueves_disponible">
+                                        Jueves
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="jueves_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="jueves_fin" value="18:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="jueves_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Viernes -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="viernes_disponible" checked>
+                                    <label class="form-check-label fw-bold" for="viernes_disponible">
+                                        Viernes
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="viernes_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="viernes_fin" value="18:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="viernes_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Sábado -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="sabado_disponible">
+                                    <label class="form-check-label fw-bold" for="sabado_disponible">
+                                        Sábado
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="sabado_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="sabado_fin" value="14:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="sabado_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Domingo -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="domingo_disponible">
+                                    <label class="form-check-label fw-bold" for="domingo_disponible">
+                                        Domingo
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="domingo_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="domingo_fin" value="14:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="domingo_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Nota:</strong> Los horarios configurados determinarán los slots disponibles para agendar citas. Desmarque los días en los que no atiende.
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarHorarios()">
+                        <i class="fas fa-save me-2"></i>
+                        Guardar Horarios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
                             
     <!-- Modal para ver historial de paciene -->
     <div class="modal fade" id="patientHistoryModal" tabindex="-1" aria-labelledby="patientHistoryModalLabel" aria-hidden="true">
@@ -1413,10 +1820,281 @@
         </div>
     </div>
 
+    <!-- Modal para crear/editar recordatorios -->
+    <div class="modal fade" id="reminderModal" tabindex="-1" aria-labelledby="reminderModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reminderModalLabel">
+                        <i class="fas fa-bell me-2"></i>
+                        <span id="reminderModalTitle">Crear Recordatorio</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="reminderForm">
+                        <input type="hidden" id="reminderId" value="">
+                        
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="reminderType" required>
+                                <option value="">Seleccionar tipo...</option>
+                                <option value="confirmacion">Confirmación de Cita</option>
+                                <option value="llamada">Llamada al Paciente</option>
+                                <option value="preparacion">Preparación Médica</option>
+                                <option value="seguimiento">Seguimiento</option>
+                                <option value="personal">Recordatorio Personal</option>
+                            </select>
+                            <label for="reminderType">Tipo de Recordatorio</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="reminderPatient">
+                                <option value="">Seleccionar paciente (opcional)...</option>
+                                <!-- Los pacientes se cargarán dinámicamente -->
+                            </select>
+                            <label for="reminderPatient">Paciente Relacionado</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="reminderTitle" placeholder="Título del recordatorio" required>
+                            <label for="reminderTitle">Título</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="reminderMessage" style="height: 100px" placeholder="Descripción del recordatorio" required></textarea>
+                            <label for="reminderMessage">Descripción</label>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="date" class="form-control" id="reminderDate" required>
+                                    <label for="reminderDate">Fecha</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="time" class="form-control" id="reminderTime" required>
+                                    <label for="reminderTime">Hora</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="reminderPriority">
+                                <option value="baja">Baja</option>
+                                <option value="media" selected>Media</option>
+                                <option value="alta">Alta</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
+                            <label for="reminderPriority">Prioridad</label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="reminderRepeat" value="1">
+                            <label class="form-check-label" for="reminderRepeat">
+                                Repetir recordatorio
+                            </label>
+                        </div>
+                        
+                        <div id="repeatOptions" class="d-none">
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="reminderRepeatType">
+                                    <option value="diario">Diario</option>
+                                    <option value="semanal">Semanal</option>
+                                    <option value="mensual">Mensual</option>
+                                </select>
+                                <label for="reminderRepeatType">Frecuencia</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveReminder()">
+                        <i class="fas fa-save me-2"></i>
+                        <span id="saveReminderText">Guardar Recordatorio</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/global-functions.js') }}"></script>
     <script src="{{ url_for('static', filename='js/professional.js') }}"></script>
+    <script>
+        // Asegurar que las funciones estén disponibles globalmente
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verificar que las funciones estén disponibles
+            if (typeof window.showAddPatientModal === 'undefined') {
+                console.error('❌ showAddPatientModal no está disponible');
+            } else {
+                console.log('✅ showAddPatientModal está disponible');
+            }
+            
+            if (typeof window.viewPatientHistory === 'undefined') {
+                console.error('❌ viewPatientHistory no está disponible');
+            } else {
+                console.log('✅ viewPatientHistory está disponible');
+            }
+            
+            if (typeof window.editPatient === 'undefined') {
+                console.error('❌ editPatient no está disponible');
+            } else {
+                console.log('✅ editPatient está disponible');
+            }
+            
+            if (typeof window.newConsultation === 'undefined') {
+                console.error('❌ newConsultation no está disponible');
+            } else {
+                console.log('✅ newConsultation está disponible');
+            }
+            
+            // Verificar que la variable global esté disponible
+            if (typeof window.pacientesList === 'undefined') {
+                console.error('❌ pacientesList no está disponible');
+            } else {
+                console.log('✅ pacientesList está disponible');
+            }
+            
+            // Verificar función de notificación
+            if (typeof window.showNotification === 'undefined') {
+                console.error('❌ showNotification no está disponible');
+            } else {
+                console.log('✅ showNotification está disponible');
+            }
+        });
+        
+        // Función de fallback para debugging
+        window.debugFunction = function(functionName) {
+            console.log(`🔍 Verificando función: ${functionName}`);
+            if (typeof window[functionName] === 'function') {
+                console.log(`✅ ${functionName} está disponible`);
+                return true;
+            } else {
+                console.error(`❌ ${functionName} NO está disponible`);
+                return false;
+            }
+        };
+        
+        // Prueba completa de todas las funciones
+        console.log('🧪 Iniciando pruebas de funciones...');
+        
+        // Verificar funciones principales
+        const funcionesPrincipales = [
+            'showAddPatientModal',
+            'viewPatientHistory', 
+            'editPatient',
+            'newConsultation',
+            'savePatient',
+            'saveAppointment'
+        ];
+        
+        funcionesPrincipales.forEach(funcion => {
+            debugFunction(funcion);
+        });
+        
+        // Verificar variables globales
+        console.log('🔍 Verificando variables globales...');
+        if (typeof window.pacientesList !== 'undefined') {
+            console.log('✅ pacientesList está disponible');
+        } else {
+            console.error('❌ pacientesList NO está disponible');
+        }
+        
+        if (typeof window.showNotification !== 'undefined') {
+            console.log('✅ showNotification está disponible');
+        } else {
+            console.error('❌ showNotification NO está disponible');
+        }
+        
+        console.log('✅ Pruebas de funciones completadas');
+        
+        // Debug específico para pacientes
+        console.log('🔍 Debug de carga de pacientes...');
+        
+        // Función para probar la carga de pacientes
+        window.debugPacientes = function() {
+            console.log('🧪 Probando carga de pacientes...');
+            
+            fetch('/api/professional/patients')
+                .then(response => {
+                    console.log('📡 Response status:', response.status);
+                    console.log('📡 Response headers:', response.headers);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('📥 Datos completos del servidor:', data);
+                    
+                    if (data.success) {
+                        console.log(`✅ ${data.total} pacientes encontrados`);
+                        console.log('📋 Lista de pacientes:', data.pacientes);
+                        
+                        // Verificar si la tabla existe
+                        const tabla = document.getElementById('patientsTable');
+                        if (tabla) {
+                            console.log('✅ Tabla de pacientes encontrada');
+                        } else {
+                            console.error('❌ Tabla de pacientes NO encontrada');
+                        }
+                        
+                        // Verificar si el tbody existe
+                        const tbody = tabla ? tabla.querySelector('tbody') : null;
+                        if (tbody) {
+                            console.log('✅ Tbody de la tabla encontrado');
+                        } else {
+                            console.error('❌ Tbody de la tabla NO encontrado');
+                        }
+                        
+                    } else {
+                        console.error('❌ Error del servidor:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error de red:', error);
+                });
+        };
+        
+        // Ejecutar debug automáticamente después de 2 segundos
+        setTimeout(() => {
+            console.log('🔄 Ejecutando debug automático de pacientes...');
+            debugPacientes();
+        }, 2000);
+        
+        // Función para probar la base de datos
+        window.testDatabase = function() {
+            console.log('🧪 Probando conexión con la base de datos...');
+            
+            // Probar endpoint de health check
+            fetch('/health')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('❤️ Health check:', data);
+                })
+                .catch(error => {
+                    console.error('❌ Error en health check:', error);
+                });
+            
+            // Probar endpoint de test de atención
+            fetch('/api/test-atencion')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('🧪 Test atenciones:', data);
+                })
+                .catch(error => {
+                    console.error('❌ Error en test atenciones:', error);
+                });
+        };
+        
+        // Ejecutar test de base de datos después de 3 segundos
+        setTimeout(() => {
+            console.log('🔄 Ejecutando test de base de datos...');
+            testDatabase();
+        }, 3000);
+    </script>
 </body>
 </html>
 

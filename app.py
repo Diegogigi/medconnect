@@ -147,6 +147,134 @@ def get_google_sheets_client():
 # Cliente global de Google Sheets
 sheets_client = get_google_sheets_client()
 
+# Funciones auxiliares para las vistas de agenda
+def obtener_rango_semana(fecha_str):
+    """Obtiene el rango de fechas de la semana que contiene la fecha dada"""
+    from datetime import datetime, timedelta
+    
+    fecha = datetime.strptime(fecha_str, '%Y-%m-%d')
+    # Obtener el lunes de la semana (día 0)
+    inicio_semana = fecha - timedelta(days=fecha.weekday())
+    fin_semana = inicio_semana + timedelta(days=6)
+    
+    return inicio_semana.strftime('%Y-%m-%d'), fin_semana.strftime('%Y-%m-%d')
+
+def obtener_rango_mes(fecha_str):
+    """Obtiene el rango de fechas del mes que contiene la fecha dada"""
+    from datetime import datetime
+    import calendar
+    
+    fecha = datetime.strptime(fecha_str, '%Y-%m-%d')
+    # Primer día del mes
+    inicio_mes = fecha.replace(day=1)
+    # Último día del mes
+    ultimo_dia = calendar.monthrange(fecha.year, fecha.month)[1]
+    fin_mes = fecha.replace(day=ultimo_dia)
+    
+    return inicio_mes.strftime('%Y-%m-%d'), fin_mes.strftime('%Y-%m-%d')
+
+def organizar_agenda_semanal(citas, fecha_inicio, fecha_fin):
+    """Organiza las citas por día de la semana"""
+    from datetime import datetime, timedelta
+    
+    agenda = {}
+    dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+    
+    # Inicializar estructura
+    inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+    for i in range(7):
+        fecha_dia = (inicio + timedelta(days=i)).strftime('%Y-%m-%d')
+        agenda[fecha_dia] = {
+            'dia_semana': dias_semana[i],
+            'fecha': fecha_dia,
+            'citas': []
+        }
+    
+    # Agrupar citas por día
+    for cita in citas:
+        fecha_cita = cita['fecha']
+        if fecha_cita in agenda:
+            agenda[fecha_cita]['citas'].append(cita)
+    
+    # Ordenar citas por hora
+    for fecha in agenda:
+        agenda[fecha]['citas'].sort(key=lambda x: x['hora'])
+    
+    return agenda
+
+def organizar_agenda_mensual(citas, fecha_inicio, fecha_fin):
+    """Organiza las citas por día del mes"""
+    from datetime import datetime, timedelta
+    
+    agenda = {}
+    
+    # Inicializar estructura para todos los días del mes
+    inicio = datetime.strptime(fecha_inicio, '%Y-%m-%d')
+    fin = datetime.strptime(fecha_fin, '%Y-%m-%d')
+    
+    fecha_actual = inicio
+    while fecha_actual <= fin:
+        fecha_str = fecha_actual.strftime('%Y-%m-%d')
+        agenda[fecha_str] = {
+            'fecha': fecha_str,
+            'dia': fecha_actual.day,
+            'es_hoy': fecha_str == datetime.now().strftime('%Y-%m-%d'),
+            'citas': []
+        }
+        fecha_actual += timedelta(days=1)
+    
+    # Agrupar citas por día
+    for cita in citas:
+        fecha_cita = cita['fecha']
+        if fecha_cita in agenda:
+            agenda[fecha_cita]['citas'].append(cita)
+    
+    # Ordenar citas por hora
+    for fecha in agenda:
+        agenda[fecha]['citas'].sort(key=lambda x: x['hora'])
+    
+    return agenda
+
+def calcular_estadisticas_semana(citas):
+    """Calcula estadísticas para la vista semanal"""
+    total = len(citas)
+    confirmadas = len([c for c in citas if c['estado'] == 'confirmada'])
+    pendientes = len([c for c in citas if c['estado'] == 'pendiente'])
+    canceladas = len([c for c in citas if c['estado'] == 'cancelada'])
+    
+    return {
+        'total_citas': total,
+        'confirmadas': confirmadas,
+        'pendientes': pendientes,
+        'canceladas': canceladas
+    }
+
+def calcular_estadisticas_mes(citas):
+    """Calcula estadísticas para la vista mensual"""
+    from datetime import datetime
+    
+    total = len(citas)
+    confirmadas = len([c for c in citas if c['estado'] == 'confirmada'])
+    pendientes = len([c for c in citas if c['estado'] == 'pendiente'])
+    canceladas = len([c for c in citas if c['estado'] == 'cancelada'])
+    
+    # Agrupar por semana
+    citas_por_semana = {}
+    for cita in citas:
+        fecha_cita = datetime.strptime(cita['fecha'], '%Y-%m-%d')
+        semana = fecha_cita.isocalendar()[1]  # Número de semana del año
+        if semana not in citas_por_semana:
+            citas_por_semana[semana] = 0
+        citas_por_semana[semana] += 1
+    
+    return {
+        'total_citas': total,
+        'confirmadas': confirmadas,
+        'pendientes': pendientes,
+        'canceladas': canceladas,
+        'citas_por_semana': citas_por_semana
+    }
+
 # Inicializar AuthManager con debugging detallado
 logger.info("🔍 Iniciando inicialización de AuthManager...")
 
@@ -3878,24 +4006,48 @@ def get_professional_patients():
             pacientes_profesional = []
             for record in records:
                 if str(record.get('profesional_id', '')) == str(profesional_id):
-                    pacientes_profesional.append({
-                        'paciente_id': record.get('paciente_id', ''),
-                        'nombre_completo': record.get('nombre_completo', ''),
-                        'rut': record.get('rut', ''),
-                        'edad': record.get('edad', ''),
-                        'fecha_nacimiento': record.get('fecha_nacimiento', ''),
-                        'genero': record.get('genero', ''),
-                        'telefono': record.get('telefono', ''),
-                        'email': record.get('email', ''),
-                        'direccion': record.get('direccion', ''),
-                        'antecedentes_medicos': record.get('antecedentes_medicos', ''),
-                        'fecha_primera_consulta': record.get('fecha_primera_consulta', ''),
-                        'ultima_consulta': record.get('ultima_consulta', ''),
-                        'num_atenciones': record.get('num_atenciones', 0),
-                        'estado_relacion': record.get('estado_relacion', 'activo'),
-                        'fecha_registro': record.get('fecha_registro', ''),
-                        'notas': record.get('notas', '')
-                    })
+                    # Debug: log del record original
+                    logger.info(f"🔍 Record original de Google Sheets: {record}")
+                    
+                    # Procesar cada campo de manera segura
+                    paciente_data = {}
+                    
+                    # Campos que deben ser strings
+                    string_fields = ['paciente_id', 'nombre_completo', 'rut', 'fecha_nacimiento', 
+                                   'genero', 'telefono', 'email', 'direccion', 'antecedentes_medicos',
+                                   'fecha_primera_consulta', 'ultima_consulta', 'estado_relacion', 
+                                   'fecha_registro', 'notas']
+                    
+                    for field in string_fields:
+                        value = record.get(field, '')
+                        # Convertir a string si no es None
+                        if value is not None:
+                            paciente_data[field] = str(value)
+                        else:
+                            paciente_data[field] = ''
+                        logger.info(f"🔍 Campo {field}: valor='{value}', tipo={type(value)}, procesado='{paciente_data[field]}'")
+                    
+                    # Campos numéricos
+                    edad_value = record.get('edad', '')
+                    if edad_value is not None and str(edad_value).strip() != '':
+                        try:
+                            paciente_data['edad'] = str(int(float(str(edad_value))))
+                        except (ValueError, TypeError):
+                            paciente_data['edad'] = str(edad_value) if edad_value else ''
+                    else:
+                        paciente_data['edad'] = ''
+                    
+                    num_atenciones_value = record.get('num_atenciones', 0)
+                    if num_atenciones_value is not None and str(num_atenciones_value).strip() != '':
+                        try:
+                            paciente_data['num_atenciones'] = int(float(str(num_atenciones_value)))
+                        except (ValueError, TypeError):
+                            paciente_data['num_atenciones'] = 0
+                    else:
+                        paciente_data['num_atenciones'] = 0
+                    
+                    logger.info(f"🔍 Paciente procesado: {paciente_data}")
+                    pacientes_profesional.append(paciente_data)
             
             # Ordenar por fecha de registro más reciente
             pacientes_profesional.sort(
@@ -4933,6 +5085,801 @@ def serve_atencion_file(atencion_id, filename):
         logger.error(f"Error sirviendo archivo: {e}")
         abort(500)
 
+# ====== AGENDA Y CITAS ======
+
+@app.route('/api/professional/schedule', methods=['GET'])
+@login_required
+def get_professional_schedule():
+    """Obtiene la agenda del profesional"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener fecha solicitada (por defecto hoy)
+        fecha_solicitada = request.args.get('fecha', datetime.now().strftime('%Y-%m-%d'))
+        vista = request.args.get('vista', 'diaria')  # diaria, semanal, mensual
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            # Obtener o crear la hoja de citas
+            try:
+                worksheet = spreadsheet.worksheet('Citas_Agenda')
+            except:
+                # Si no existe, crearla
+                headers = ['cita_id', 'profesional_id', 'paciente_id', 'paciente_nombre', 'paciente_rut',
+                          'fecha', 'hora', 'tipo_atencion', 'estado', 'notas', 'fecha_creacion', 'recordatorio']
+                worksheet = spreadsheet.add_worksheet(title='Citas_Agenda', rows=1000, cols=len(headers))
+                worksheet.append_row(headers)
+                logger.info("✅ Hoja Citas_Agenda creada")
+            
+            records = worksheet.get_all_records()
+            
+            # Filtrar citas del profesional y fecha
+            citas_del_dia = []
+            for record in records:
+                if (str(record.get('profesional_id', '')) == str(profesional_id) and 
+                    record.get('fecha', '') == fecha_solicitada):
+                    citas_del_dia.append({
+                        'cita_id': record.get('cita_id', ''),
+                        'paciente_nombre': record.get('paciente_nombre', ''),
+                        'paciente_rut': record.get('paciente_rut', ''),
+                        'hora': record.get('hora', ''),
+                        'tipo_atencion': record.get('tipo_atencion', ''),
+                        'estado': record.get('estado', ''),
+                        'notas': record.get('notas', ''),
+                        'recordatorio': record.get('recordatorio', '')
+                    })
+            
+            # Generar horarios disponibles (8:00 - 18:00, cada 30 minutos)
+            horarios_disponibles = []
+            hora_inicio = 8
+            hora_fin = 18
+            
+            for hora in range(hora_inicio, hora_fin):
+                for minuto in [0, 30]:
+                    hora_str = f"{hora:02d}:{minuto:02d}"
+                    
+                    # Verificar si ya hay una cita en este horario
+                    ocupado = any(cita['hora'] == hora_str for cita in citas_del_dia)
+                    
+                    if not ocupado:
+                        horarios_disponibles.append(hora_str)
+            
+            # Estadísticas del día
+            total_citas = len(citas_del_dia)
+            confirmadas = len([c for c in citas_del_dia if c['estado'] == 'confirmada'])
+            pendientes = len([c for c in citas_del_dia if c['estado'] == 'pendiente'])
+            disponibles = len(horarios_disponibles)
+            
+            if vista == 'diaria':
+                return jsonify({
+                    'success': True,
+                    'vista': 'diaria',
+                    'fecha': fecha_solicitada,
+                    'citas': citas_del_dia,
+                    'horarios_disponibles': horarios_disponibles,
+                    'estadisticas': {
+                        'total_citas': total_citas,
+                        'confirmadas': confirmadas,
+                        'pendientes': pendientes,
+                        'disponibles': disponibles
+                    }
+                })
+            elif vista == 'semanal':
+                # Obtener citas de la semana
+                fecha_inicio, fecha_fin = obtener_rango_semana(fecha_solicitada)
+                citas_semana = []
+                
+                for record in records:
+                    if (str(record.get('profesional_id', '')) == str(profesional_id) and 
+                        fecha_inicio <= record.get('fecha', '') <= fecha_fin):
+                        citas_semana.append({
+                            'cita_id': record.get('cita_id', ''),
+                            'paciente_nombre': record.get('paciente_nombre', ''),
+                            'paciente_rut': record.get('paciente_rut', ''),
+                            'fecha': record.get('fecha', ''),
+                            'hora': record.get('hora', ''),
+                            'tipo_atencion': record.get('tipo_atencion', ''),
+                            'estado': record.get('estado', ''),
+                            'notas': record.get('notas', '')
+                        })
+                
+                agenda_semanal = organizar_agenda_semanal(citas_semana, fecha_inicio, fecha_fin)
+                
+                return jsonify({
+                    'success': True,
+                    'vista': 'semanal',
+                    'fecha_inicio': fecha_inicio,
+                    'fecha_fin': fecha_fin,
+                    'agenda_semanal': agenda_semanal,
+                    'estadisticas': calcular_estadisticas_semana(citas_semana)
+                })
+            elif vista == 'mensual':
+                # Obtener citas del mes
+                fecha_inicio, fecha_fin = obtener_rango_mes(fecha_solicitada)
+                citas_mes = []
+                
+                for record in records:
+                    if (str(record.get('profesional_id', '')) == str(profesional_id) and 
+                        fecha_inicio <= record.get('fecha', '') <= fecha_fin):
+                        citas_mes.append({
+                            'cita_id': record.get('cita_id', ''),
+                            'paciente_nombre': record.get('paciente_nombre', ''),
+                            'paciente_rut': record.get('paciente_rut', ''),
+                            'fecha': record.get('fecha', ''),
+                            'hora': record.get('hora', ''),
+                            'tipo_atencion': record.get('tipo_atencion', ''),
+                            'estado': record.get('estado', ''),
+                            'notas': record.get('notas', '')
+                        })
+                
+                agenda_mensual = organizar_agenda_mensual(citas_mes, fecha_inicio, fecha_fin)
+                
+                return jsonify({
+                    'success': True,
+                    'vista': 'mensual',
+                    'fecha_inicio': fecha_inicio,
+                    'fecha_fin': fecha_fin,
+                    'agenda_mensual': agenda_mensual,
+                    'estadisticas': calcular_estadisticas_mes(citas_mes)
+                })
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo agenda: {e}")
+            return jsonify({'success': False, 'message': f'Error al consultar la agenda: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en get_professional_schedule: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/schedule', methods=['POST'])
+@login_required
+def create_appointment():
+    """Crea una nueva cita en la agenda"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener datos del formulario
+        data = request.get_json()
+        logger.info(f"📝 Datos de la nueva cita: {data}")
+        
+        # Validar campos requeridos
+        required_fields = ['paciente_id', 'fecha', 'hora', 'tipo_atencion']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'message': f'El campo {field} es requerido'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            # Obtener información del paciente
+            pacientes_worksheet = spreadsheet.worksheet('Pacientes_Profesional')
+            pacientes_records = pacientes_worksheet.get_all_records()
+            
+            paciente_info = None
+            for record in pacientes_records:
+                if (record.get('paciente_id') == data.get('paciente_id') and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    paciente_info = record
+                    break
+            
+            if not paciente_info:
+                return jsonify({'success': False, 'message': 'Paciente no encontrado'}), 404
+            
+            # Obtener hoja de citas
+            try:
+                worksheet = spreadsheet.worksheet('Citas_Agenda')
+            except:
+                # Si no existe, crearla
+                headers = ['cita_id', 'profesional_id', 'paciente_id', 'paciente_nombre', 'paciente_rut',
+                          'fecha', 'hora', 'tipo_atencion', 'estado', 'notas', 'fecha_creacion', 'recordatorio']
+                worksheet = spreadsheet.add_worksheet(title='Citas_Agenda', rows=1000, cols=len(headers))
+                worksheet.append_row(headers)
+                logger.info("✅ Hoja Citas_Agenda creada")
+            
+            # Verificar disponibilidad del horario
+            records = worksheet.get_all_records()
+            for record in records:
+                if (str(record.get('profesional_id', '')) == str(profesional_id) and 
+                    record.get('fecha', '') == data.get('fecha') and 
+                    record.get('hora', '') == data.get('hora')):
+                    return jsonify({'success': False, 'message': 'El horario ya está ocupado'}), 400
+            
+            # Generar ID único para la cita
+            cita_id = f"CITA_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            # Preparar datos para insertar
+            nueva_cita = [
+                cita_id,
+                profesional_id,
+                data.get('paciente_id', ''),
+                paciente_info.get('nombre_completo', ''),
+                paciente_info.get('rut', ''),
+                data.get('fecha', ''),
+                data.get('hora', ''),
+                data.get('tipo_atencion', ''),
+                'pendiente',  # estado por defecto
+                data.get('notas', ''),
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                data.get('recordatorio', 'no')
+            ]
+            
+            # Insertar en Google Sheets
+            worksheet.append_row(nueva_cita)
+            logger.info(f"✅ Cita {cita_id} creada exitosamente")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Cita agendada exitosamente',
+                'cita_id': cita_id,
+                'cita': {
+                    'cita_id': cita_id,
+                    'paciente_nombre': paciente_info.get('nombre_completo', ''),
+                    'paciente_rut': paciente_info.get('rut', ''),
+                    'fecha': data.get('fecha', ''),
+                    'hora': data.get('hora', ''),
+                    'tipo_atencion': data.get('tipo_atencion', ''),
+                    'estado': 'pendiente',
+                    'notas': data.get('notas', '')
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Error creando cita: {e}")
+            return jsonify({'success': False, 'message': f'Error al crear la cita: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en create_appointment: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/schedule/<cita_id>', methods=['PUT'])
+@login_required
+def update_appointment(cita_id):
+    """Actualiza una cita existente"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener datos del formulario
+        data = request.get_json()
+        logger.info(f"📝 Actualizando cita {cita_id}: {data}")
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Citas_Agenda')
+            records = worksheet.get_all_records()
+            
+            # Buscar la cita
+            for i, record in enumerate(records):
+                if (record.get('cita_id') == cita_id and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    
+                    # Actualizar campos específicos
+                    if 'estado' in data:
+                        worksheet.update(f'I{i+2}', [[data['estado']]])  # Columna I es estado
+                    if 'notas' in data:
+                        worksheet.update(f'J{i+2}', [[data['notas']]])  # Columna J es notas
+                    if 'recordatorio' in data:
+                        worksheet.update(f'L{i+2}', [[data['recordatorio']]])  # Columna L es recordatorio
+                    
+                    logger.info(f"✅ Cita {cita_id} actualizada exitosamente")
+                    
+                    return jsonify({
+                        'success': True,
+                        'message': 'Cita actualizada exitosamente'
+                    })
+            
+            return jsonify({'success': False, 'message': 'Cita no encontrada'}), 404
+            
+        except Exception as e:
+            logger.error(f"Error actualizando cita: {e}")
+            return jsonify({'success': False, 'message': f'Error al actualizar la cita: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en update_appointment: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/schedule/<cita_id>', methods=['DELETE'])
+@login_required
+def delete_appointment(cita_id):
+    """Elimina una cita de la agenda"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Citas_Agenda')
+            records = worksheet.get_all_records()
+            
+            # Buscar la cita
+            for i, record in enumerate(records):
+                if (record.get('cita_id') == cita_id and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    
+                    # Eliminar la fila (i+2 porque las filas empiezan en 1 y hay header)
+                    worksheet.delete_rows(i+2)
+                    logger.info(f"✅ Cita {cita_id} eliminada exitosamente")
+                    
+                    return jsonify({
+                        'success': True,
+                        'message': 'Cita eliminada exitosamente'
+                    })
+            
+            return jsonify({'success': False, 'message': 'Cita no encontrada'}), 404
+            
+        except Exception as e:
+            logger.error(f"Error eliminando cita: {e}")
+            return jsonify({'success': False, 'message': f'Error al eliminar la cita: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en delete_appointment: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/working-hours', methods=['GET'])
+@login_required
+def get_working_hours():
+    """Obtiene el horario de trabajo del profesional"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            # Obtener o crear la hoja de horarios
+            try:
+                worksheet = spreadsheet.worksheet('Horarios_Profesional')
+            except:
+                # Si no existe, crearla con horario por defecto
+                headers = ['profesional_id', 'dia_semana', 'hora_inicio', 'hora_fin', 'disponible', 'notas']
+                worksheet = spreadsheet.add_worksheet(title='Horarios_Profesional', rows=1000, cols=len(headers))
+                worksheet.append_row(headers)
+                
+                # Crear horario por defecto (Lunes a Viernes, 8:00 - 18:00)
+                dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes']
+                for dia in dias_semana:
+                    worksheet.append_row([profesional_id, dia, '08:00', '18:00', 'true', ''])
+                
+                logger.info("✅ Hoja Horarios_Profesional creada con horario por defecto")
+            
+            records = worksheet.get_all_records()
+            
+            # Filtrar horarios del profesional
+            horarios = []
+            for record in records:
+                if str(record.get('profesional_id', '')) == str(profesional_id):
+                    horarios.append({
+                        'dia_semana': record.get('dia_semana', ''),
+                        'hora_inicio': record.get('hora_inicio', ''),
+                        'hora_fin': record.get('hora_fin', ''),
+                        'disponible': record.get('disponible', 'true') == 'true',
+                        'notas': record.get('notas', '')
+                    })
+            
+            return jsonify({
+                'success': True,
+                'horarios': horarios
+            })
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo horarios: {e}")
+            return jsonify({'success': False, 'message': f'Error al consultar los horarios: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en get_working_hours: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/reminders', methods=['GET'])
+@login_required
+def get_reminders():
+    """Obtiene los recordatorios del profesional"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            # Obtener o crear la hoja de recordatorios
+            try:
+                worksheet = spreadsheet.worksheet('Recordatorios_Profesional')
+            except:
+                # Si no existe, crearla
+                headers = ['recordatorio_id', 'profesional_id', 'tipo', 'paciente_id', 'titulo', 'mensaje',
+                          'fecha', 'hora', 'prioridad', 'repetir', 'tipo_repeticion', 'estado', 'fecha_creacion']
+                worksheet = spreadsheet.add_worksheet(title='Recordatorios_Profesional', rows=1000, cols=len(headers))
+                worksheet.append_row(headers)
+                logger.info("✅ Hoja Recordatorios_Profesional creada")
+            
+            records = worksheet.get_all_records()
+            
+            # Filtrar recordatorios del profesional y activos
+            recordatorios = []
+            for record in records:
+                if (str(record.get('profesional_id', '')) == str(profesional_id) and 
+                    record.get('estado', '') == 'activo'):
+                    recordatorios.append({
+                        'id': record.get('recordatorio_id', ''),
+                        'tipo': record.get('tipo', ''),
+                        'paciente_id': record.get('paciente_id', ''),
+                        'titulo': record.get('titulo', ''),
+                        'mensaje': record.get('mensaje', ''),
+                        'fecha': record.get('fecha', ''),
+                        'hora': record.get('hora', ''),
+                        'prioridad': record.get('prioridad', 'media'),
+                        'repetir': record.get('repetir', 'false').lower() == 'true',
+                        'tipo_repeticion': record.get('tipo_repeticion', ''),
+                        'estado': record.get('estado', 'activo')
+                    })
+            
+            return jsonify({
+                'success': True,
+                'recordatorios': recordatorios
+            })
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo recordatorios: {e}")
+            return jsonify({'success': False, 'message': f'Error al consultar los recordatorios: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en get_reminders: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/reminders', methods=['POST'])
+@login_required
+def create_reminder():
+    """Crea un nuevo recordatorio"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener datos del formulario
+        data = request.get_json()
+        logger.info(f"📝 Creando recordatorio: {data}")
+        
+        # Validar campos requeridos
+        required_fields = ['tipo', 'titulo', 'mensaje', 'fecha', 'hora', 'prioridad']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'message': f'El campo {field} es requerido'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            # Obtener hoja de recordatorios
+            try:
+                worksheet = spreadsheet.worksheet('Recordatorios_Profesional')
+            except:
+                # Si no existe, crearla
+                headers = ['recordatorio_id', 'profesional_id', 'tipo', 'paciente_id', 'titulo', 'mensaje',
+                          'fecha', 'hora', 'prioridad', 'repetir', 'tipo_repeticion', 'estado', 'fecha_creacion']
+                worksheet = spreadsheet.add_worksheet(title='Recordatorios_Profesional', rows=1000, cols=len(headers))
+                worksheet.append_row(headers)
+                logger.info("✅ Hoja Recordatorios_Profesional creada")
+            
+            # Generar ID único
+            recordatorio_id = str(uuid.uuid4())
+            
+            # Crear nueva fila
+            nueva_fila = [
+                recordatorio_id,
+                profesional_id,
+                data.get('tipo', ''),
+                data.get('paciente_id', ''),
+                data.get('titulo', ''),
+                data.get('mensaje', ''),
+                data.get('fecha', ''),
+                data.get('hora', ''),
+                data.get('prioridad', 'media'),
+                str(data.get('repetir', False)).lower(),
+                data.get('tipo_repeticion', ''),
+                'activo',
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            ]
+            
+            worksheet.append_row(nueva_fila)
+            
+            logger.info(f"✅ Recordatorio creado exitosamente: {recordatorio_id}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Recordatorio creado exitosamente',
+                'recordatorio_id': recordatorio_id
+            })
+            
+        except Exception as e:
+            logger.error(f"Error creando recordatorio: {e}")
+            return jsonify({'success': False, 'message': f'Error al crear el recordatorio: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en create_reminder: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/reminders/<recordatorio_id>', methods=['GET'])
+@login_required
+def get_reminder(recordatorio_id):
+    """Obtiene un recordatorio específico"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Recordatorios_Profesional')
+            records = worksheet.get_all_records()
+            
+            # Buscar el recordatorio específico
+            recordatorio = None
+            for record in records:
+                if (str(record.get('recordatorio_id', '')) == str(recordatorio_id) and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    recordatorio = {
+                        'id': record.get('recordatorio_id', ''),
+                        'tipo': record.get('tipo', ''),
+                        'paciente_id': record.get('paciente_id', ''),
+                        'titulo': record.get('titulo', ''),
+                        'mensaje': record.get('mensaje', ''),
+                        'fecha': record.get('fecha', ''),
+                        'hora': record.get('hora', ''),
+                        'prioridad': record.get('prioridad', 'media'),
+                        'repetir': record.get('repetir', 'false').lower() == 'true',
+                        'tipo_repeticion': record.get('tipo_repeticion', ''),
+                        'estado': record.get('estado', 'activo')
+                    }
+                    break
+            
+            if not recordatorio:
+                return jsonify({'success': False, 'message': 'Recordatorio no encontrado'}), 404
+            
+            return jsonify({
+                'success': True,
+                'recordatorio': recordatorio
+            })
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo recordatorio: {e}")
+            return jsonify({'success': False, 'message': f'Error al consultar el recordatorio: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en get_reminder: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/reminders/<recordatorio_id>', methods=['PUT'])
+@login_required
+def update_reminder(recordatorio_id):
+    """Actualiza un recordatorio existente"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener datos del formulario
+        data = request.get_json()
+        logger.info(f"📝 Actualizando recordatorio {recordatorio_id}: {data}")
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Recordatorios_Profesional')
+            records = worksheet.get_all_records()
+            
+            # Buscar y actualizar el recordatorio
+            encontrado = False
+            for i, record in enumerate(records):
+                if (str(record.get('recordatorio_id', '')) == str(recordatorio_id) and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    
+                    # Actualizar campos
+                    worksheet.update(f'C{i+2}', [[data.get('tipo', '')]])  # tipo
+                    worksheet.update(f'D{i+2}', [[data.get('paciente_id', '')]])  # paciente_id
+                    worksheet.update(f'E{i+2}', [[data.get('titulo', '')]])  # titulo
+                    worksheet.update(f'F{i+2}', [[data.get('mensaje', '')]])  # mensaje
+                    worksheet.update(f'G{i+2}', [[data.get('fecha', '')]])  # fecha
+                    worksheet.update(f'H{i+2}', [[data.get('hora', '')]])  # hora
+                    worksheet.update(f'I{i+2}', [[data.get('prioridad', 'media')]])  # prioridad
+                    worksheet.update(f'J{i+2}', [[str(data.get('repetir', False)).lower()]])  # repetir
+                    worksheet.update(f'K{i+2}', [[data.get('tipo_repeticion', '')]])  # tipo_repeticion
+                    
+                    encontrado = True
+                    break
+            
+            if not encontrado:
+                return jsonify({'success': False, 'message': 'Recordatorio no encontrado'}), 404
+            
+            logger.info(f"✅ Recordatorio {recordatorio_id} actualizado exitosamente")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Recordatorio actualizado exitosamente'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error actualizando recordatorio: {e}")
+            return jsonify({'success': False, 'message': f'Error al actualizar el recordatorio: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en update_reminder: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/reminders/<recordatorio_id>', methods=['DELETE'])
+@login_required
+def delete_reminder(recordatorio_id):
+    """Elimina un recordatorio (marca como inactivo)"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Recordatorios_Profesional')
+            records = worksheet.get_all_records()
+            
+            # Buscar y marcar como inactivo el recordatorio
+            encontrado = False
+            for i, record in enumerate(records):
+                if (str(record.get('recordatorio_id', '')) == str(recordatorio_id) and 
+                    str(record.get('profesional_id', '')) == str(profesional_id)):
+                    
+                    # Marcar como inactivo
+                    worksheet.update(f'L{i+2}', [['inactivo']])  # estado
+                    
+                    encontrado = True
+                    break
+            
+            if not encontrado:
+                return jsonify({'success': False, 'message': 'Recordatorio no encontrado'}), 404
+            
+            logger.info(f"✅ Recordatorio {recordatorio_id} eliminado exitosamente")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Recordatorio eliminado exitosamente'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error eliminando recordatorio: {e}")
+            return jsonify({'success': False, 'message': f'Error al eliminar el recordatorio: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en delete_reminder: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/api/professional/working-hours', methods=['POST'])
+@login_required
+def update_working_hours():
+    """Actualiza el horario de trabajo del profesional"""
+    try:
+        user_data = session.get('user_data', {})
+        profesional_id = user_data.get('id', session.get('user_id', ''))
+        
+        if not profesional_id:
+            return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
+        
+        # Obtener datos del formulario
+        data = request.get_json()
+        logger.info(f"📝 Actualizando horarios del profesional {profesional_id}: {data}")
+        
+        # Obtener la hoja de cálculo
+        spreadsheet = get_spreadsheet()
+        if not spreadsheet:
+            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+        
+        try:
+            worksheet = spreadsheet.worksheet('Horarios_Profesional')
+            records = worksheet.get_all_records()
+            
+            # Actualizar horarios existentes
+            for horario in data.get('horarios', []):
+                dia_semana = horario.get('dia_semana')
+                
+                # Buscar si ya existe el horario para este día
+                encontrado = False
+                for i, record in enumerate(records):
+                    if (str(record.get('profesional_id', '')) == str(profesional_id) and 
+                        record.get('dia_semana', '') == dia_semana):
+                        
+                        # Actualizar horario existente
+                        worksheet.update(f'C{i+2}', [[horario.get('hora_inicio', '')]])  # Columna C es hora_inicio
+                        worksheet.update(f'D{i+2}', [[horario.get('hora_fin', '')]])    # Columna D es hora_fin
+                        worksheet.update(f'E{i+2}', [[str(horario.get('disponible', True)).lower()]])  # Columna E es disponible
+                        worksheet.update(f'F{i+2}', [[horario.get('notas', '')]])      # Columna F es notas
+                        
+                        encontrado = True
+                        break
+                
+                # Si no existe, crear nuevo horario
+                if not encontrado:
+                    nueva_fila = [
+                        profesional_id,
+                        dia_semana,
+                        horario.get('hora_inicio', ''),
+                        horario.get('hora_fin', ''),
+                        str(horario.get('disponible', True)).lower(),
+                        horario.get('notas', '')
+                    ]
+                    worksheet.append_row(nueva_fila)
+            
+            logger.info(f"✅ Horarios del profesional {profesional_id} actualizados exitosamente")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Horarios actualizados exitosamente'
+            })
+            
+        except Exception as e:
+            logger.error(f"Error actualizando horarios: {e}")
+            return jsonify({'success': False, 'message': f'Error al actualizar los horarios: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error en update_working_hours: {e}")
+        return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') == 'development'
@@ -4941,4 +5888,6 @@ if __name__ == '__main__':
     logger.info(f"Modo debug: {debug}")
     logger.info(f"Dominio configurado: {app.config['DOMAIN']}")
     
-    app.run(host='0.0.0.0', port=port, debug=debug) 
+    app.run(host='0.0.0.0', port=port, debug=debug)
+
+ 

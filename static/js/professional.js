@@ -1,3 +1,87 @@
+// Archivo principal del dashboard profesional
+// Las funciones globales están definidas en global-functions.js
+
+// Variables globales para la agenda
+let currentDate = new Date();
+let agendaData = {};
+let pacientesDropdownList = [];
+let currentView = 'diaria'; // diaria, semanal, mensual
+let currentWeekStart = null;
+let currentMonth = null;
+
+// Asegurar que las funciones estén disponibles globalmente
+// Estas funciones se definen más abajo en el archivo
+window.showReminderModal = null;
+window.editReminder = null;
+window.deleteReminder = null;
+
+// Función para escapar caracteres especiales en HTML
+function escapeHTML(text) {
+    // Manejar casos especiales primero
+    if (text === null || text === undefined) {
+        return '';
+    }
+
+    // Convertir CUALQUIER cosa a string de manera segura
+    let stringValue = '';
+    try {
+        if (typeof text === 'string') {
+            stringValue = text;
+        } else if (typeof text === 'number') {
+            stringValue = text.toString();
+        } else if (typeof text === 'boolean') {
+            stringValue = text.toString();
+        } else if (typeof text === 'object') {
+            // Para objetos, usar JSON.stringify o toString
+            try {
+                stringValue = JSON.stringify(text);
+            } catch (jsonError) {
+                stringValue = Object.prototype.toString.call(text);
+            }
+        } else {
+            // Para cualquier otro tipo, usar String()
+            stringValue = String(text);
+        }
+    } catch (error) {
+        console.error('❌ Error convirtiendo a string:', error, 'valor:', text);
+        return 'Error de conversión';
+    }
+
+    // Verificar que stringValue es realmente un string
+    if (typeof stringValue !== 'string') {
+        console.error('❌ Valor no es string después de conversión:', stringValue, 'tipo:', typeof stringValue);
+        return 'Error de tipo';
+    }
+
+    // Si está vacío después de la conversión, retornar vacío
+    if (stringValue === '' || stringValue === 'undefined' || stringValue === 'null') {
+        return '';
+    }
+
+    // Procesar el string
+    try {
+        return stringValue
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/\n/g, '<br>')
+            .replace(/\r/g, '');
+    } catch (error) {
+        console.error('❌ Error procesando string:', error, 'valor:', stringValue);
+        return 'Error de procesamiento';
+    }
+}
+
+// Función helper para obtener valores seguros de pacientes
+function getSafeValue(value, defaultValue = 'No especificado') {
+    if (value === null || value === undefined || value === '') {
+        return defaultValue;
+    }
+    return value;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     // Inicializar componentes existentes
     initMaps();
@@ -5,6 +89,9 @@ document.addEventListener('DOMContentLoaded', function () {
     setupMobileNav();
     initRequestInteractions();
     handleFileUpload();
+
+    // Cargar estadísticas del dashboard
+    cargarEstadisticasDashboard();
 
     // Prueba de conexión con el backend
     console.log('🔍 Verificando conexión con el backend...');
@@ -57,10 +144,28 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Event listener para la pestaña de agenda
+    const scheduleTab = document.getElementById('schedule-tab');
+    if (scheduleTab) {
+        scheduleTab.addEventListener('shown.bs.tab', function () {
+            console.log('📅 Pestaña de agenda activada, cargando datos...');
+            // Inicializar con vista diaria
+            currentView = 'diaria';
+            cargarAgenda();
+        });
+    }
+
     // Si la pestaña de pacientes está activa al cargar, cargar los datos
     if (patientsTab && patientsTab.classList.contains('active')) {
         cargarListaPacientes();
     }
+
+    // Cargar pacientes después de un breve delay para asegurar que todo esté listo
+    setTimeout(() => {
+        console.log('🔄 Cargando pacientes iniciales...');
+        cargarListaPacientes();
+        cargarPacientesDropdown(); // Cargar también en el dropdown del formulario
+    }, 1000);
 
     // Inicializar búsqueda de atenciones
     const searchAtencion = document.getElementById('searchAtencion');
@@ -184,8 +289,8 @@ function initMaps() {
 
         // Crear círculo de cobertura
         const coverageCircle = L.circle([-33.45, -70.67], {
-            color: '#3a86ff',
-            fillColor: '#3a86ff',
+            color: 'rgb(96,75,217)',
+            fillColor: 'rgb(96,75,217)',
             fillOpacity: 0.1,
             radius: 10000
         }).addTo(coverageMap);
@@ -235,7 +340,7 @@ function initMaps() {
             ];
 
             const routeLine = L.polyline(routePoints, {
-                color: '#3a86ff',
+                color: 'rgb(96,75,217)',
                 weight: 4,
                 opacity: 0.7,
                 dashArray: '10, 10'
@@ -572,8 +677,11 @@ function handleFileUpload() {
                         fileList.innerHTML = '';
                     }
 
-                    // Actualizar historial y cambiar a la pestaña
+                    // Actualizar historial y estadísticas del dashboard
                     actualizarHistorialAtenciones();
+                    actualizarEstadisticasDashboard();
+
+                    // Cambiar a la pestaña de historial
                     const historyTab = document.querySelector('button[data-bs-target="#history"]');
                     if (historyTab) {
                         const tabInstance = new bootstrap.Tab(historyTab);
@@ -688,6 +796,7 @@ function eliminarAtencion(atencionId) {
                 if (data.success) {
                     showNotification('Atención eliminada exitosamente', 'success');
                     actualizarHistorialAtenciones();
+                    actualizarEstadisticasDashboard();
                 } else {
                     showNotification(data.message || 'Error al eliminar la atención', 'error');
                 }
@@ -1287,6 +1396,118 @@ function probarRegistroAtencion() {
 window.probarRegistroAtencion = probarRegistroAtencion;
 
 // ========================================
+// FUNCIONES PARA ESTADÍSTICAS DEL DASHBOARD
+// ========================================
+
+// Cargar estadísticas del dashboard
+function cargarEstadisticasDashboard() {
+    console.log('📊 Cargando estadísticas del dashboard...');
+
+    // Cargar estadísticas en paralelo
+    Promise.all([
+        cargarEstadisticasAtenciones(),
+        cargarEstadisticasPacientes(),
+        cargarEstadisticasCitasHoy(),
+        cargarEstadisticasPendientes()
+    ]).then(() => {
+        console.log('✅ Todas las estadísticas del dashboard cargadas');
+    }).catch(error => {
+        console.error('❌ Error cargando estadísticas del dashboard:', error);
+    });
+}
+
+// Cargar estadísticas de atenciones
+function cargarEstadisticasAtenciones() {
+    return fetch('/api/get-atenciones')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const totalAtenciones = data.atenciones.length;
+                document.getElementById('total-atenciones').textContent = totalAtenciones;
+                console.log(`📋 Total atenciones: ${totalAtenciones}`);
+            } else {
+                console.error('❌ Error obteniendo atenciones:', data.message);
+                document.getElementById('total-atenciones').textContent = '0';
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error en estadísticas de atenciones:', error);
+            document.getElementById('total-atenciones').textContent = '0';
+        });
+}
+
+// Cargar estadísticas de pacientes
+function cargarEstadisticasPacientes() {
+    return fetch('/api/professional/patients')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const totalPacientes = data.total || 0;
+                document.getElementById('total-pacientes').textContent = totalPacientes;
+                console.log(`👥 Total pacientes: ${totalPacientes}`);
+            } else {
+                console.error('❌ Error obteniendo pacientes:', data.message);
+                document.getElementById('total-pacientes').textContent = '0';
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error en estadísticas de pacientes:', error);
+            document.getElementById('total-pacientes').textContent = '0';
+        });
+}
+
+// Cargar estadísticas de citas de hoy
+function cargarEstadisticasCitasHoy() {
+    return fetch('/api/get-atenciones')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+                const citasHoy = data.atenciones.filter(atencion => {
+                    if (atencion.fecha_hora) {
+                        const fechaAtencion = atencion.fecha_hora.split(' ')[0]; // Obtener solo la fecha
+                        return fechaAtencion === hoy;
+                    }
+                    return false;
+                }).length;
+
+                document.getElementById('citas-hoy').textContent = citasHoy;
+                console.log(`📅 Citas hoy: ${citasHoy}`);
+            } else {
+                console.error('❌ Error obteniendo citas de hoy:', data.message);
+                document.getElementById('citas-hoy').textContent = '0';
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error en estadísticas de citas hoy:', error);
+            document.getElementById('citas-hoy').textContent = '0';
+        });
+}
+
+// Cargar estadísticas de atenciones pendientes
+function cargarEstadisticasPendientes() {
+    return fetch('/api/get-atenciones')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const pendientes = data.atenciones.filter(atencion =>
+                    atencion.estado && atencion.estado.toLowerCase() === 'pendiente'
+                ).length;
+
+                document.getElementById('atenciones-pendientes').textContent = pendientes;
+                console.log(`⏳ Atenciones pendientes: ${pendientes}`);
+            } else {
+                console.error('❌ Error obteniendo atenciones pendientes:', data.message);
+                document.getElementById('atenciones-pendientes').textContent = '0';
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error en estadísticas de pendientes:', error);
+            document.getElementById('atenciones-pendientes').textContent = '0';
+        });
+}
+
+// ========================================
 // FUNCIONES PARA GESTIÓN DE PACIENTES
 // ========================================
 
@@ -1298,23 +1519,48 @@ function cargarListaPacientes() {
     console.log('📋 Cargando lista de pacientes...');
 
     fetch('/api/professional/patients')
-        .then(response => response.json())
+        .then(response => {
+            console.log('📡 Respuesta HTTP:', response.status, response.statusText);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             console.log('📥 Respuesta del servidor:', data);
 
             if (data.success) {
-                pacientesList = data.pacientes;
-                actualizarTablaPacientes();
-                actualizarContadorPacientes();
-                console.log(`✅ ${data.total} pacientes cargados`);
+                // Validar que los datos sean correctos
+                if (!Array.isArray(data.pacientes)) {
+                    console.error('❌ Los datos de pacientes no son un array:', data.pacientes);
+                    throw new Error('Formato de datos incorrecto');
+                }
+
+                window.pacientesList = data.pacientes;
+                console.log('🔍 Debug - Datos recibidos del servidor:', data);
+                console.log('🔍 Debug - Lista de pacientes:', data.pacientes);
+                console.log('🔍 Debug - Total de pacientes:', data.total);
+
+                // Intentar actualizar la tabla con manejo de errores
+                try {
+                    actualizarTablaPacientes();
+                    actualizarContadorPacientes();
+                    console.log(`✅ ${data.total} pacientes cargados exitosamente`);
+                } catch (tableError) {
+                    console.error('❌ Error actualizando tabla:', tableError);
+                    console.error('❌ Stack trace:', tableError.stack);
+                    showNotification('Error al mostrar los pacientes en la tabla', 'error');
+                }
             } else {
                 console.error('❌ Error cargando pacientes:', data.message);
-                showNotification('Error al cargar la lista de pacientes', 'error');
+                showNotification(`Error al cargar pacientes: ${data.message}`, 'error');
             }
         })
         .catch(error => {
-            console.error('❌ Error de red:', error);
-            showNotification('Error de conexión al cargar pacientes', 'error');
+            console.error('❌ Error completo:', error);
+            console.error('❌ Stack trace:', error.stack);
+            console.error('❌ Error message:', error.message);
+            showNotification(`Error de conexión: ${error.message}`, 'error');
         });
 }
 
@@ -1334,12 +1580,24 @@ function actualizarTablaPacientes(filteredList = null) {
         return;
     }
 
-    const pacientes = filteredList || pacientesList;
+    const pacientes = filteredList || window.pacientesList;
+
+    console.log('🔍 Debug - Pacientes a mostrar:', pacientes);
+    console.log('🔍 Debug - Número de pacientes:', pacientes.length);
+
+    // Debug detallado del primer paciente si existe
+    if (pacientes.length > 0) {
+        console.log('🔍 Debug - Primer paciente:', pacientes[0]);
+        console.log('🔍 Debug - Tipo de edad:', typeof pacientes[0].edad);
+        console.log('🔍 Debug - Valor de edad:', pacientes[0].edad);
+        console.log('🔍 Debug - Tipo de num_atenciones:', typeof pacientes[0].num_atenciones);
+        console.log('🔍 Debug - Valor de num_atenciones:', pacientes[0].num_atenciones);
+    }
 
     if (pacientes.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="4" class="text-center text-muted py-4">
+                <td colspan="5" class="text-center text-muted py-4">
                     <i class="fas fa-users fa-2x mb-2"></i>
                     <br>No tienes pacientes registrados
                     <br><small>Haz clic en "Agregar Paciente" para comenzar</small>
@@ -1349,54 +1607,113 @@ function actualizarTablaPacientes(filteredList = null) {
         return;
     }
 
-    tbody.innerHTML = pacientes.map(paciente => `
-        <tr>
-            <td>
-                <div class="patient-info-vertical">
-                    <div>
-                        <strong>${paciente.nombre_completo}</strong>
-                        <br><small class="text-muted">RUT: ${paciente.rut}</small>
-                    </div>
-                </div>
-            </td>
-            <td>
-                <span class="badge bg-light text-dark">${paciente.edad || 'No especificada'} años</span>
-                <br><small class="text-muted">${paciente.genero || 'No especificado'}</small>
-            </td>
-            <td>
-                <div>
-                    ${paciente.telefono ? `<i class="fas fa-phone text-muted"></i> ${paciente.telefono}` : ''}
-                    ${paciente.telefono && paciente.email ? '<br>' : ''}
-                    ${paciente.email ? `<i class="fas fa-envelope text-muted"></i> ${paciente.email}` : ''}
-                </div>
-                <small class="text-muted">
-                    ${paciente.num_atenciones || 0} atenciones
-                    ${paciente.ultima_consulta ? `<br>Última: ${formatearFecha(paciente.ultima_consulta)}` : ''}
-                </small>
-            </td>
-            <td>
-                <div class="btn-group btn-group-sm" role="group">
-                    <button class="btn btn-outline-primary btn-sm" title="Ver historial" onclick="verHistorialPaciente('${paciente.paciente_id}')">
-                        <i class="fas fa-history"></i>
-                    </button>
-                    <button class="btn btn-outline-secondary btn-sm" title="Editar" onclick="editarPaciente('${paciente.paciente_id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-outline-danger btn-sm" title="Eliminar" onclick="eliminarPaciente('${paciente.paciente_id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
+    try {
+        tbody.innerHTML = pacientes.map((paciente, index) => {
+            try {
+                console.log(`🔍 Procesando paciente ${index + 1}:`, paciente);
+
+                // Obtener valores seguros para cada campo
+                const nombreCompleto = escapeHTML(getSafeValue(paciente.nombre_completo, 'Sin nombre'));
+                const rut = escapeHTML(getSafeValue(paciente.rut, 'Sin RUT'));
+                const edad = escapeHTML(getSafeValue(paciente.edad, 'No especificada'));
+                const telefono = escapeHTML(getSafeValue(paciente.telefono, 'No especificado'));
+                const email = escapeHTML(getSafeValue(paciente.email, 'No especificado'));
+                const direccion = escapeHTML(getSafeValue(paciente.direccion, 'No especificada'));
+                const estadoRelacion = escapeHTML(getSafeValue(paciente.estado_relacion, 'Activo'));
+                const pacienteId = escapeHTML(getSafeValue(paciente.paciente_id, ''));
+
+                console.log(`✅ Paciente ${index + 1} procesado exitosamente`);
+
+                // Manejar números de atenciones
+                const numAtenciones = paciente.num_atenciones !== null && paciente.num_atenciones !== undefined ? paciente.num_atenciones : 0;
+
+                // Manejar fecha de última consulta
+                const ultimaConsulta = paciente.ultima_consulta ? formatearFecha(paciente.ultima_consulta) : 'No registrada';
+                const textoUltimaConsulta = paciente.ultima_consulta ? 'Última consulta' : 'Sin consultas';
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="patient-info-vertical">
+                                <div class="user-avatar-sm me-3">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-medium mb-1">${nombreCompleto}</div>
+                                    <small class="text-muted d-block">RUT: ${rut}</small>
+                                    <small class="text-muted d-block">${edad} años</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="contact-info">
+                                <div class="fw-medium mb-1">${telefono}</div>
+                                <small class="text-muted d-block">${email}</small>
+                                <small class="text-muted d-block">${direccion}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="date-info">
+                                <div class="fw-medium">${ultimaConsulta}</div>
+                                <small class="text-muted d-block">${numAtenciones} consultas</small>
+                                <small class="text-muted d-block">${textoUltimaConsulta}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="status-info">
+                                <span class="badge bg-success d-block mb-1">${estadoRelacion}</span>
+                                <small class="text-muted">${numAtenciones} consultas</small>
+                            </div>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex flex-column gap-1">
+                                <button class="btn btn-outline-primary btn-sm" title="Ver historial" onclick="viewPatientHistory('${pacienteId}')">
+                                    <i class="fas fa-history me-1"></i>Historial
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" title="Editar" onclick="editPatient('${pacienteId}')">
+                                    <i class="fas fa-edit me-1"></i>Editar
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" title="Nueva consulta" onclick="newConsultation('${pacienteId}')">
+                                    <i class="fas fa-plus me-1"></i>Nueva
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } catch (patientError) {
+                console.error(`❌ Error procesando paciente ${index + 1}:`, patientError);
+                console.error('❌ Datos del paciente problemático:', paciente);
+                return `
+                    <tr>
+                        <td colspan="5" class="text-center text-danger py-2">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error procesando paciente ${index + 1}
+                        </td>
+                    </tr>
+                `;
+            }
+        }).join('');
+    } catch (generalError) {
+        console.error('❌ Error general en actualización de tabla:', generalError);
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-danger py-4">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                    <br>Error al cargar los pacientes
+                    <br><small>Por favor, recarga la página</small>
+                </td>
+            </tr>
+        `;
+        throw generalError; // Re-lanzar para que se capture en el nivel superior
+    }
 
     console.log(`✅ Tabla actualizada con ${pacientes.length} pacientes`);
 }
 
 // Actualizar contador de pacientes
 function actualizarContadorPacientes() {
-    const total = pacientesList.length;
-    const activos = pacientesList.filter(p => p.estado_relacion === 'activo').length;
+    const total = window.pacientesList.length;
+    const activos = window.pacientesList.filter(p => p.estado_relacion === 'activo').length;
 
     // Actualizar en la interfaz si existe el elemento
     const statsElements = document.querySelectorAll('[data-stat="pacientes"]');
@@ -1404,35 +1721,22 @@ function actualizarContadorPacientes() {
         element.textContent = total;
     });
 
+    // Actualizar también la tarjeta del dashboard
+    const dashboardElement = document.getElementById('total-pacientes');
+    if (dashboardElement) {
+        dashboardElement.textContent = total;
+    }
+
     console.log(`📊 Pacientes: ${total} total, ${activos} activos`);
 }
 
-// Mostrar modal para agregar paciente
-function showAddPatientModal() {
-    console.log('➕ Abriendo modal para agregar paciente');
-
-    const modal = document.getElementById('addPatientModal');
-    if (!modal) {
-        console.error('❌ Modal addPatientModal no encontrado');
-        return;
-    }
-
-    // Limpiar el formulario
-    const form = document.getElementById('addPatientForm');
-    if (form) {
-        form.reset();
-    }
-
-    // Cambiar el título del modal
-    const modalLabel = document.getElementById('addPatientModalLabel');
-    if (modalLabel) {
-        modalLabel.textContent = 'Agregar Nuevo Paciente';
-    }
-
-    // Mostrar el modal
-    const bootstrapModal = new bootstrap.Modal(modal);
-    bootstrapModal.show();
+// Función para actualizar todas las estadísticas del dashboard
+function actualizarEstadisticasDashboard() {
+    console.log('🔄 Actualizando estadísticas del dashboard...');
+    cargarEstadisticasDashboard();
 }
+
+
 
 // Guardar paciente (nuevo o editado)
 function savePatient() {
@@ -1505,8 +1809,9 @@ function savePatient() {
                     modal.hide();
                 }
 
-                // Recargar lista de pacientes
+                // Recargar lista de pacientes y actualizar estadísticas
                 cargarListaPacientes();
+                actualizarEstadisticasDashboard();
 
                 // Limpiar formulario
                 form.reset();
@@ -1527,7 +1832,7 @@ function editarPaciente(pacienteId) {
     console.log(`✏️ Editando paciente: ${pacienteId}`);
 
     // Buscar el paciente en la lista local
-    const paciente = pacientesList.find(p => p.paciente_id === pacienteId);
+    const paciente = window.pacientesList.find(p => p.paciente_id === pacienteId);
     if (!paciente) {
         console.error('❌ Paciente no encontrado en la lista local');
         showNotification('Paciente no encontrado', 'error');
@@ -1566,7 +1871,7 @@ function eliminarPaciente(pacienteId) {
     console.log(`🗑️ Eliminando paciente: ${pacienteId}`);
 
     // Buscar el paciente para mostrar su nombre en la confirmación
-    const paciente = pacientesList.find(p => p.paciente_id === pacienteId);
+    const paciente = window.pacientesList.find(p => p.paciente_id === pacienteId);
     const nombrePaciente = paciente ? paciente.nombre_completo : 'este paciente';
 
     if (!confirm(`¿Estás seguro de que deseas eliminar a ${nombrePaciente} de tu lista de pacientes?\n\nEsto no eliminará al paciente del sistema, solo lo quitará de tu lista personal.`)) {
@@ -1586,6 +1891,7 @@ function eliminarPaciente(pacienteId) {
             if (data.success) {
                 showNotification('Paciente eliminado de tu lista exitosamente', 'success');
                 cargarListaPacientes(); // Recargar lista
+                actualizarEstadisticasDashboard(); // Actualizar estadísticas
             } else {
                 showNotification(data.message || 'Error al eliminar paciente', 'error');
             }
@@ -1732,7 +2038,7 @@ function filterPatients() {
     const searchTerm = document.getElementById('searchPatients')?.value?.toLowerCase() || '';
     const filterValue = document.getElementById('filterPatients')?.value || '';
 
-    let filteredPatients = pacientesList;
+    let filteredPatients = window.pacientesList;
 
     // Aplicar filtro de búsqueda
     if (searchTerm) {
@@ -1753,14 +2059,7 @@ function filterPatients() {
     actualizarTablaPacientes(filteredPatients);
 }
 
-// Alias para compatibilidad con el HTML existente
-function editPatient(pacienteId) {
-    editarPaciente(pacienteId);
-}
 
-function viewPatientHistory(pacienteId) {
-    verHistorialPaciente(pacienteId);
-}
 
 // Funciones para manejar archivos adjuntos
 function cargarArchivosAdjuntos(atencionId) {
@@ -1818,10 +2117,10 @@ function cargarArchivosAdjuntos(atencionId) {
                         </div>
                         <div>
                             ${isPreviewable ?
-                            `<button class="btn btn-sm btn-outline-primary me-1" onclick="previewArchivo('${archivo.archivo_id}', '${archivo.nombre_archivo}')">
+                            `<button class="btn btn-sm btn-outline-primary me-1" onclick="previewArchivo('${archivo.archivo_id}', '${archivo.nombre_archivo.replace(/'/g, "\\'")}')">
                                     <i class="fas fa-eye"></i> Ver
                                 </button>` : ''}
-                            <button class="btn btn-sm btn-outline-secondary" onclick="downloadArchivo('${archivo.archivo_id}', '${archivo.nombre_archivo}')">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="downloadArchivo('${archivo.archivo_id}', '${archivo.nombre_archivo.replace(/'/g, "\\'")}')">
                                 <i class="fas fa-download"></i> Descargar
                             </button>
                         </div>
@@ -1988,7 +2287,7 @@ function handleFileSelection(event) {
                 <small class="text-muted">${formatFileSize(file.size)}</small>
             </div>
             <button type="button" class="btn btn-sm btn-outline-danger ms-2" 
-                    onclick="removeFile('${file.name}')">
+                    onclick="removeFile('${file.name.replace(/'/g, "\\'")}')">
                 <i class="fas fa-times"></i>
             </button>
         `;
@@ -2058,4 +2357,1593 @@ function descargarPDFAtencion(atencionId) {
             generarPDF(atencionId);
         });
 }
+
+// Función para guardar nueva cita
+function saveAppointment() {
+    console.log('📅 Guardando nueva cita...');
+
+    const form = document.getElementById('scheduleForm');
+    if (!form) {
+        console.error('❌ Formulario de cita no encontrado');
+        showNotification('Error: Formulario no encontrado', 'error');
+        return;
+    }
+
+    // Obtener datos del formulario
+    const appointmentData = {
+        paciente_id: document.getElementById('appointmentPatient').value,
+        fecha: document.getElementById('appointmentDate').value,
+        hora: document.getElementById('appointmentTime').value,
+        tipo_atencion: document.getElementById('appointmentType').value,
+        notas: document.getElementById('appointmentNotes').value
+    };
+
+    console.log('📝 Datos de la cita:', appointmentData);
+
+    // Validar campos requeridos
+    if (!appointmentData.paciente_id) {
+        showNotification('Debe seleccionar un paciente', 'error');
+        return;
+    }
+
+    if (!appointmentData.fecha) {
+        showNotification('Debe seleccionar una fecha', 'error');
+        return;
+    }
+
+    if (!appointmentData.hora) {
+        showNotification('Debe seleccionar una hora', 'error');
+        return;
+    }
+
+    if (!appointmentData.tipo_atencion) {
+        showNotification('Debe seleccionar un tipo de atención', 'error');
+        return;
+    }
+
+    // Enviar datos al servidor
+    fetch('/api/professional/appointments', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(appointmentData)
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('📥 Respuesta del servidor:', data);
+
+            if (data.success) {
+                showNotification('Cita agendada exitosamente', 'success');
+
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
+                if (modal) {
+                    modal.hide();
+                }
+
+                // Limpiar formulario
+                form.reset();
+
+                // Recargar agenda si está visible
+                const scheduleTab = document.querySelector('button[data-bs-target="#schedule"]');
+                if (scheduleTab && scheduleTab.classList.contains('active')) {
+                    // Aquí podrías recargar la agenda
+                    console.log('🔄 Recargando agenda...');
+                }
+
+            } else {
+                showNotification(data.message || 'Error al agendar la cita', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error:', error);
+            showNotification('Error de conexión al agendar la cita', 'error');
+        });
+}
+
+// ==========================================
+// FUNCIONES PARA EL DROPDOWN DE PACIENTES
+// ==========================================
+
+// Variable global para almacenar la lista de pacientes
+window.pacientesDropdownList = [];
+
+// Función para cargar pacientes en el dropdown del formulario de atención
+async function cargarPacientesDropdown() {
+    try {
+        console.log('📋 Cargando pacientes para dropdown...');
+
+        const response = await fetch('/api/professional/patients');
+        const data = await response.json();
+
+        if (data.success && Array.isArray(data.pacientes)) {
+            window.pacientesDropdownList = data.pacientes;
+
+            const dropdown = document.getElementById('seleccionPaciente');
+            if (dropdown) {
+                // Limpiar opciones existentes (excepto las primeras dos)
+                while (dropdown.children.length > 2) {
+                    dropdown.removeChild(dropdown.lastChild);
+                }
+
+                // Agregar pacientes al dropdown
+                data.pacientes.forEach(paciente => {
+                    const option = document.createElement('option');
+                    option.value = paciente.paciente_id;
+                    option.textContent = `${paciente.nombre_completo} (${paciente.rut})`;
+                    dropdown.appendChild(option);
+                });
+
+                console.log(`✅ ${data.pacientes.length} pacientes cargados en dropdown`);
+            }
+        } else {
+            console.warn('⚠️ No se pudieron cargar pacientes para dropdown');
+        }
+    } catch (error) {
+        console.error('❌ Error cargando pacientes para dropdown:', error);
+    }
+}
+
+// Función para manejar la selección de paciente en el dropdown
+function manejarSeleccionPaciente() {
+    const dropdown = document.getElementById('seleccionPaciente');
+    const selectedValue = dropdown.value;
+
+    const camposPaciente = document.getElementById('camposPaciente');
+    const infoPacienteSeleccionado = document.getElementById('infoPacienteSeleccionado');
+
+    // Ocultar ambos paneles inicialmente
+    camposPaciente.style.display = 'none';
+    infoPacienteSeleccionado.style.display = 'none';
+
+    if (selectedValue === 'nuevo') {
+        // Mostrar campos para nuevo paciente
+        console.log('➕ Seleccionado: Crear nuevo paciente');
+        camposPaciente.style.display = 'block';
+        limpiarCamposPaciente();
+
+        // Hacer campos requeridos
+        document.getElementById('pacienteNombre').required = true;
+        document.getElementById('pacienteRut').required = true;
+
+    } else if (selectedValue && selectedValue !== '') {
+        // Mostrar información del paciente seleccionado
+        console.log(`👤 Seleccionado paciente: ${selectedValue}`);
+        const paciente = window.pacientesDropdownList.find(p => p.paciente_id === selectedValue);
+
+        if (paciente) {
+            mostrarInfoPacienteSeleccionado(paciente);
+            infoPacienteSeleccionado.style.display = 'block';
+
+            // Llenar campos ocultos para el envío del formulario
+            llenarCamposOcultosPaciente(paciente);
+        }
+
+        // Campos no requeridos (paciente ya existe)
+        document.getElementById('pacienteNombre').required = false;
+        document.getElementById('pacienteRut').required = false;
+
+    } else {
+        // No hay selección
+        console.log('❌ No hay paciente seleccionado');
+        limpiarCamposPaciente();
+
+        // Campos no requeridos
+        document.getElementById('pacienteNombre').required = false;
+        document.getElementById('pacienteRut').required = false;
+    }
+}
+
+// Función para mostrar información del paciente seleccionado
+function mostrarInfoPacienteSeleccionado(paciente) {
+    document.getElementById('nombrePacienteSeleccionado').textContent = paciente.nombre_completo || 'Sin nombre';
+    document.getElementById('rutPacienteSeleccionado').textContent = paciente.rut || 'Sin RUT';
+    document.getElementById('edadPacienteSeleccionado').textContent = paciente.edad || 'Sin edad';
+}
+
+// Función para llenar campos ocultos con datos del paciente seleccionado
+function llenarCamposOcultosPaciente(paciente) {
+    document.getElementById('pacienteNombre').value = paciente.nombre_completo || '';
+    document.getElementById('pacienteRut').value = paciente.rut || '';
+    document.getElementById('pacienteEdad').value = paciente.edad || '';
+
+    // Agregar un campo oculto con el ID del paciente
+    let pacienteIdInput = document.getElementById('pacienteIdHidden');
+    if (!pacienteIdInput) {
+        pacienteIdInput = document.createElement('input');
+        pacienteIdInput.type = 'hidden';
+        pacienteIdInput.id = 'pacienteIdHidden';
+        pacienteIdInput.name = 'pacienteId';
+        document.getElementById('atencionForm').appendChild(pacienteIdInput);
+    }
+    pacienteIdInput.value = paciente.paciente_id;
+}
+
+// Función para limpiar campos del paciente
+function limpiarCamposPaciente() {
+    document.getElementById('pacienteNombre').value = '';
+    document.getElementById('pacienteRut').value = '';
+    document.getElementById('pacienteEdad').value = '';
+
+    // Remover campo oculto del ID si existe
+    const pacienteIdInput = document.getElementById('pacienteIdHidden');
+    if (pacienteIdInput) {
+        pacienteIdInput.remove();
+    }
+}
+
+// Función para editar datos del paciente seleccionado
+function editarDatosPaciente() {
+    console.log('✏️ Editando datos del paciente seleccionado');
+
+    const infoPacienteSeleccionado = document.getElementById('infoPacienteSeleccionado');
+    const camposPaciente = document.getElementById('camposPaciente');
+
+    // Ocultar info y mostrar campos editables
+    infoPacienteSeleccionado.style.display = 'none';
+    camposPaciente.style.display = 'block';
+
+    // Los campos ya están llenos por llenarCamposOcultosPaciente()
+}
+
+// Función para recargar la lista de pacientes
+async function recargarListaPacientes() {
+    console.log('🔄 Recargando lista de pacientes...');
+
+    const button = event.target;
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+
+    try {
+        await cargarPacientesDropdown();
+        showNotification('Lista de pacientes actualizada', 'success');
+    } catch (error) {
+        console.error('❌ Error recargando pacientes:', error);
+        showNotification('Error al actualizar la lista de pacientes', 'error');
+    } finally {
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+    }
+}
+
+// ====== FUNCIONES DE AGENDA ======
+
+// Variables globales para agenda
+let fechaActualAgenda = new Date();
+let citasDelDia = [];
+let horariosProfesional = [];
+
+// Inicializar agenda cuando se carga la página
+document.addEventListener('DOMContentLoaded', function () {
+    // Cargar agenda si el tab está activo
+    const agendaTab = document.getElementById('schedule-tab');
+    if (agendaTab) {
+        agendaTab.addEventListener('click', function () {
+            cargarAgenda();
+        });
+    }
+
+    // Si la agenda está visible al cargar, cargarla
+    const agendaPane = document.getElementById('schedule');
+    if (agendaPane && agendaPane.classList.contains('active')) {
+        cargarAgenda();
+    }
+});
+
+// Función para cargar la agenda
+function cargarAgenda(fecha = null) {
+    console.log('📅 Cargando agenda...');
+
+    if (!fecha) {
+        fecha = fechaActualAgenda.toISOString().split('T')[0];
+    }
+
+    // Actualizar fecha en el header
+    actualizarFechaHeader(fecha);
+
+    // Cargar citas del día con vista actual
+    fetch(`/api/professional/schedule?fecha=${fecha}&vista=${currentView}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('📥 Datos de agenda recibidos:', data);
+
+            if (data.success) {
+                agendaData = data;
+
+                if (currentView === 'diaria') {
+                    citasDelDia = data.citas;
+                    actualizarVistaAgenda(data.citas, data.horarios_disponibles);
+                } else if (currentView === 'semanal') {
+                    actualizarVistaSemanal(data.agenda_semanal, data.fecha_inicio, data.fecha_fin);
+                } else if (currentView === 'mensual') {
+                    actualizarVistaMensual(data.agenda_mensual, data.fecha_inicio, data.fecha_fin);
+                }
+
+                actualizarEstadisticasAgenda(data.estadisticas);
+
+                if (data.citas) {
+                    actualizarRecordatorios(data.citas);
+                }
+            } else {
+                console.error('❌ Error cargando agenda:', data.message);
+                showNotification('Error al cargar la agenda: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error de red:', error);
+            showNotification('Error de conexión al cargar la agenda', 'error');
+        });
+}
+
+// Función para actualizar la fecha en el header
+function actualizarFechaHeader(fecha) {
+    const fechaObj = new Date(fecha + 'T00:00:00');
+    const opciones = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+    };
+
+    const fechaFormateada = fechaObj.toLocaleDateString('es-ES', opciones);
+    const currentDateElement = document.getElementById('currentDate');
+    if (currentDateElement) {
+        currentDateElement.textContent = fechaFormateada;
+    }
+}
+
+// Función para actualizar la vista de la agenda
+function actualizarVistaAgenda(citas, horariosDisponibles) {
+    const scheduleTimeline = document.querySelector('.schedule-timeline');
+    if (!scheduleTimeline) return;
+
+    // Limpiar timeline
+    scheduleTimeline.innerHTML = '';
+
+    // Generar horarios de 8:00 a 18:00 cada 30 minutos
+    const horarios = [];
+    for (let hora = 8; hora < 18; hora++) {
+        for (let minuto of [0, 30]) {
+            horarios.push(`${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`);
+        }
+    }
+
+    // Crear slots de tiempo
+    horarios.forEach(hora => {
+        const cita = citas.find(c => c.hora === hora);
+        const timeSlot = document.createElement('div');
+        timeSlot.className = 'time-slot';
+
+        if (cita) {
+            // Slot ocupado con cita
+            timeSlot.innerHTML = `
+                <div class="time-label">${hora}</div>
+                <div class="appointment scheduled">
+                    <div class="appointment-info">
+                        <h6 class="mb-1">${cita.paciente_nombre}</h6>
+                        <p class="mb-0 small text-muted">${cita.tipo_atencion} - ${cita.paciente_rut}</p>
+                        <small class="text-${getEstadoColor(cita.estado)}">${capitalizeFirst(cita.estado)}</small>
+                    </div>
+                    <div class="appointment-actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="verCita('${cita.cita_id}')" title="Ver detalles">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="confirmarCita('${cita.cita_id}')" title="Confirmar">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="cancelarCita('${cita.cita_id}')" title="Cancelar">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Slot disponible
+            timeSlot.innerHTML = `
+                <div class="time-label">${hora}</div>
+                <div class="appointment available" onclick="agendarCita('${hora}')">
+                    <div class="appointment-info">
+                        <p class="mb-0 text-muted">Horario disponible</p>
+                        <small class="text-primary">Click para agendar</small>
+                    </div>
+                </div>
+            `;
+        }
+
+        scheduleTimeline.appendChild(timeSlot);
+    });
+}
+
+// Función para obtener el color del estado
+function getEstadoColor(estado) {
+    switch (estado) {
+        case 'confirmada': return 'success';
+        case 'pendiente': return 'warning';
+        case 'cancelada': return 'danger';
+        case 'completada': return 'info';
+        default: return 'secondary';
+    }
+}
+
+// Función para capitalizar primera letra
+function capitalizeFirst(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Función para actualizar estadísticas
+function actualizarEstadisticasAgenda(estadisticas) {
+    console.log('📊 Actualizando estadísticas de agenda:', estadisticas);
+
+    const elementos = {
+        totalCitas: document.getElementById('totalCitas'),
+        confirmadas: document.getElementById('confirmadas'),
+        pendientes: document.getElementById('pendientes'),
+        disponibles: document.getElementById('disponibles')
+    };
+
+    if (elementos.totalCitas) elementos.totalCitas.textContent = estadisticas.total_citas || 0;
+    if (elementos.confirmadas) elementos.confirmadas.textContent = estadisticas.confirmadas || 0;
+    if (elementos.pendientes) elementos.pendientes.textContent = estadisticas.pendientes || 0;
+    if (elementos.disponibles) elementos.disponibles.textContent = estadisticas.disponibles || 0;
+
+    // Agregar animación de actualización
+    Object.values(elementos).forEach(element => {
+        if (element) {
+            element.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                element.style.transform = 'scale(1)';
+            }, 200);
+        }
+    });
+}
+
+// Función para actualizar recordatorios
+function actualizarRecordatorios(citas) {
+    console.log('🔔 Actualizando recordatorios:', citas);
+
+    // Cargar recordatorios desde el servidor
+    cargarRecordatorios();
+}
+
+// Función para cargar recordatorios desde el servidor
+function cargarRecordatorios() {
+    fetch('/api/professional/reminders')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarRecordatorios(data.recordatorios);
+            } else {
+                console.error('❌ Error cargando recordatorios:', data.message);
+                mostrarRecordatorios([]);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error de red cargando recordatorios:', error);
+            mostrarRecordatorios([]);
+        });
+}
+
+// Función para mostrar recordatorios en la interfaz
+function mostrarRecordatorios(recordatorios) {
+    const container = document.getElementById('recordatoriosContainer');
+    if (!container) return;
+
+    // Limpiar recordatorios existentes
+    container.innerHTML = '';
+
+    // Si no hay recordatorios, mostrar mensaje
+    if (recordatorios.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="fas fa-check-circle fa-2x mb-2"></i>
+                <p class="mb-0">No hay recordatorios pendientes</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Crear elementos de recordatorios
+    recordatorios.forEach(recordatorio => {
+        const recordatorioElement = document.createElement('div');
+        recordatorioElement.className = `reminder-item mb-3 p-3 rounded bg-${getReminderColor(recordatorio.prioridad)} bg-opacity-10 border-start border-${getReminderColor(recordatorio.prioridad)} border-4`;
+        recordatorioElement.innerHTML = `
+            <div class="d-flex align-items-start">
+                <i class="${getReminderIcon(recordatorio.tipo)} text-${getReminderColor(recordatorio.prioridad)} me-2 mt-1"></i>
+                <div class="flex-grow-1">
+                    <small class="text-muted d-block">${recordatorio.titulo}</small>
+                    <strong class="text-dark">${recordatorio.mensaje}</strong>
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-clock me-1"></i>
+                        ${formatearFechaHora(recordatorio.fecha, recordatorio.hora)}
+                    </small>
+                </div>
+                <div class="reminder-actions">
+                    <button class="btn btn-sm btn-outline-${getReminderColor(recordatorio.prioridad)}" onclick="editReminder(${recordatorio.id})" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteReminder(${recordatorio.id})" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        container.appendChild(recordatorioElement);
+    });
+
+    // Actualizar timestamp
+    const timestampElement = document.querySelector('.text-center.mt-3 small');
+    if (timestampElement) {
+        timestampElement.innerHTML = '<i class="fas fa-clock me-1"></i>Actualizado ahora';
+    }
+}
+
+// Función para obtener el color según la prioridad
+function getReminderColor(prioridad) {
+    switch (prioridad) {
+        case 'urgente': return 'danger';
+        case 'alta': return 'warning';
+        case 'media': return 'info';
+        case 'baja': return 'secondary';
+        default: return 'info';
+    }
+}
+
+// Función para obtener el icono según el tipo
+function getReminderIcon(tipo) {
+    switch (tipo) {
+        case 'confirmacion': return 'fas fa-info-circle';
+        case 'llamada': return 'fas fa-phone';
+        case 'preparacion': return 'fas fa-stethoscope';
+        case 'seguimiento': return 'fas fa-chart-line';
+        case 'personal': return 'fas fa-user';
+        default: return 'fas fa-bell';
+    }
+}
+
+// Función para formatear fecha y hora
+function formatearFechaHora(fecha, hora) {
+    const fechaObj = new Date(fecha + 'T' + hora);
+    return fechaObj.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }) + ' ' + hora;
+}
+
+// Funciones para gestionar recordatorios
+
+// Mostrar modal de recordatorio
+function showReminderModal(recordatorioId = null) {
+    console.log('🔔 showReminderModal ejecutándose con ID:', recordatorioId);
+
+    const modal = document.getElementById('reminderModal');
+    console.log('🔍 Modal encontrado:', modal);
+
+    if (!modal) {
+        console.error('❌ Modal de recordatorio NO encontrado');
+        return;
+    }
+
+    const modalTitle = document.getElementById('reminderModalTitle');
+    const saveButton = document.getElementById('saveReminderText');
+    const reminderId = document.getElementById('reminderId');
+
+    console.log('🔍 Elementos del modal:', {
+        modalTitle: modalTitle,
+        saveButton: saveButton,
+        reminderId: reminderId
+    });
+
+    // Limpiar formulario
+    const form = document.getElementById('reminderForm');
+    if (form) {
+        form.reset();
+        console.log('✅ Formulario limpiado');
+    } else {
+        console.error('❌ Formulario NO encontrado');
+    }
+
+    // Configurar fecha y hora por defecto
+    const now = new Date();
+    const dateInput = document.getElementById('reminderDate');
+    const timeInput = document.getElementById('reminderTime');
+
+    if (dateInput && timeInput) {
+        dateInput.value = now.toISOString().split('T')[0];
+        timeInput.value = now.toTimeString().slice(0, 5);
+        console.log('✅ Fecha y hora configuradas');
+    } else {
+        console.error('❌ Inputs de fecha/hora NO encontrados');
+    }
+
+    if (recordatorioId) {
+        // Modo edición
+        console.log('✏️ Modo edición');
+        modalTitle.textContent = 'Editar Recordatorio';
+        saveButton.textContent = 'Actualizar Recordatorio';
+        reminderId.value = recordatorioId;
+        cargarRecordatorioParaEditar(recordatorioId);
+    } else {
+        // Modo creación
+        console.log('➕ Modo creación');
+        modalTitle.textContent = 'Crear Recordatorio';
+        saveButton.textContent = 'Guardar Recordatorio';
+        reminderId.value = '';
+    }
+
+    // Cargar pacientes en el select
+    cargarPacientesEnReminderSelect();
+
+    // Mostrar modal
+    console.log('🎭 Mostrando modal...');
+    console.log('🔍 Bootstrap disponible:', typeof bootstrap);
+
+    try {
+        if (typeof bootstrap !== 'undefined') {
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+            console.log('✅ Modal mostrado exitosamente con Bootstrap');
+        } else {
+            // Fallback: mostrar modal manualmente
+            console.log('⚠️ Bootstrap no disponible, usando fallback');
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            document.body.classList.add('modal-open');
+
+            // Agregar backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(backdrop);
+
+            console.log('✅ Modal mostrado con fallback');
+        }
+    } catch (error) {
+        console.error('❌ Error mostrando modal:', error);
+    }
+}
+
+// Cargar recordatorio para editar
+function cargarRecordatorioParaEditar(recordatorioId) {
+    fetch(`/api/professional/reminders/${recordatorioId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const recordatorio = data.recordatorio;
+
+                document.getElementById('reminderType').value = recordatorio.tipo;
+                document.getElementById('reminderPatient').value = recordatorio.paciente_id || '';
+                document.getElementById('reminderTitle').value = recordatorio.titulo;
+                document.getElementById('reminderMessage').value = recordatorio.mensaje;
+                document.getElementById('reminderDate').value = recordatorio.fecha;
+                document.getElementById('reminderTime').value = recordatorio.hora;
+                document.getElementById('reminderPriority').value = recordatorio.prioridad;
+                document.getElementById('reminderRepeat').checked = recordatorio.repetir;
+                document.getElementById('reminderRepeatType').value = recordatorio.tipo_repeticion || 'diario';
+
+                // Mostrar/ocultar opciones de repetición
+                toggleRepeatOptions();
+            } else {
+                showNotification('Error cargando recordatorio', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando recordatorio:', error);
+            showNotification('Error cargando recordatorio', 'error');
+        });
+}
+
+// Cargar pacientes en el select de recordatorios
+function cargarPacientesEnReminderSelect() {
+    const select = document.getElementById('reminderPatient');
+    if (!select) return;
+
+    // Limpiar opciones existentes (excepto la primera)
+    while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+    }
+
+    // Usar la lista global de pacientes si está disponible
+    if (window.pacientesList && window.pacientesList.length > 0) {
+        window.pacientesList.forEach(paciente => {
+            const option = document.createElement('option');
+            option.value = paciente.paciente_id;
+            option.textContent = `${paciente.nombre_completo} - ${paciente.rut}`;
+            select.appendChild(option);
+        });
+    } else {
+        // Si no hay lista global, cargar desde API
+        fetch('/api/professional/patients')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.pacientes) {
+                    data.pacientes.forEach(paciente => {
+                        const option = document.createElement('option');
+                        option.value = paciente.paciente_id;
+                        option.textContent = `${paciente.nombre_completo} - ${paciente.rut}`;
+                        select.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error cargando pacientes:', error);
+            });
+    }
+}
+
+// Guardar recordatorio
+function saveReminder() {
+    const form = document.getElementById('reminderForm');
+    const reminderId = document.getElementById('reminderId').value;
+
+    // Validar formulario
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    // Obtener datos del formulario
+    const reminderData = {
+        tipo: document.getElementById('reminderType').value,
+        paciente_id: document.getElementById('reminderPatient').value || null,
+        titulo: document.getElementById('reminderTitle').value,
+        mensaje: document.getElementById('reminderMessage').value,
+        fecha: document.getElementById('reminderDate').value,
+        hora: document.getElementById('reminderTime').value,
+        prioridad: document.getElementById('reminderPriority').value,
+        repetir: document.getElementById('reminderRepeat').checked,
+        tipo_repeticion: document.getElementById('reminderRepeatType').value
+    };
+
+    const url = reminderId ? `/api/professional/reminders/${reminderId}` : '/api/professional/reminders';
+    const method = reminderId ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(reminderData)
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(
+                    reminderId ? 'Recordatorio actualizado exitosamente' : 'Recordatorio creado exitosamente',
+                    'success'
+                );
+
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('reminderModal'));
+                if (modal) {
+                    modal.hide();
+                }
+
+                // Recargar recordatorios
+                cargarRecordatorios();
+
+            } else {
+                showNotification(data.message || 'Error al guardar recordatorio', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error guardando recordatorio:', error);
+            showNotification('Error al guardar recordatorio', 'error');
+        });
+}
+
+// Editar recordatorio
+function editReminder(recordatorioId) {
+    showReminderModal(recordatorioId);
+}
+
+// Eliminar recordatorio
+function deleteReminder(recordatorioId) {
+    if (!confirm('¿Está seguro de que desea eliminar este recordatorio?')) {
+        return;
+    }
+
+    fetch(`/api/professional/reminders/${recordatorioId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Recordatorio eliminado exitosamente', 'success');
+                cargarRecordatorios();
+            } else {
+                showNotification(data.message || 'Error al eliminar recordatorio', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error eliminando recordatorio:', error);
+            showNotification('Error al eliminar recordatorio', 'error');
+        });
+}
+
+// Asignar las funciones a las variables globales
+window.showReminderModal = showReminderModal;
+window.editReminder = editReminder;
+window.deleteReminder = deleteReminder;
+
+// Toggle opciones de repetición
+function toggleRepeatOptions() {
+    const repeatCheckbox = document.getElementById('reminderRepeat');
+    const repeatOptions = document.getElementById('repeatOptions');
+
+    if (repeatCheckbox.checked) {
+        repeatOptions.classList.remove('d-none');
+    } else {
+        repeatOptions.classList.add('d-none');
+    }
+}
+
+// Agregar event listener para el checkbox de repetición
+document.addEventListener('DOMContentLoaded', function () {
+    const repeatCheckbox = document.getElementById('reminderRepeat');
+    if (repeatCheckbox) {
+        repeatCheckbox.addEventListener('change', toggleRepeatOptions);
+    }
+
+    // Inicializar event listeners para recordatorios
+    inicializarEventListenersRecordatorios();
+});
+
+// Función para inicializar event listeners de recordatorios
+function inicializarEventListenersRecordatorios() {
+    console.log('🔔 Inicializando event listeners de recordatorios...');
+
+    // Event listener para crear recordatorio
+    const btnCrearRecordatorio = document.getElementById('btnCrearRecordatorio');
+    console.log('🔍 Buscando botón crear recordatorio:', btnCrearRecordatorio);
+
+    if (btnCrearRecordatorio) {
+        console.log('✅ Botón crear recordatorio encontrado, agregando event listener...');
+        btnCrearRecordatorio.addEventListener('click', function () {
+            console.log('🔔 Botón crear recordatorio clickeado');
+            showReminderModal();
+        });
+
+        // Agregar también un onclick como respaldo
+        btnCrearRecordatorio.onclick = function () {
+            console.log('🔔 Botón crear recordatorio clickeado (onclick)');
+            showReminderModal();
+        };
+
+        console.log('✅ Event listeners agregados al botón');
+    } else {
+        console.error('❌ Botón crear recordatorio NO encontrado');
+
+        // Buscar el botón por clase como respaldo
+        const botonesRecordatorio = document.querySelectorAll('.btn-outline-light');
+        console.log('🔍 Buscando botones por clase:', botonesRecordatorio);
+
+        botonesRecordatorio.forEach(boton => {
+            if (boton.title === 'Crear Recordatorio') {
+                console.log('✅ Botón encontrado por título, agregando event listener...');
+                boton.addEventListener('click', function () {
+                    console.log('🔔 Botón crear recordatorio clickeado (por título)');
+                    showReminderModal();
+                });
+            }
+        });
+    }
+
+    // Event listeners para editar recordatorios (delegación de eventos)
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.btn-edit-reminder')) {
+            const button = e.target.closest('.btn-edit-reminder');
+            const recordatorioId = button.getAttribute('data-id');
+            console.log('✏️ Editando recordatorio:', recordatorioId);
+            editReminder(recordatorioId);
+        }
+
+        if (e.target.closest('.btn-delete-reminder')) {
+            const button = e.target.closest('.btn-delete-reminder');
+            const recordatorioId = button.getAttribute('data-id');
+            console.log('🗑️ Eliminando recordatorio:', recordatorioId);
+            deleteReminder(recordatorioId);
+        }
+    });
+
+    console.log('✅ Event listeners de recordatorios inicializados');
+}
+
+// Funciones de navegación de fecha
+function navegarAnterior() {
+    if (currentView === 'diaria') {
+        fechaActualAgenda.setDate(fechaActualAgenda.getDate() - 1);
+    } else if (currentView === 'semanal') {
+        fechaActualAgenda.setDate(fechaActualAgenda.getDate() - 7);
+    } else if (currentView === 'mensual') {
+        fechaActualAgenda.setMonth(fechaActualAgenda.getMonth() - 1);
+    }
+    cargarAgenda(fechaActualAgenda.toISOString().split('T')[0]);
+}
+
+function navegarSiguiente() {
+    if (currentView === 'diaria') {
+        fechaActualAgenda.setDate(fechaActualAgenda.getDate() + 1);
+    } else if (currentView === 'semanal') {
+        fechaActualAgenda.setDate(fechaActualAgenda.getDate() + 7);
+    } else if (currentView === 'mensual') {
+        fechaActualAgenda.setMonth(fechaActualAgenda.getMonth() + 1);
+    }
+    cargarAgenda(fechaActualAgenda.toISOString().split('T')[0]);
+}
+
+function irHoy() {
+    fechaActualAgenda = new Date();
+    cargarAgenda();
+}
+
+// Funciones de navegación específicas (para compatibilidad)
+function prevDay() {
+    navegarAnterior();
+}
+
+function nextDay() {
+    navegarSiguiente();
+}
+
+function today() {
+    irHoy();
+}
+
+// Función para agendar nueva cita
+function agendarCita(hora = null) {
+    console.log(`📅 Agendando cita para las ${hora || 'hora no especificada'}`);
+
+    // Llenar el formulario con la hora seleccionada
+    if (hora) {
+        const appointmentTime = document.getElementById('appointmentTime');
+        if (appointmentTime) {
+            appointmentTime.value = hora;
+        }
+    }
+
+    // Llenar la fecha actual
+    const appointmentDate = document.getElementById('appointmentDate');
+    if (appointmentDate) {
+        appointmentDate.value = fechaActualAgenda.toISOString().split('T')[0];
+    }
+
+    // Cargar pacientes en el select
+    cargarPacientesEnSelect();
+
+    // Mostrar modal
+    const modal = document.getElementById('scheduleModal');
+    if (modal) {
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+    }
+}
+
+// Función para cargar pacientes en el select de citas
+function cargarPacientesEnSelect() {
+    const select = document.getElementById('appointmentPatient');
+    if (!select) return;
+
+    // Limpiar opciones existentes (excepto la primera)
+    while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+    }
+
+    // Usar la lista global de pacientes si está disponible
+    if (window.pacientesList && window.pacientesList.length > 0) {
+        window.pacientesList.forEach(paciente => {
+            const option = document.createElement('option');
+            option.value = paciente.paciente_id;
+            option.textContent = `${paciente.nombre_completo} - ${paciente.rut}`;
+            select.appendChild(option);
+        });
+    } else {
+        // Si no hay lista global, cargar desde API
+        fetch('/api/professional/patients')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.pacientes) {
+                    data.pacientes.forEach(paciente => {
+                        const option = document.createElement('option');
+                        option.value = paciente.paciente_id;
+                        option.textContent = `${paciente.nombre_completo} - ${paciente.rut}`;
+                        select.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error cargando pacientes:', error);
+            });
+    }
+}
+
+// Función para mostrar modal de agenda (alternativa)
+function showScheduleModal() {
+    agendarCita();
+}
+
+// Función para guardar cita (sobrescribir la existente)
+function saveAppointment() {
+    console.log('💾 Guardando cita...');
+
+    const form = document.getElementById('scheduleForm');
+    if (!form) {
+        console.error('❌ Formulario de cita no encontrado');
+        showNotification('Error: Formulario no encontrado', 'error');
+        return;
+    }
+
+    // Obtener datos del formulario
+    const citaData = {
+        paciente_id: document.getElementById('appointmentPatient').value,
+        fecha: document.getElementById('appointmentDate').value,
+        hora: document.getElementById('appointmentTime').value,
+        tipo_atencion: document.getElementById('appointmentType').value,
+        notas: document.getElementById('appointmentNotes').value
+    };
+
+    console.log('📝 Datos de la cita:', citaData);
+
+    // Validar campos requeridos
+    if (!citaData.paciente_id) {
+        showNotification('Debe seleccionar un paciente', 'error');
+        return;
+    }
+
+    if (!citaData.fecha) {
+        showNotification('Debe seleccionar una fecha', 'error');
+        return;
+    }
+
+    if (!citaData.hora) {
+        showNotification('Debe seleccionar una hora', 'error');
+        return;
+    }
+
+    if (!citaData.tipo_atencion) {
+        showNotification('Debe seleccionar un tipo de atención', 'error');
+        return;
+    }
+
+    // Enviar datos al servidor
+    fetch('/api/professional/schedule', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(citaData)
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('📥 Respuesta del servidor:', data);
+
+            if (data.success) {
+                showNotification('Cita agendada exitosamente', 'success');
+
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
+                if (modal) {
+                    modal.hide();
+                }
+
+                // Limpiar formulario
+                form.reset();
+
+                // Recargar agenda
+                cargarAgenda();
+
+            } else {
+                showNotification(data.message || 'Error al agendar la cita', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error:', error);
+            showNotification('Error de conexión al agendar la cita', 'error');
+        });
+}
+
+// Función para ver detalles de una cita
+function verCita(citaId) {
+    console.log(`👁️ Viendo cita: ${citaId}`);
+
+    const cita = citasDelDia.find(c => c.cita_id === citaId);
+    if (!cita) {
+        showNotification('Cita no encontrada', 'error');
+        return;
+    }
+
+    // Mostrar detalles de la cita (puedes implementar un modal específico)
+    alert(`Detalles de la cita:
+Paciente: ${cita.paciente_nombre}
+RUT: ${cita.paciente_rut}
+Hora: ${cita.hora}
+Tipo: ${cita.tipo_atencion}
+Estado: ${cita.estado}
+Notas: ${cita.notas || 'Sin notas'}`);
+}
+
+// Función para confirmar una cita
+function confirmarCita(citaId) {
+    console.log(`✅ Confirmando cita: ${citaId}`);
+
+    actualizarEstadoCita(citaId, 'confirmada');
+}
+
+// Función para cancelar una cita
+function cancelarCita(citaId) {
+    console.log(`❌ Cancelando cita: ${citaId}`);
+
+    if (confirm('¿Está seguro de que desea cancelar esta cita?')) {
+        actualizarEstadoCita(citaId, 'cancelada');
+    }
+}
+
+// Función para actualizar el estado de una cita
+function actualizarEstadoCita(citaId, nuevoEstado) {
+    fetch(`/api/professional/schedule/${citaId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ estado: nuevoEstado })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(`Cita ${nuevoEstado} exitosamente`, 'success');
+                cargarAgenda(); // Recargar agenda
+            } else {
+                showNotification(data.message || 'Error al actualizar la cita', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error:', error);
+            showNotification('Error de conexión al actualizar la cita', 'error');
+        });
+}
+
+// Función para eliminar una cita
+function eliminarCita(citaId) {
+    if (!confirm('¿Está seguro de que desea eliminar esta cita?')) {
+        return;
+    }
+
+    fetch(`/api/professional/schedule/${citaId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Cita eliminada exitosamente', 'success');
+                cargarAgenda(); // Recargar agenda
+            } else {
+                showNotification(data.message || 'Error al eliminar la cita', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error:', error);
+            showNotification('Error de conexión al eliminar la cita', 'error');
+        });
+}
+
+// Función para ver la cita (compatibilidad con HTML existente)
+function viewAppointment(citaId) {
+    verCita(citaId);
+}
+
+// Función para agendar en horario específico (compatibilidad con HTML existente)
+function scheduleAppointment(hora) {
+    agendarCita(hora);
+}
+
+// Exponer funciones globalmente
+window.cargarAgenda = cargarAgenda;
+window.agendarCita = agendarCita;
+window.showScheduleModal = showScheduleModal;
+window.saveAppointment = saveAppointment;
+window.verCita = verCita;
+window.confirmarCita = confirmarCita;
+window.cancelarCita = cancelarCita;
+window.eliminarCita = eliminarCita;
+window.viewAppointment = viewAppointment;
+window.scheduleAppointment = scheduleAppointment;
+window.prevDay = prevDay;
+window.nextDay = nextDay;
+window.today = today;
+
+console.log('✅ Funciones de agenda cargadas correctamente');
+
+// ====== FUNCIONES DE CONFIGURACIÓN DE HORARIOS ======
+
+// Función para mostrar modal de configuración de horarios
+function configurarHorarios() {
+    console.log('⚙️ Configurando horarios...');
+
+    // Cargar horarios actuales
+    cargarHorariosActuales();
+
+    // Mostrar modal
+    const modal = document.getElementById('horariosModal');
+    if (modal) {
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+    }
+}
+
+// Función para cargar horarios actuales
+function cargarHorariosActuales() {
+    fetch('/api/professional/working-hours')
+        .then(response => response.json())
+        .then(data => {
+            console.log('📥 Horarios actuales:', data);
+
+            if (data.success && data.horarios) {
+                // Mapear días de español a inglés para IDs
+                const diasMap = {
+                    'Lunes': 'lunes',
+                    'Martes': 'martes',
+                    'Miércoles': 'miercoles',
+                    'Jueves': 'jueves',
+                    'Viernes': 'viernes',
+                    'Sábado': 'sabado',
+                    'Domingo': 'domingo'
+                };
+
+                // Llenar formulario con horarios existentes
+                data.horarios.forEach(horario => {
+                    const diaId = diasMap[horario.dia_semana];
+                    if (diaId) {
+                        const disponibleCheckbox = document.getElementById(`${diaId}_disponible`);
+                        const inicioInput = document.getElementById(`${diaId}_inicio`);
+                        const finInput = document.getElementById(`${diaId}_fin`);
+                        const notasInput = document.getElementById(`${diaId}_notas`);
+
+                        if (disponibleCheckbox) disponibleCheckbox.checked = horario.disponible;
+                        if (inicioInput) inicioInput.value = horario.hora_inicio;
+                        if (finInput) finInput.value = horario.hora_fin;
+                        if (notasInput) notasInput.value = horario.notas;
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error cargando horarios:', error);
+            showNotification('Error al cargar horarios actuales', 'error');
+        });
+}
+
+// Función para guardar horarios
+function guardarHorarios() {
+    console.log('💾 Guardando horarios...');
+
+    // Mapear días de IDs a español
+    const diasMap = {
+        'lunes': 'Lunes',
+        'martes': 'Martes',
+        'miercoles': 'Miércoles',
+        'jueves': 'Jueves',
+        'viernes': 'Viernes',
+        'sabado': 'Sábado',
+        'domingo': 'Domingo'
+    };
+
+    const horarios = [];
+
+    // Recopilar datos de todos los días
+    Object.keys(diasMap).forEach(diaId => {
+        const disponibleCheckbox = document.getElementById(`${diaId}_disponible`);
+        const inicioInput = document.getElementById(`${diaId}_inicio`);
+        const finInput = document.getElementById(`${diaId}_fin`);
+        const notasInput = document.getElementById(`${diaId}_notas`);
+
+        if (disponibleCheckbox && inicioInput && finInput) {
+            horarios.push({
+                dia_semana: diasMap[diaId],
+                disponible: disponibleCheckbox.checked,
+                hora_inicio: inicioInput.value,
+                hora_fin: finInput.value,
+                notas: notasInput ? notasInput.value : ''
+            });
+        }
+    });
+
+    console.log('📝 Horarios a guardar:', horarios);
+
+    // Validar horarios
+    for (const horario of horarios) {
+        if (horario.disponible) {
+            if (!horario.hora_inicio || !horario.hora_fin) {
+                showNotification(`Debe especificar hora de inicio y fin para ${horario.dia_semana}`, 'error');
+                return;
+            }
+
+            if (horario.hora_inicio >= horario.hora_fin) {
+                showNotification(`La hora de inicio debe ser menor que la hora de fin para ${horario.dia_semana}`, 'error');
+                return;
+            }
+        }
+    }
+
+    // Enviar al servidor
+    fetch('/api/professional/working-hours', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ horarios: horarios })
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('📥 Respuesta del servidor:', data);
+
+            if (data.success) {
+                showNotification('Horarios guardados exitosamente', 'success');
+
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('horariosModal'));
+                if (modal) {
+                    modal.hide();
+                }
+
+                // Recargar agenda si está visible
+                const agendaPane = document.getElementById('schedule');
+                if (agendaPane && agendaPane.classList.contains('active')) {
+                    cargarAgenda();
+                }
+
+            } else {
+                showNotification(data.message || 'Error al guardar horarios', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error:', error);
+            showNotification('Error de conexión al guardar horarios', 'error');
+        });
+}
+
+// Exponer funciones globalmente
+window.configurarHorarios = configurarHorarios;
+window.guardarHorarios = guardarHorarios;
+
+console.log('✅ Funciones de configuración de horarios cargadas correctamente');
+
+// ========================================
+// FUNCIONES PARA VISTAS MÚLTIPLES DE AGENDA
+// ========================================
+
+// Función para cambiar vista de agenda
+function cambiarVista(nuevaVista) {
+    console.log(`📅 Cambiando vista a: ${nuevaVista}`);
+
+    currentView = nuevaVista;
+
+    // Ocultar todas las vistas
+    document.getElementById('vistaDiariaContent').classList.add('d-none');
+    document.getElementById('vistaSemanalContent').classList.add('d-none');
+    document.getElementById('vistaMensualContent').classList.add('d-none');
+
+    // Mostrar vista seleccionada
+    document.getElementById(`vista${nuevaVista.charAt(0).toUpperCase() + nuevaVista.slice(1)}Content`).classList.remove('d-none');
+
+    // Actualizar título
+    const titulo = document.querySelector('.card-header h5');
+    if (titulo) {
+        const fecha = fechaActualAgenda.toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        switch (nuevaVista) {
+            case 'diaria':
+                titulo.innerHTML = `Agenda de Hoy - <span id="currentDate">${fecha}</span>`;
+                break;
+            case 'semanal':
+                titulo.innerHTML = `Agenda Semanal - <span id="currentDate">${fecha}</span>`;
+                break;
+            case 'mensual':
+                titulo.innerHTML = `Agenda Mensual - <span id="currentDate">${fecha}</span>`;
+                break;
+        }
+    }
+
+    // Recargar datos
+    cargarAgenda();
+}
+
+// Función para actualizar vista semanal
+function actualizarVistaSemanal(agendaSemanal, fechaInicio, fechaFin) {
+    console.log('📅 Actualizando vista semanal:', agendaSemanal);
+
+    const tbody = document.getElementById('agendaSemanalBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    // Generar horarios de 8:00 a 18:00
+    const horarios = [];
+    for (let hora = 8; hora < 18; hora++) {
+        horarios.push(`${hora.toString().padStart(2, '0')}:00`);
+    }
+
+    // Crear filas por horario
+    horarios.forEach(hora => {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `<td class="text-center fw-bold">${hora}</td>`;
+
+        // Agregar celdas para cada día de la semana
+        Object.keys(agendaSemanal).forEach(fecha => {
+            const diaData = agendaSemanal[fecha];
+            const celda = document.createElement('td');
+
+            // Buscar citas para esta hora
+            const citasHora = diaData.citas.filter(cita => cita.hora.startsWith(hora.split(':')[0]));
+
+            if (citasHora.length > 0) {
+                citasHora.forEach(cita => {
+                    const citaDiv = document.createElement('div');
+                    citaDiv.className = `cita-semanal ${cita.estado}`;
+                    citaDiv.innerHTML = `
+                        <div>${cita.hora}</div>
+                        <div>${cita.paciente_nombre}</div>
+                    `;
+                    citaDiv.onclick = () => verCita(cita.cita_id);
+                    celda.appendChild(citaDiv);
+                });
+            } else {
+                // Slot disponible
+                const slotDiv = document.createElement('div');
+                slotDiv.className = 'slot-disponible';
+                slotDiv.textContent = 'Disponible';
+                slotDiv.onclick = () => agendarCitaFecha(fecha, hora);
+                celda.appendChild(slotDiv);
+            }
+
+            fila.appendChild(celda);
+        });
+
+        tbody.appendChild(fila);
+    });
+}
+
+// Función para actualizar vista mensual
+function actualizarVistaMensual(agendaMensual, fechaInicio, fechaFin) {
+    console.log('📅 Actualizando vista mensual:', agendaMensual);
+
+    const calendario = document.getElementById('calendarioMensual');
+    if (!calendario) return;
+
+    calendario.innerHTML = '';
+
+    // Headers de días de la semana
+    const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    diasSemana.forEach(dia => {
+        const header = document.createElement('div');
+        header.className = 'dia-header';
+        header.textContent = dia;
+        calendario.appendChild(header);
+    });
+
+    // Obtener primer día del mes y calcular días a mostrar
+    const fechaInicioObj = new Date(fechaInicio);
+    const fechaFinObj = new Date(fechaFin);
+
+    // Agregar días del mes anterior si es necesario
+    const primerDiaSemana = fechaInicioObj.getDay();
+    const fechaInicioCalendario = new Date(fechaInicioObj);
+    fechaInicioCalendario.setDate(fechaInicioCalendario.getDate() - primerDiaSemana);
+
+    // Generar calendario
+    const fechaActual = new Date(fechaInicioCalendario);
+    const hoy = new Date().toISOString().split('T')[0];
+
+    for (let i = 0; i < 42; i++) { // 6 semanas máximo
+        const fechaStr = fechaActual.toISOString().split('T')[0];
+        const diaCelda = document.createElement('div');
+        diaCelda.className = 'dia-celda';
+
+        // Verificar si es del mes actual
+        if (fechaActual.getMonth() !== fechaInicioObj.getMonth()) {
+            diaCelda.classList.add('otro-mes');
+        }
+
+        // Verificar si es hoy
+        if (fechaStr === hoy) {
+            diaCelda.classList.add('hoy');
+        }
+
+        // Número del día
+        const diaNumero = document.createElement('div');
+        diaNumero.className = 'dia-numero';
+        diaNumero.textContent = fechaActual.getDate();
+        diaCelda.appendChild(diaNumero);
+
+        // Citas del día
+        const diaData = agendaMensual[fechaStr];
+        if (diaData && diaData.citas.length > 0) {
+            diaData.citas.slice(0, 3).forEach(cita => { // Mostrar máximo 3 citas
+                const citaDiv = document.createElement('div');
+                citaDiv.className = `cita-mensual ${cita.estado}`;
+                citaDiv.textContent = `${cita.hora} ${cita.paciente_nombre}`;
+                citaDiv.onclick = () => verCita(cita.cita_id);
+                diaCelda.appendChild(citaDiv);
+            });
+
+            // Mostrar contador si hay más citas
+            if (diaData.citas.length > 3) {
+                const contador = document.createElement('div');
+                contador.className = 'contador-citas';
+                contador.textContent = `+${diaData.citas.length - 3}`;
+                diaCelda.appendChild(contador);
+            }
+        }
+
+        // Click para agendar cita
+        diaCelda.onclick = (e) => {
+            if (e.target === diaCelda || e.target === diaNumero) {
+                agendarCitaFecha(fechaStr);
+            }
+        };
+
+        calendario.appendChild(diaCelda);
+        fechaActual.setDate(fechaActual.getDate() + 1);
+
+        // Parar si hemos pasado el final del mes siguiente
+        if (fechaActual > fechaFinObj && fechaActual.getDate() > 7) {
+            break;
+        }
+    }
+}
+
+// Función para agendar cita en fecha específica
+function agendarCitaFecha(fecha, hora = null) {
+    console.log(`📅 Agendando cita para ${fecha} a las ${hora || 'hora por definir'}`);
+
+    // Llenar el formulario
+    const appointmentDate = document.getElementById('appointmentDate');
+    if (appointmentDate) {
+        appointmentDate.value = fecha;
+    }
+
+    if (hora) {
+        const appointmentTime = document.getElementById('appointmentTime');
+        if (appointmentTime) {
+            appointmentTime.value = hora;
+        }
+    }
+
+    // Cargar pacientes y mostrar modal
+    cargarPacientesEnSelect();
+
+    const modal = document.getElementById('scheduleModal');
+    if (modal) {
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+    }
+}
+
+// Exponer funciones globalmente
+window.cambiarVista = cambiarVista;
+window.actualizarVistaSemanal = actualizarVistaSemanal;
+window.actualizarVistaMensual = actualizarVistaMensual;
+window.agendarCitaFecha = agendarCitaFecha;
+window.navegarAnterior = navegarAnterior;
+window.navegarSiguiente = navegarSiguiente;
+window.irHoy = irHoy;
+
+console.log('✅ Funciones de vistas múltiples de agenda cargadas correctamente');
+
+
 

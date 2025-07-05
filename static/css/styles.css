@@ -1,8 +1,8 @@
 /* Global Styles */
 :root {
-    --primary-color: #5d3e8f;
+    --primary-color: rgb(96,75,217);
     --secondary-color: #472d70;
-    --accent-color: #9a78d2;
+    --accent-color: rgb(96,75,217);
     --light-color: #f8f9fc;
     --dark-color: #343a40;
     --success-color: #2ed573;
