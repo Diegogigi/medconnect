@@ -729,7 +729,7 @@
     <!-- Header -->
     <header class="header" id="header">
         <div class="nav-container">
-            <a href="#" class="logo">
+            <a href="{{ url_for('index') }}" class="logo">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo">
                 <span class="logo-text">MedConnect</span>
             </a>
@@ -911,10 +911,12 @@
     <!-- Footer -->
     <footer id="contacto" class="footer">
         <div class="footer-container">
-            <div class="footer-logo">
+                    <div class="footer-logo">
+            <a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px;">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo">
                 <span class="footer-brand">MedConnect</span>
-            </div>
+            </a>
+        </div>
             
             <p class="footer-text">
                 Transformando la gestión médica familiar y profesional con tecnología de vanguardia

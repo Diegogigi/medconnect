@@ -255,9 +255,11 @@
 <body>
     <div class="login-container">
         <div class="login-header">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo">
-            <h1>MedConnect</h1>
-            <p>Tu salud, nuestra prioridad</p>
+            <a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit; display: block; text-align: center;">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo" style="cursor: pointer;">
+                <h1>MedConnect</h1>
+                <p>Tu salud, nuestra prioridad</p>
+            </a>
         </div>
 
         {% if show_welcome %}
