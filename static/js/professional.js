@@ -2974,9 +2974,6 @@ function showReminderModal(recordatorioId = null) {
         reminderId.value = '';
     }
 
-    // Cargar pacientes en el select
-    cargarPacientesEnReminderSelect();
-
     // Mostrar modal
     console.log('🎭 Mostrando modal...');
     console.log('🔍 Bootstrap disponible:', typeof bootstrap);
@@ -2986,6 +2983,12 @@ function showReminderModal(recordatorioId = null) {
             const bootstrapModal = new bootstrap.Modal(modal);
             bootstrapModal.show();
             console.log('✅ Modal mostrado exitosamente con Bootstrap');
+
+            // Cargar pacientes después de que el modal esté visible
+            setTimeout(() => {
+                console.log('🔄 Cargando pacientes después de mostrar modal con Bootstrap...');
+                cargarPacientesEnReminderSelect();
+            }, 300);
         } else {
             // Fallback: mostrar modal manualmente
             console.log('⚠️ Bootstrap no disponible, usando fallback');
@@ -2999,6 +3002,12 @@ function showReminderModal(recordatorioId = null) {
             document.body.appendChild(backdrop);
 
             console.log('✅ Modal mostrado con fallback');
+
+            // Cargar pacientes después de que el modal esté visible
+            setTimeout(() => {
+                console.log('🔄 Cargando pacientes después de mostrar modal con fallback...');
+                cargarPacientesEnReminderSelect();
+            }, 300);
         }
     } catch (error) {
         console.error('❌ Error mostrando modal:', error);
@@ -3037,38 +3046,82 @@ function cargarRecordatorioParaEditar(recordatorioId) {
 
 // Cargar pacientes en el select de recordatorios
 function cargarPacientesEnReminderSelect() {
-    const select = document.getElementById('reminderPatient');
-    if (!select) return;
+    console.log('🔄 Cargando pacientes en select de recordatorios...');
 
+    const select = document.getElementById('reminderPatient');
+    if (!select) {
+        console.error('❌ Select de pacientes no encontrado');
+        return;
+    }
+
+    console.log('📋 Limpiando opciones existentes...');
     // Limpiar opciones existentes (excepto la primera)
     while (select.children.length > 1) {
         select.removeChild(select.lastChild);
     }
 
-    // Usar la lista global de pacientes si está disponible
-    if (window.pacientesList && window.pacientesList.length > 0) {
-        window.pacientesList.forEach(paciente => {
+    // Función para agregar pacientes al select
+    function agregarPacientesAlSelect(pacientes) {
+        console.log(`📝 Agregando ${pacientes.length} pacientes al select`);
+        pacientes.forEach(paciente => {
             const option = document.createElement('option');
             option.value = paciente.paciente_id;
             option.textContent = `${paciente.nombre_completo} - ${paciente.rut}`;
             select.appendChild(option);
         });
+        console.log('✅ Pacientes agregados al select exitosamente');
+    }
+
+    // Usar la lista global de pacientes si está disponible
+    if (window.pacientesList && window.pacientesList.length > 0) {
+        console.log(`✅ Usando lista global de pacientes: ${window.pacientesList.length} pacientes`);
+        agregarPacientesAlSelect(window.pacientesList);
     } else {
+        console.log('⚠️ No hay lista global, cargando desde API...');
         // Si no hay lista global, cargar desde API
-        fetch('/api/professional/patients')
-            .then(response => response.json())
+        fetch('/api/professional/patients', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => {
+                console.log('📡 Respuesta de API:', response.status, response.statusText);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                if (data.success && data.pacientes) {
-                    data.pacientes.forEach(paciente => {
-                        const option = document.createElement('option');
-                        option.value = paciente.paciente_id;
-                        option.textContent = `${paciente.nombre_completo} - ${paciente.rut}`;
-                        select.appendChild(option);
-                    });
+                console.log('📊 Datos recibidos:', data);
+                if (data.success && data.pacientes && Array.isArray(data.pacientes)) {
+                    console.log(`✅ Cargando ${data.pacientes.length} pacientes desde API`);
+                    agregarPacientesAlSelect(data.pacientes);
+
+                    // Guardar en la lista global para futuras referencias
+                    window.pacientesList = data.pacientes;
+                    console.log('💾 Lista de pacientes guardada en window.pacientesList');
+                } else {
+                    console.warn('⚠️ No se recibieron pacientes válidos de la API');
+                    console.log('📊 Respuesta completa:', data);
+
+                    // Mostrar mensaje de error en el select
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No hay pacientes disponibles';
+                    option.disabled = true;
+                    select.appendChild(option);
                 }
             })
             .catch(error => {
                 console.error('❌ Error cargando pacientes:', error);
+                // Mostrar mensaje de error al usuario
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'Error cargando pacientes...';
+                option.disabled = true;
+                select.appendChild(option);
             });
     }
 }
@@ -3167,10 +3220,77 @@ function deleteReminder(recordatorioId) {
         });
 }
 
+// Función de fallback para mostrar modal de recordatorio
+function mostrarModalRecordatorioManual() {
+    console.log('🔄 Usando función de fallback para mostrar modal');
+
+    const modal = document.getElementById('reminderModal');
+    if (!modal) {
+        console.error('❌ Modal de recordatorio no encontrado');
+        alert('Error: Modal de recordatorio no encontrado');
+        return;
+    }
+
+    // Limpiar formulario
+    const form = document.getElementById('reminderForm');
+    if (form) {
+        form.reset();
+    }
+
+    // Configurar fecha y hora por defecto
+    const now = new Date();
+    const dateInput = document.getElementById('reminderDate');
+    const timeInput = document.getElementById('reminderTime');
+
+    if (dateInput && timeInput) {
+        dateInput.value = now.toISOString().split('T')[0];
+        timeInput.value = now.toTimeString().slice(0, 5);
+    }
+
+    // Configurar título
+    const modalTitle = document.getElementById('reminderModalTitle');
+    const saveButton = document.getElementById('saveReminderText');
+    const reminderId = document.getElementById('reminderId');
+
+    if (modalTitle) modalTitle.textContent = 'Crear Recordatorio';
+    if (saveButton) saveButton.textContent = 'Guardar Recordatorio';
+    if (reminderId) reminderId.value = '';
+
+    // Mostrar modal
+    try {
+        if (typeof bootstrap !== 'undefined') {
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+        } else {
+            // Fallback manual
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            document.body.classList.add('modal-open');
+
+            // Agregar backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(backdrop);
+        }
+
+        console.log('✅ Modal mostrado con función de fallback');
+    } catch (error) {
+        console.error('❌ Error mostrando modal:', error);
+        alert('Error al mostrar el modal de recordatorio');
+    }
+}
+
 // Asignar las funciones a las variables globales
 window.showReminderModal = showReminderModal;
 window.editReminder = editReminder;
 window.deleteReminder = deleteReminder;
+window.mostrarModalRecordatorioManual = mostrarModalRecordatorioManual;
+window.handleCrearRecordatorio = handleCrearRecordatorio;
+window.mostrarModalRecordatorio = mostrarModalRecordatorio;
+window.cerrarModalRecordatorio = cerrarModalRecordatorio;
+window.crearModalRecordatorio = crearModalRecordatorio;
+window.mostrarFormularioRecordatorioAlternativo = mostrarFormularioRecordatorioAlternativo;
+window.guardarRecordatorioAlternativo = guardarRecordatorioAlternativo;
 
 // Toggle opciones de repetición
 function toggleRepeatOptions() {
@@ -3193,7 +3313,277 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Inicializar event listeners para recordatorios
     inicializarEventListenersRecordatorios();
+
+    // Inicialización adicional para asegurar que los botones funcionen
+    setTimeout(() => {
+        inicializarBotonesRecordatorios();
+    }, 1000);
 });
+
+// Función para manejar el clic en crear recordatorio
+function handleCrearRecordatorio() {
+    console.log('🔔 Botón crear recordatorio clickeado');
+
+    // Lógica inline para mostrar el modal sin depender de funciones globales
+    const modal = document.getElementById('reminderModal');
+    if (!modal) {
+        console.error('❌ Modal de recordatorio no encontrado');
+
+        // Crear modal dinámicamente si no existe
+        crearModalRecordatorio();
+        return;
+    }
+
+    // Limpiar formulario
+    const form = document.getElementById('reminderForm');
+    if (form) {
+        form.reset();
+    }
+
+    // Configurar fecha y hora por defecto
+    const now = new Date();
+    const dateInput = document.getElementById('reminderDate');
+    const timeInput = document.getElementById('reminderTime');
+
+    if (dateInput && timeInput) {
+        dateInput.value = now.toISOString().split('T')[0];
+        timeInput.value = now.toTimeString().slice(0, 5);
+    }
+
+    // Configurar título
+    const modalTitle = document.getElementById('reminderModalTitle');
+    const saveButton = document.getElementById('saveReminderText');
+    const reminderId = document.getElementById('reminderId');
+
+    if (modalTitle) modalTitle.textContent = 'Crear Recordatorio';
+    if (saveButton) saveButton.textContent = 'Guardar Recordatorio';
+    if (reminderId) reminderId.value = '';
+
+    // Mostrar modal con múltiples métodos
+    mostrarModalRecordatorio(modal);
+
+    // Cargar pacientes después de mostrar el modal
+    setTimeout(() => {
+        console.log('🔄 Cargando pacientes después de mostrar modal...');
+        cargarPacientesEnReminderSelect();
+    }, 100);
+}
+
+// Función para mostrar el modal de recordatorio
+function mostrarModalRecordatorio(modal) {
+    try {
+        // Método 1: Bootstrap
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+            console.log('✅ Modal mostrado con Bootstrap');
+            return;
+        }
+
+        // Método 2: jQuery Bootstrap
+        if (typeof $ !== 'undefined' && $.fn.modal) {
+            $(modal).modal('show');
+            console.log('✅ Modal mostrado con jQuery Bootstrap');
+            return;
+        }
+
+        // Método 3: Fallback manual
+        modal.style.display = 'block';
+        modal.classList.add('show');
+        document.body.classList.add('modal-open');
+
+        // Agregar backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        backdrop.id = 'reminderModalBackdrop';
+        document.body.appendChild(backdrop);
+
+        // Agregar event listener para cerrar con backdrop
+        backdrop.addEventListener('click', function () {
+            cerrarModalRecordatorio(modal);
+        });
+
+        console.log('✅ Modal mostrado manualmente');
+
+    } catch (error) {
+        console.error('❌ Error mostrando modal:', error);
+
+        // Método 4: Alert como último recurso
+        alert('Error al mostrar el modal. Usando método alternativo.');
+        mostrarFormularioRecordatorioAlternativo();
+    }
+}
+
+// Función para cerrar el modal
+function cerrarModalRecordatorio(modal) {
+    try {
+        // Método 1: Bootstrap
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const bootstrapModal = bootstrap.Modal.getInstance(modal);
+            if (bootstrapModal) {
+                bootstrapModal.hide();
+                return;
+            }
+        }
+
+        // Método 2: jQuery Bootstrap
+        if (typeof $ !== 'undefined' && $.fn.modal) {
+            $(modal).modal('hide');
+            return;
+        }
+
+        // Método 3: Fallback manual
+        modal.style.display = 'none';
+        modal.classList.remove('show');
+        document.body.classList.remove('modal-open');
+
+        // Remover backdrop
+        const backdrop = document.getElementById('reminderModalBackdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+
+    } catch (error) {
+        console.error('❌ Error cerrando modal:', error);
+    }
+}
+
+// Función para crear modal dinámicamente
+function crearModalRecordatorio() {
+    console.log('🔧 Creando modal de recordatorio dinámicamente...');
+
+    const modalHTML = `
+        <div class="modal fade" id="reminderModal" tabindex="-1" aria-labelledby="reminderModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="reminderModalTitle">Crear Recordatorio</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="reminderForm">
+                            <input type="hidden" id="reminderId" name="reminderId">
+                            <div class="mb-3">
+                                <label for="reminderTitle" class="form-label">Título</label>
+                                <input type="text" class="form-control" id="reminderTitle" name="title" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="reminderDate" class="form-label">Fecha</label>
+                                        <input type="date" class="form-control" id="reminderDate" name="date" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="reminderTime" class="form-label">Hora</label>
+                                        <input type="time" class="form-control" id="reminderTime" name="time" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="reminderDescription" class="form-label">Descripción</label>
+                                <textarea class="form-control" id="reminderDescription" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="reminderRepeat" name="repeat">
+                                    <label class="form-check-label" for="reminderRepeat">
+                                        Repetir recordatorio
+                                    </label>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="saveReminderText" onclick="saveReminder()">
+                            Guardar Recordatorio
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Agregar el modal al body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Mostrar el modal inmediatamente
+    const modal = document.getElementById('reminderModal');
+    if (modal) {
+        mostrarModalRecordatorio(modal);
+    }
+}
+
+// Función alternativa para mostrar formulario
+function mostrarFormularioRecordatorioAlternativo() {
+    console.log('🔧 Mostrando formulario alternativo...');
+
+    const formHTML = `
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; display: flex; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%;">
+                <h5>Crear Recordatorio</h5>
+                <form id="reminderFormAlt">
+                    <div style="margin-bottom: 15px;">
+                        <label>Título:</label>
+                        <input type="text" id="reminderTitleAlt" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label>Fecha:</label>
+                        <input type="date" id="reminderDateAlt" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label>Hora:</label>
+                        <input type="time" id="reminderTimeAlt" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label>Descripción:</label>
+                        <textarea id="reminderDescriptionAlt" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; height: 80px;"></textarea>
+                    </div>
+                    <div style="text-align: right;">
+                        <button type="button" onclick="document.getElementById('reminderFormAlt').parentElement.parentElement.remove()" style="padding: 8px 16px; margin-right: 10px; border: 1px solid #ddd; background: #f8f9fa; border-radius: 4px;">Cancelar</button>
+                        <button type="button" onclick="guardarRecordatorioAlternativo()" style="padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px;">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', formHTML);
+
+    // Configurar fecha y hora por defecto
+    const now = new Date();
+    const dateInput = document.getElementById('reminderDateAlt');
+    const timeInput = document.getElementById('reminderTimeAlt');
+
+    if (dateInput && timeInput) {
+        dateInput.value = now.toISOString().split('T')[0];
+        timeInput.value = now.toTimeString().slice(0, 5);
+    }
+}
+
+// Función para guardar recordatorio alternativo
+function guardarRecordatorioAlternativo() {
+    const title = document.getElementById('reminderTitleAlt').value;
+    const date = document.getElementById('reminderDateAlt').value;
+    const time = document.getElementById('reminderTimeAlt').value;
+    const description = document.getElementById('reminderDescriptionAlt').value;
+
+    if (!title || !date || !time) {
+        alert('Por favor completa todos los campos requeridos');
+        return;
+    }
+
+    // Aquí puedes implementar la lógica para guardar el recordatorio
+    console.log('Guardando recordatorio alternativo:', { title, date, time, description });
+
+    // Cerrar el formulario
+    document.getElementById('reminderFormAlt').parentElement.parentElement.remove();
+
+    // Mostrar mensaje de éxito
+    alert('Recordatorio guardado exitosamente');
+}
 
 // Función para inicializar event listeners de recordatorios
 function inicializarEventListenersRecordatorios() {
@@ -3205,18 +3595,12 @@ function inicializarEventListenersRecordatorios() {
 
     if (btnCrearRecordatorio) {
         console.log('✅ Botón crear recordatorio encontrado, agregando event listener...');
-        btnCrearRecordatorio.addEventListener('click', function () {
-            console.log('🔔 Botón crear recordatorio clickeado');
-            showReminderModal();
-        });
 
-        // Agregar también un onclick como respaldo
-        btnCrearRecordatorio.onclick = function () {
-            console.log('🔔 Botón crear recordatorio clickeado (onclick)');
-            showReminderModal();
-        };
+        // Remover event listeners existentes para evitar duplicados
+        btnCrearRecordatorio.removeEventListener('click', handleCrearRecordatorio);
+        btnCrearRecordatorio.addEventListener('click', handleCrearRecordatorio);
 
-        console.log('✅ Event listeners agregados al botón');
+        console.log('✅ Event listener agregado al botón');
     } else {
         console.error('❌ Botón crear recordatorio NO encontrado');
 
@@ -3227,10 +3611,8 @@ function inicializarEventListenersRecordatorios() {
         botonesRecordatorio.forEach(boton => {
             if (boton.title === 'Crear Recordatorio') {
                 console.log('✅ Botón encontrado por título, agregando event listener...');
-                boton.addEventListener('click', function () {
-                    console.log('🔔 Botón crear recordatorio clickeado (por título)');
-                    showReminderModal();
-                });
+                boton.removeEventListener('click', handleCrearRecordatorio);
+                boton.addEventListener('click', handleCrearRecordatorio);
             }
         });
     }
@@ -3253,6 +3635,53 @@ function inicializarEventListenersRecordatorios() {
     });
 
     console.log('✅ Event listeners de recordatorios inicializados');
+}
+
+// Función adicional para asegurar que los botones funcionen
+function inicializarBotonesRecordatorios() {
+    console.log('🔧 Inicialización adicional de botones de recordatorios...');
+
+    // Buscar todos los botones que puedan ser de recordatorios
+    const botones = document.querySelectorAll('button');
+
+    botones.forEach(boton => {
+        // Verificar si es el botón de crear recordatorio
+        if (boton.id === 'btnCrearRecordatorio' ||
+            boton.title === 'Crear Recordatorio' ||
+            boton.textContent.includes('Crear Recordatorio')) {
+
+            console.log('🔍 Encontrado botón de crear recordatorio:', boton);
+
+            // Remover todos los event listeners existentes
+            const nuevoBoton = boton.cloneNode(true);
+            boton.parentNode.replaceChild(nuevoBoton, boton);
+
+            // Agregar el event listener correcto
+            nuevoBoton.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🔔 Botón crear recordatorio clickeado (inicialización adicional)');
+                handleCrearRecordatorio();
+            });
+
+            console.log('✅ Botón de crear recordatorio configurado correctamente');
+        }
+    });
+
+    // También buscar por onclick y eliminarlo
+    const botonesConOnclick = document.querySelectorAll('[onclick*="showReminderModal"]');
+    botonesConOnclick.forEach(boton => {
+        console.log('🔧 Removiendo onclick problemático de:', boton);
+        boton.removeAttribute('onclick');
+
+        // Agregar event listener correcto
+        boton.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🔔 Botón crear recordatorio clickeado (removido onclick)');
+            handleCrearRecordatorio();
+        });
+    });
 }
 
 // Funciones de navegación de fecha

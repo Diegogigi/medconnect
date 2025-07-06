@@ -42,7 +42,25 @@ try:
     logger.info("📦 Importando módulos locales...")
     from config import get_config, SHEETS_CONFIG
     from auth_manager import AuthManager
-    from backend.database.sheets_manager import sheets_db
+    # Importar SheetsManager con manejo robusto de errores
+    try:
+        from backend.database.sheets_manager import sheets_db
+        logger.info("✅ SheetsManager importado correctamente")
+    except Exception as e:
+        logger.error(f"❌ Error importando SheetsManager: {e}")
+        # Intentar inicialización alternativa
+        try:
+            from sheets_manager_init import get_sheets_manager
+            sheets_db = get_sheets_manager()
+            if sheets_db:
+                logger.info("✅ SheetsManager inicializado con método alternativo")
+            else:
+                logger.error("❌ No se pudo inicializar SheetsManager")
+                sheets_db = None
+        except Exception as e2:
+            logger.error(f"❌ Error en inicialización alternativa: {e2}")
+            sheets_db = None
+    
     logger.info("✅ Módulos locales importados")
     
     logger.info("📦 Importando otras dependencias...")
@@ -95,8 +113,27 @@ except Exception as e:
 app.static_folder = 'static'
 app.static_url_path = '/static'
 
+# Método 3: Configuración adicional para Railway
+# Asegurar que la carpeta static existe y tiene los archivos necesarios
+static_path = os.path.join(app.root_path, 'static')
+if not os.path.exists(static_path):
+    logger.warning(f"⚠️ Carpeta static no encontrada en: {static_path}")
+    # Crear la carpeta si no existe
+    os.makedirs(static_path, exist_ok=True)
+    logger.info(f"✅ Carpeta static creada: {static_path}")
+
+# Verificar archivos críticos
+critical_files = ['css/styles.css', 'js/app.js', 'images/logo.png']
+for file_path in critical_files:
+    full_path = os.path.join(static_path, file_path)
+    if os.path.exists(full_path):
+        logger.info(f"✅ Archivo crítico encontrado: {file_path}")
+    else:
+        logger.warning(f"⚠️ Archivo crítico faltante: {file_path}")
+
 logger.info(f"📁 Static folder: {app.static_folder}")
 logger.info(f"🌐 Static URL path: {app.static_url_path}")
+logger.info(f"📂 Static path completo: {static_path}")
 
 # Configurar CORS
 CORS(app, origins=config.CORS_ORIGINS)
@@ -2418,21 +2455,63 @@ def setup_webhook():
 @app.route('/health')
 def health_check():
     """Health check para Railway"""
-    return jsonify({
-        'status': 'healthy',
-        'timestamp': datetime.now().isoformat(),
-        'version': '1.0.0'
-    })
+    try:
+        # Verificar conexión con Google Sheets
+        sheets_status = "✅ Conectado" if sheets_client else "❌ No conectado"
+        
+        # Verificar AuthManager
+        auth_status = "✅ Disponible" if auth_manager else "❌ No disponible"
+        
+        # Verificar variables de entorno críticas
+        env_vars = {
+            'GOOGLE_SHEETS_ID': bool(os.environ.get('GOOGLE_SHEETS_ID')),
+            'TELEGRAM_BOT_TOKEN': bool(os.environ.get('TELEGRAM_BOT_TOKEN')),
+            'GOOGLE_SERVICE_ACCOUNT_JSON': bool(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON'))
+        }
+        
+        # Obtener estadísticas de API si está disponible
+        api_stats = None
+        try:
+            from api_monitoring import get_api_stats
+            api_stats = get_api_stats()
+        except Exception as e:
+            logger.warning(f"⚠️ No se pudieron obtener estadísticas de API: {e}")
+        
+        health_data = {
+            'status': 'healthy',
+            'timestamp': datetime.now().isoformat(),
+            'sheets_client': sheets_status,
+            'auth_manager': auth_status,
+            'environment_variables': env_vars,
+            'uptime': time.time() - start_time if 'start_time' in globals() else 0,
+            'api_stats': api_stats
+        }
+        
+        return jsonify(health_data)
+        
+    except Exception as e:
+        logger.error(f"❌ Error en health check: {e}")
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
 
 @app.route('/debug-static')
 def debug_static():
     """Endpoint para debuggear archivos estáticos"""
     try:
-        static_path = os.path.join(app.root_path, 'static')
+        # Múltiples rutas para verificar
+        static_paths = [
+            os.path.join(app.root_path, 'static'),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'),
+            'static'
+        ]
+        
         debug_info = {
-            'static_directory': static_path,
-            'static_exists': os.path.exists(static_path),
+            'static_directories': [],
             'app_root_path': app.root_path,
+            'current_working_directory': os.getcwd(),
             'whitenoise_active': hasattr(app, 'wsgi_app') and 'WhiteNoise' in str(type(app.wsgi_app)),
             'auth_manager_available': auth_manager is not None,
             'environment': {
@@ -2446,28 +2525,49 @@ def debug_static():
             'files': []
         }
         
+        # Verificar cada ruta de static
+        for i, static_path in enumerate(static_paths):
+            debug_info['static_directories'].append({
+                'index': i,
+                'path': static_path,
+                'exists': os.path.exists(static_path),
+                'is_dir': os.path.isdir(static_path) if os.path.exists(static_path) else False
+            })
+        
         # Listar archivos críticos
         critical_files = [
             'css/styles.css',
             'js/app.js', 
-            'images/logo.png'
+            'images/logo.png',
+            'images/Imagen2.png'
         ]
         
         for file_rel_path in critical_files:
-            file_path = os.path.join(static_path, file_rel_path)
-            debug_info['files'].append({
+            file_info = {
                 'path': file_rel_path,
-                'full_path': file_path,
-                'exists': os.path.exists(file_path),
-                'size': os.path.getsize(file_path) if os.path.exists(file_path) else 0
-            })
+                'locations': []
+            }
+            
+            # Verificar en cada ruta de static
+            for static_path in static_paths:
+                file_path = os.path.join(static_path, file_rel_path)
+                file_info['locations'].append({
+                    'static_path': static_path,
+                    'full_path': file_path,
+                    'exists': os.path.exists(file_path),
+                    'size': os.path.getsize(file_path) if os.path.exists(file_path) else 0,
+                    'readable': os.access(file_path, os.R_OK) if os.path.exists(file_path) else False
+                })
+            
+            debug_info['files'].append(file_info)
         
         return jsonify(debug_info)
         
     except Exception as e:
         return jsonify({
             'error': str(e),
-            'status': 'error'
+            'status': 'error',
+            'traceback': traceback.format_exc()
         }), 500
 
 @app.route('/test-complete')
@@ -2605,14 +2705,29 @@ def favicon():
 def serve_static(filename):
     """Servir archivos estáticos en producción (CSS, JS, imágenes)"""
     try:
-        static_path = os.path.join(app.root_path, 'static')
-        file_path = os.path.join(static_path, filename)
+        # Múltiples rutas para buscar archivos estáticos
+        static_paths = [
+            os.path.join(app.root_path, 'static'),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'),
+            'static'  # Ruta relativa
+        ]
+        
+        file_path = None
+        used_path = None
+        
+        # Buscar el archivo en múltiples ubicaciones
+        for static_path in static_paths:
+            test_path = os.path.join(static_path, filename)
+            if os.path.exists(test_path):
+                file_path = test_path
+                used_path = static_path
+                break
         
         logger.info(f"📁 Solicitando archivo estático: {filename}")
-        logger.info(f"📂 Ruta completa: {file_path}")
-        logger.info(f"📋 Archivo existe: {os.path.exists(file_path)}")
+        logger.info(f"📂 Rutas probadas: {[os.path.join(p, filename) for p in static_paths]}")
+        logger.info(f"📋 Archivo encontrado: {file_path is not None}")
         
-        if os.path.exists(file_path):
+        if file_path and os.path.exists(file_path):
             # Determinar tipo MIME basado en la extensión
             mimetype = None
             if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
@@ -2627,7 +2742,7 @@ def serve_static(filename):
                 mimetype = 'image/x-icon'
             
             # Crear respuesta con headers apropiados
-            response = send_from_directory(static_path, filename, mimetype=mimetype)
+            response = send_from_directory(used_path, filename, mimetype=mimetype)
             
             # Agregar headers de cache para mejor rendimiento
             if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico')):
@@ -2635,10 +2750,23 @@ def serve_static(filename):
             elif filename.lower().endswith(('.css', '.js')):
                 response.headers['Cache-Control'] = 'public, max-age=86400'  # 1 día para CSS/JS
             
-            logger.info(f"✅ Archivo servido exitosamente: {filename} (tipo: {mimetype})")
+            # Headers adicionales para Railway
+            response.headers['X-Served-By'] = 'Flask-Static-Handler'
+            response.headers['X-File-Path'] = file_path
+            
+            logger.info(f"✅ Archivo servido exitosamente: {filename} (tipo: {mimetype}) desde {used_path}")
             return response
         else:
-            logger.error(f"❌ Archivo no encontrado: {file_path}")
+            logger.error(f"❌ Archivo no encontrado: {filename}")
+            logger.error(f"❌ Rutas probadas: {[os.path.join(p, filename) for p in static_paths]}")
+            
+            # Intentar servir un archivo por defecto para imágenes
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
+                default_image = os.path.join(app.root_path, 'static', 'images', 'logo.png')
+                if os.path.exists(default_image):
+                    logger.info(f"🔄 Sirviendo imagen por defecto para: {filename}")
+                    return send_from_directory(os.path.join(app.root_path, 'static', 'images'), 'logo.png')
+            
             return "Archivo no encontrado", 404
             
     except Exception as e:
@@ -3501,29 +3629,43 @@ def test_images():
     """Endpoint para probar las imágenes de la landing page"""
     import os
     
-    # Verificar existencia de archivos
-    static_path = os.path.join(app.root_path, 'static')
-    logo_path = os.path.join(static_path, 'images', 'logo.png')
-    imagen2_path = os.path.join(static_path, 'images', 'Imagen2.png')
-    css_path = os.path.join(static_path, 'css', 'styles.css')
+    # Múltiples rutas para verificar
+    static_paths = [
+        os.path.join(app.root_path, 'static'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'),
+        'static'
+    ]
     
-    files_status = {
-        'logo.png': {
-            'exists': os.path.exists(logo_path),
-            'size': os.path.getsize(logo_path) if os.path.exists(logo_path) else 0,
-            'path': logo_path
-        },
-        'Imagen2.png': {
-            'exists': os.path.exists(imagen2_path),
-            'size': os.path.getsize(imagen2_path) if os.path.exists(imagen2_path) else 0,
-            'path': imagen2_path
-        },
-        'styles.css': {
-            'exists': os.path.exists(css_path),
-            'size': os.path.getsize(css_path) if os.path.exists(css_path) else 0,
-            'path': css_path
+    files_status = {}
+    critical_files = ['images/logo.png', 'images/Imagen2.png', 'css/styles.css']
+    
+    for file_rel_path in critical_files:
+        file_info = {
+            'exists': False,
+            'size': 0,
+            'paths': [],
+            'found_in': None
         }
-    }
+        
+        for static_path in static_paths:
+            file_path = os.path.join(static_path, file_rel_path)
+            exists = os.path.exists(file_path)
+            size = os.path.getsize(file_path) if exists else 0
+            
+            file_info['paths'].append({
+                'static_path': static_path,
+                'full_path': file_path,
+                'exists': exists,
+                'size': size,
+                'readable': os.access(file_path, os.R_OK) if exists else False
+            })
+            
+            if exists and not file_info['exists']:
+                file_info['exists'] = True
+                file_info['size'] = size
+                file_info['found_in'] = static_path
+        
+        files_status[file_rel_path.split('/')[-1]] = file_info
     
     html = f'''
     <!DOCTYPE html>
@@ -5464,18 +5606,39 @@ def get_professional_schedule():
             return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
         
         try:
-            # Obtener o crear la hoja de citas
+            # Intentar usar el método optimizado primero
             try:
-                worksheet = spreadsheet.worksheet('Citas_Agenda')
-            except:
-                # Si no existe, crearla
-                headers = ['cita_id', 'profesional_id', 'paciente_id', 'paciente_nombre', 'paciente_rut',
-                          'fecha', 'hora', 'tipo_atencion', 'estado', 'notas', 'fecha_creacion', 'recordatorio']
-                worksheet = spreadsheet.add_worksheet(title='Citas_Agenda', rows=1000, cols=len(headers))
-                worksheet.append_row(headers)
-                logger.info("✅ Hoja Citas_Agenda creada")
-            
-            records = worksheet.get_all_records()
+                from backend.database.sheets_manager import sheets_db
+                
+                # Obtener agenda optimizada
+                schedule_data = sheets_db.get_professional_schedule_optimized(
+                    profesional_id, 
+                    fecha_solicitada, 
+                    fecha_solicitada
+                )
+                
+                if schedule_data and schedule_data.get('citas'):
+                    citas_del_dia = schedule_data['citas']
+                    logger.info(f"✅ Agenda obtenida con método optimizado: {len(citas_del_dia)} citas")
+                else:
+                    # Fallback al método original
+                    raise Exception("No hay datos en método optimizado")
+                    
+            except Exception as e:
+                logger.warning(f"⚠️ Método optimizado falló, usando fallback: {e}")
+                
+                # Obtener o crear la hoja de citas
+                try:
+                    worksheet = spreadsheet.worksheet('Citas_Agenda')
+                except:
+                    # Si no existe, crearla
+                    headers = ['cita_id', 'profesional_id', 'paciente_id', 'paciente_nombre', 'paciente_rut',
+                              'fecha', 'hora', 'tipo_atencion', 'estado', 'notas', 'fecha_creacion', 'recordatorio']
+                    worksheet = spreadsheet.add_worksheet(title='Citas_Agenda', rows=1000, cols=len(headers))
+                    worksheet.append_row(headers)
+                    logger.info("✅ Hoja Citas_Agenda creada")
+                
+                records = worksheet.get_all_records()
             
             # Filtrar citas del profesional y fecha
             citas_del_dia = []
@@ -5871,52 +6034,72 @@ def get_reminders():
         if not profesional_id:
             return jsonify({'success': False, 'message': 'Usuario no identificado'}), 400
         
-        # Obtener la hoja de cálculo
-        spreadsheet = get_spreadsheet()
-        if not spreadsheet:
-            return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
-        
+        # Intentar usar el método optimizado primero
         try:
-            # Obtener o crear la hoja de recordatorios
-            try:
-                worksheet = spreadsheet.worksheet('Recordatorios_Profesional')
-            except:
-                # Si no existe, crearla
-                headers = ['recordatorio_id', 'profesional_id', 'tipo', 'paciente_id', 'titulo', 'mensaje',
-                          'fecha', 'hora', 'prioridad', 'repetir', 'tipo_repeticion', 'estado', 'fecha_creacion']
-                worksheet = spreadsheet.add_worksheet(title='Recordatorios_Profesional', rows=1000, cols=len(headers))
-                worksheet.append_row(headers)
-                logger.info("✅ Hoja Recordatorios_Profesional creada")
+            from backend.database.sheets_manager import sheets_db
             
-            records = worksheet.get_all_records()
+            # Obtener recordatorios usando el método optimizado
+            recordatorios = sheets_db.get_user_active_reminders(profesional_id)
             
-            # Filtrar recordatorios del profesional y activos
-            recordatorios = []
-            for record in records:
-                if (str(record.get('profesional_id', '')) == str(profesional_id) and 
-                    record.get('estado', '') == 'activo'):
-                    recordatorios.append({
-                        'id': record.get('recordatorio_id', ''),
-                        'tipo': record.get('tipo', ''),
-                        'paciente_id': record.get('paciente_id', ''),
-                        'titulo': record.get('titulo', ''),
-                        'mensaje': record.get('mensaje', ''),
-                        'fecha': record.get('fecha', ''),
-                        'hora': record.get('hora', ''),
-                        'prioridad': record.get('prioridad', 'media'),
-                        'repetir': record.get('repetir', 'false').lower() == 'true',
-                        'tipo_repeticion': record.get('tipo_repeticion', ''),
-                        'estado': record.get('estado', 'activo')
-                    })
-            
-            return jsonify({
-                'success': True,
-                'recordatorios': recordatorios
-            })
-            
+            if recordatorios is not None:
+                logger.info(f"✅ Recordatorios obtenidos con método optimizado: {len(recordatorios)} recordatorios")
+                return jsonify({
+                    'success': True,
+                    'recordatorios': recordatorios
+                })
+            else:
+                # Fallback al método original
+                raise Exception("No hay datos en método optimizado")
+                
         except Exception as e:
-            logger.error(f"Error obteniendo recordatorios: {e}")
-            return jsonify({'success': False, 'message': f'Error al consultar los recordatorios: {str(e)}'}), 500
+            logger.warning(f"⚠️ Método optimizado falló, usando fallback: {e}")
+            
+            # Obtener la hoja de cálculo
+            spreadsheet = get_spreadsheet()
+            if not spreadsheet:
+                return jsonify({'success': False, 'message': 'Error conectando con la base de datos'}), 500
+            
+            try:
+                # Obtener o crear la hoja de recordatorios
+                try:
+                    worksheet = spreadsheet.worksheet('Recordatorios_Profesional')
+                except:
+                    # Si no existe, crearla
+                    headers = ['recordatorio_id', 'profesional_id', 'tipo', 'paciente_id', 'titulo', 'mensaje',
+                              'fecha', 'hora', 'prioridad', 'repetir', 'tipo_repeticion', 'estado', 'fecha_creacion']
+                    worksheet = spreadsheet.add_worksheet(title='Recordatorios_Profesional', rows=1000, cols=len(headers))
+                    worksheet.append_row(headers)
+                    logger.info("✅ Hoja Recordatorios_Profesional creada")
+                
+                records = worksheet.get_all_records()
+                
+                # Filtrar recordatorios del profesional y activos
+                recordatorios = []
+                for record in records:
+                    if (str(record.get('profesional_id', '')) == str(profesional_id) and 
+                        record.get('estado', '') == 'activo'):
+                        recordatorios.append({
+                            'id': record.get('recordatorio_id', ''),
+                            'tipo': record.get('tipo', ''),
+                            'paciente_id': record.get('paciente_id', ''),
+                            'titulo': record.get('titulo', ''),
+                            'mensaje': record.get('mensaje', ''),
+                            'fecha': record.get('fecha', ''),
+                            'hora': record.get('hora', ''),
+                            'prioridad': record.get('prioridad', 'media'),
+                            'repetir': record.get('repetir', 'false').lower() == 'true',
+                            'tipo_repeticion': record.get('tipo_repeticion', ''),
+                            'estado': record.get('estado', 'activo')
+                        })
+                
+                return jsonify({
+                    'success': True,
+                    'recordatorios': recordatorios
+                })
+                
+            except Exception as e:
+                logger.error(f"Error obteniendo recordatorios: {e}")
+                return jsonify({'success': False, 'message': f'Error al consultar los recordatorios: {str(e)}'}), 500
             
     except Exception as e:
         logger.error(f"Error en get_reminders: {e}")
@@ -6235,6 +6418,63 @@ def update_working_hours():
     except Exception as e:
         logger.error(f"Error en update_working_hours: {e}")
         return jsonify({'success': False, 'message': f'Error interno del servidor: {str(e)}'}), 500
+
+@app.route('/test-patients')
+def test_patients_page():
+    """Página de prueba para el endpoint de pacientes"""
+    return send_from_directory('.', 'test_patients_browser.html')
+
+@app.route('/api/monitor')
+def api_monitor():
+    """Endpoint para monitorear el uso de la API de Google Sheets"""
+    try:
+        from api_monitoring import get_api_stats, get_api_recommendations
+        
+        stats = get_api_stats()
+        recommendations = get_api_recommendations()
+        
+        monitor_data = {
+            'status': 'success',
+            'timestamp': datetime.now().isoformat(),
+            'stats': stats,
+            'recommendations': recommendations,
+            'optimization_tips': [
+                {
+                    'type': 'info',
+                    'title': 'Batch Operations',
+                    'description': 'Usa batch_get_values() y batch_update_values() para reducir llamadas a la API',
+                    'implementation': 'Ya implementado en SheetsManager'
+                },
+                {
+                    'type': 'info', 
+                    'title': 'Field Masks',
+                    'description': 'Usa get_worksheet_with_fields() para obtener solo campos específicos',
+                    'implementation': 'Disponible en SheetsManager'
+                },
+                {
+                    'type': 'warning',
+                    'title': 'Cache Duration',
+                    'description': 'Considera aumentar la duración del cache si el uso es alto',
+                    'implementation': 'Configurable en SheetsManager'
+                },
+                {
+                    'type': 'success',
+                    'title': 'Exponential Backoff',
+                    'description': 'Reintentos automáticos con backoff exponencial implementado',
+                    'implementation': 'Activo en SheetsManager'
+                }
+            ]
+        }
+        
+        return jsonify(monitor_data)
+        
+    except Exception as e:
+        logger.error(f"❌ Error en api_monitor: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
