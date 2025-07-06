@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Pacientes API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test de API de Pacientes</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Instrucciones</h3>
+        <p>Esta página te permite probar el endpoint de pacientes del profesional.</p>
+        <p><strong>Importante:</strong> Debes estar logueado como profesional para que funcione.</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Test 1: Verificar Endpoint</h3>
+        <button onclick="testEndpoint()">Probar Endpoint</button>
+        <div id="endpoint-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>👥 Test 2: Cargar Pacientes en Select</h3>
+        <button onclick="testSelect()">Probar Select</button>
+        <select id="testSelect">
+            <option value="">Seleccionar paciente...</option>
+        </select>
+        <div id="select-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>📊 Test 3: Verificar Datos</h3>
+        <button onclick="testData()">Verificar Datos</button>
+        <div id="data-result"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        async function testEndpoint() {
+            log('🔄 Probando endpoint de pacientes...');
+            showResult('endpoint-result', '🔄 Probando endpoint...', 'info');
+
+            try {
+                const response = await fetch('/api/professional/patients', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                log(`📡 Status: ${response.status} ${response.statusText}`);
+
+                if (response.status === 200) {
+                    const data = await response.json();
+                    log('📊 Datos recibidos:', data);
+
+                    if (data.success) {
+                        const pacientes = data.pacientes || [];
+                        const message = `
+                            ✅ <strong>Endpoint funcionando correctamente</strong><br>
+                            📊 Total de pacientes: ${pacientes.length}<br>
+                            📝 Datos: <pre>${JSON.stringify(data, null, 2)}</pre>
+                        `;
+                        showResult('endpoint-result', message, 'success');
+                    } else {
+                        const message = `
+                            ⚠️ <strong>Endpoint responde pero con error</strong><br>
+                            📝 Mensaje: ${data.message || 'Sin mensaje'}<br>
+                            📊 Datos: <pre>${JSON.stringify(data, null, 2)}</pre>
+                        `;
+                        showResult('endpoint-result', message, 'error');
+                    }
+                } else if (response.status === 401) {
+                    showResult('endpoint-result', '❌ Error 401: No autorizado. Debes estar logueado como profesional.', 'error');
+                } else if (response.status === 500) {
+                    showResult('endpoint-result', '❌ Error 500: Error interno del servidor.', 'error');
+                } else {
+                    showResult('endpoint-result', `⚠️ Status code inesperado: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('❌ Error:', error);
+                showResult('endpoint-result', `❌ Error de conexión: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSelect() {
+            log('🔄 Probando carga de pacientes en select...');
+            showResult('select-result', '🔄 Cargando pacientes en select...', 'info');
+
+            const select = document.getElementById('testSelect');
+            
+            // Limpiar opciones existentes (excepto la primera)
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+
+            try {
+                const response = await fetch('/api/professional/patients', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success && data.pacientes && Array.isArray(data.pacientes)) {
+                        log(`✅ Cargando ${data.pacientes.length} pacientes en select`);
+                        
+                        data.pacientes.forEach(paciente => {
+                            const option = document.createElement('option');
+                            option.value = paciente.paciente_id;
+                            option.textContent = `${paciente.nombre_completo} - ${paciente.rut}`;
+                            select.appendChild(option);
+                        });
+
+                        const message = `
+                            ✅ <strong>Select cargado correctamente</strong><br>
+                            📊 Pacientes agregados: ${data.pacientes.length}<br>
+                            🎯 Puedes seleccionar un paciente del dropdown arriba
+                        `;
+                        showResult('select-result', message, 'success');
+                    } else {
+                        const message = `
+                            ⚠️ <strong>No se recibieron pacientes válidos</strong><br>
+                            📊 Datos: <pre>${JSON.stringify(data, null, 2)}</pre>
+                        `;
+                        showResult('select-result', message, 'error');
+                    }
+                } else {
+                    showResult('select-result', `❌ Error HTTP: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('❌ Error cargando select:', error);
+                showResult('select-result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testData() {
+            log('🔄 Verificando estructura de datos...');
+            showResult('data-result', '🔄 Verificando datos...', 'info');
+
+            try {
+                const response = await fetch('/api/professional/patients', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Verificar estructura
+                    const requiredFields = ['success', 'pacientes', 'total'];
+                    const missingFields = requiredFields.filter(field => !(field in data));
+                    
+                    let message = '<h4>📊 Análisis de Datos:</h4>';
+                    
+                    if (missingFields.length === 0) {
+                        message += '✅ <strong>Estructura de respuesta correcta</strong><br>';
+                    } else {
+                        message += `⚠️ <strong>Campos faltantes:</strong> ${missingFields.join(', ')}<br>`;
+                    }
+
+                    if (data.pacientes && Array.isArray(data.pacientes)) {
+                        message += `✅ <strong>Campo pacientes es un array</strong><br>`;
+                        message += `📊 <strong>Total de pacientes:</strong> ${data.pacientes.length}<br>`;
+                        
+                        if (data.pacientes.length > 0) {
+                            const paciente = data.pacientes[0];
+                            const pacienteFields = ['paciente_id', 'nombre_completo', 'rut', 'edad'];
+                            const missingPacienteFields = pacienteFields.filter(field => !(field in paciente));
+                            
+                            if (missingPacienteFields.length === 0) {
+                                message += '✅ <strong>Estructura de paciente correcta</strong><br>';
+                            } else {
+                                message += `⚠️ <strong>Campos faltantes en paciente:</strong> ${missingPacienteFields.join(', ')}<br>`;
+                            }
+                            
+                            message += `<h5>📋 Primer paciente:</h5><pre>${JSON.stringify(paciente, null, 2)}</pre>`;
+                        }
+                    } else {
+                        message += '❌ <strong>Campo pacientes no es un array válido</strong><br>';
+                    }
+
+                    message += `<h5>📋 Respuesta completa:</h5><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                    
+                    showResult('data-result', message, 'info');
+                } else {
+                    showResult('data-result', `❌ Error HTTP: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('❌ Error verificando datos:', error);
+                showResult('data-result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Ejecutar test automáticamente al cargar la página
+        window.addEventListener('load', () => {
+            log('🚀 Página cargada, ejecutando test automático...');
+            setTimeout(() => {
+                testEndpoint();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

@@ -11,6 +11,8 @@ from typing import Dict, List, Optional, Any
 from config import Config, SHEETS_STANDARD_CONFIG
 import os
 import uuid
+import json
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -23,49 +25,166 @@ class SheetsManager:
         """Inicializa la conexión con Google Sheets"""
         self.gc = None
         self.spreadsheet = None
+        self.last_request_time = 0
+        self.request_count = 0
+        self.cache = {}
+        self.cache_duration = 30  # segundos
+        self.max_requests_per_minute = 50  # Límite conservador
         self.connect()
     
-    def connect(self):
-        """Establece conexión con Google Sheets"""
+    def _rate_limit(self):
+        """Implementa rate limiting para evitar exceder límites de API"""
+        current_time = time.time()
+        
+        # Resetear contador si ha pasado más de 1 minuto
+        if current_time - self.last_request_time > 60:
+            self.request_count = 0
+            self.last_request_time = current_time
+        
+        # Si hemos alcanzado el límite, esperar
+        if self.request_count >= self.max_requests_per_minute:
+            wait_time = 60 - (current_time - self.last_request_time)
+            if wait_time > 0:
+                logger.warning(f"⚠️ Rate limit alcanzado, esperando {wait_time:.2f} segundos")
+                time.sleep(wait_time)
+                self.request_count = 0
+                self.last_request_time = time.time()
+        
+        self.request_count += 1
+        
+        # Logging para monitoreo
         try:
-            # Configurar credenciales
-            scopes = [
-                'https://www.googleapis.com/auth/spreadsheets',
-                'https://www.googleapis.com/auth/drive'
-            ]
+            from api_monitoring import log_api_request
+            log_api_request("sheets.values.get", success=True)
+        except Exception as e:
+            logger.debug(f"No se pudo registrar request: {e}")
+    
+    def _get_cache_key(self, method, *args):
+        """Genera una clave única para el cache"""
+        return f"{method}_{'_'.join(str(arg) for arg in args)}"
+    
+    def _get_from_cache(self, cache_key):
+        """Obtiene datos del cache si están disponibles y no han expirado"""
+        if cache_key in self.cache:
+            cached_data, timestamp = self.cache[cache_key]
+            if time.time() - timestamp < self.cache_duration:
+                logger.debug(f"📋 Datos obtenidos del cache: {cache_key}")
+                return cached_data
+            else:
+                # Eliminar cache expirado
+                del self.cache[cache_key]
+        return None
+    
+    def _set_cache(self, cache_key, data):
+        """Guarda datos en el cache"""
+        self.cache[cache_key] = (data, time.time())
+        logger.debug(f"💾 Datos guardados en cache: {cache_key}")
+        
+        # Limpiar cache si es muy grande (más de 100 entradas)
+        if len(self.cache) > 100:
+            oldest_key = min(self.cache.keys(), key=lambda k: self.cache[k][1])
+            del self.cache[oldest_key]
+    
+    def connect(self):
+        """Conecta con Google Sheets con manejo de errores mejorado"""
+        try:
+            # Rate limiting antes de conectar
+            self._rate_limit()
             
-            # Verificar si tenemos credenciales en variable de entorno (Railway)
+            # Configurar credenciales
             if os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON'):
-                import json
                 service_account_info = json.loads(os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON'))
-                creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
-                logger.info("✅ Credenciales cargadas desde GOOGLE_SERVICE_ACCOUNT_JSON")
-            elif Config.GOOGLE_CREDENTIALS_FILE and os.path.exists(Config.GOOGLE_CREDENTIALS_FILE):
-                # Usar archivo de credenciales local
-                creds = Credentials.from_service_account_file(
-                    Config.GOOGLE_CREDENTIALS_FILE, 
+                # Agregar scopes específicos para Google Sheets
+                scopes = [
+                    'https://www.googleapis.com/auth/spreadsheets',
+                    'https://www.googleapis.com/auth/drive'
+                ]
+                creds = Credentials.from_service_account_info(
+                    service_account_info,
                     scopes=scopes
                 )
-                logger.info("✅ Credenciales cargadas desde archivo local")
+                logger.info("✅ Credenciales cargadas desde GOOGLE_SERVICE_ACCOUNT_JSON")
             else:
-                raise Exception("❌ No se encontraron credenciales de Google Sheets")
+                logger.error("❌ GOOGLE_SERVICE_ACCOUNT_JSON no configurado")
+                return False
             
+            # Crear cliente con retry automático
             self.gc = gspread.authorize(creds)
-            self.spreadsheet = self.gc.open_by_key(Config.GOOGLE_SHEETS_ID)
             
-            logger.info("✅ Conexión exitosa con Google Sheets")
+            # Intentar conectar con retry
+            max_retries = 3
+            retry_delay = 2
+            
+            for attempt in range(max_retries):
+                try:
+                    self.spreadsheet = self.gc.open_by_key(Config.GOOGLE_SHEETS_ID)
+                    logger.info("✅ Conexión exitosa con Google Sheets")
+                    return True
+                except Exception as e:
+                    if "429" in str(e) or "quota" in str(e).lower():
+                        wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                        logger.warning(f"⚠️ Rate limit detectado, esperando {wait_time} segundos (intento {attempt + 1}/{max_retries})")
+                        time.sleep(wait_time)
+                    else:
+                        logger.error(f"❌ Error conectando con Google Sheets: {e}")
+                        return False
+            
+            logger.error("❌ No se pudo conectar después de múltiples intentos")
+            return False
             
         except Exception as e:
-            logger.error(f"❌ Error conectando con Google Sheets: {e}")
-            raise
+            logger.error(f"❌ Error en connect(): {e}")
+            return False
     
     def get_worksheet(self, sheet_name: str):
-        """Obtiene una hoja específica del spreadsheet"""
+        """Obtiene una hoja específica del spreadsheet con cache"""
         try:
-            return self.spreadsheet.worksheet(sheet_name)
+            # Rate limiting
+            self._rate_limit()
+            
+            # Intentar obtener del cache
+            cache_key = self._get_cache_key("worksheet", sheet_name)
+            cached_worksheet = self._get_from_cache(cache_key)
+            if cached_worksheet:
+                return cached_worksheet
+            
+            # Si no está en cache, obtener de la API con retry
+            max_retries = 3
+            retry_delay = 2
+            
+            for attempt in range(max_retries):
+                try:
+                    worksheet = self.spreadsheet.worksheet(sheet_name)
+                    
+                    # Guardar en cache
+                    self._set_cache(cache_key, worksheet)
+                    
+                    return worksheet
+                    
+                except Exception as e:
+                    if "429" in str(e) or "quota" in str(e).lower():
+                        wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                        logger.warning(f"⚠️ Rate limit en get_worksheet, esperando {wait_time}s (intento {attempt + 1}/{max_retries})")
+                        time.sleep(wait_time)
+                        
+                        # Logging para monitoreo
+                        try:
+                            from api_monitoring import log_api_request
+                            log_api_request("sheets.values.get", success=False, error_type="429")
+                        except Exception:
+                            pass
+                    else:
+                        raise e
+            
+            logger.error(f"❌ No se pudo obtener worksheet después de {max_retries} intentos")
+            return None
+            
         except gspread.WorksheetNotFound:
             # Si no existe, la creamos
             return self.create_worksheet(sheet_name)
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo worksheet '{sheet_name}': {e}")
+            return None
     
     def create_worksheet(self, sheet_name: str):
         """Crea una nueva hoja con headers según el tipo"""
@@ -414,11 +533,11 @@ class SheetsManager:
                 family_data.get('parentesco', ''),
                 family_data.get('telefono', ''),
                 family_data.get('email', ''),
-                                 family_data.get('telegram_id', ''),  # Nuevo campo para telegram_id del familiar
-                 family_data.get('permisos', 'lectura'),  # lectura, escritura, admin
-                 datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                 'activo',
-                 family_data.get('notificaciones', 'true')  # Recibir notificaciones
+                family_data.get('telegram_id', ''),  # Nuevo campo para telegram_id del familiar
+                family_data.get('permisos', 'lectura'),  # lectura, escritura, admin
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'activo',
+                family_data.get('notificaciones', 'true')  # Recibir notificaciones
             ]
             
             worksheet.append_row(row_data)
@@ -1004,6 +1123,576 @@ class SheetsManager:
             return worksheet.get_all_records()
         except Exception as e:
             logger.error(f"Error obteniendo registros de {sheet_name}: {e}")
+            return []
+
+    def batch_get_values(self, ranges: List[str], major_dimension: str = 'ROWS'):
+        """
+        Obtiene múltiples rangos de valores en una sola llamada
+        Usa spreadsheets.values.batchGet para optimizar
+        """
+        try:
+            self._rate_limit()
+            
+            # Verificar que el spreadsheet esté disponible
+            if not self.spreadsheet:
+                logger.warning("⚠️ Spreadsheet no disponible, reconectando...")
+                if not self.connect():
+                    logger.error("❌ No se pudo reconectar al spreadsheet")
+                    return None
+            
+            # Crear clave de cache para batch
+            cache_key = self._get_cache_key("batch_get", str(ranges), major_dimension)
+            cached_data = self._get_from_cache(cache_key)
+            if cached_data:
+                return cached_data
+            
+            # Usar batchGet para múltiples rangos
+            result = self.spreadsheet.values().batchGet(
+                ranges=ranges,
+                majorDimension=major_dimension
+            ).execute()
+            
+            # Guardar en cache
+            self._set_cache(cache_key, result)
+            
+            logger.info(f"✅ Batch get ejecutado para {len(ranges)} rangos")
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Error en batch_get_values: {e}")
+            
+            # Si es error 429, esperar y reintentar
+            if "429" in str(e) or "quota" in str(e).lower():
+                logger.warning("⚠️ Rate limit detectado en batch_get_values, esperando...")
+                time.sleep(5)  # Esperar 5 segundos
+                
+                # Reintentar una vez
+                try:
+                    if self.spreadsheet:
+                        result = self.spreadsheet.values().batchGet(
+                            ranges=ranges,
+                            majorDimension=major_dimension
+                        ).execute()
+                        logger.info("✅ Batch get exitoso después de reintento")
+                        return result
+                except Exception as retry_error:
+                    logger.error(f"❌ Error en reintento de batch_get_values: {retry_error}")
+            
+            return None
+    
+    def batch_update_values(self, updates: List[Dict]):
+        """
+        Actualiza múltiples rangos en una sola llamada
+        Usa spreadsheets.values.batchUpdate para optimizar
+        """
+        try:
+            self._rate_limit()
+            
+            # Preparar datos para batchUpdate
+            data = []
+            for update in updates:
+                data.append({
+                    'range': update['range'],
+                    'values': update['values']
+                })
+            
+            # Ejecutar batchUpdate
+            result = self.spreadsheet.values().batchUpdate(
+                body={
+                    'valueInputOption': 'USER_ENTERED',
+                    'data': data
+                }
+            ).execute()
+            
+            logger.info(f"✅ Batch update ejecutado para {len(updates)} rangos")
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Error en batch_update_values: {e}")
+            return None
+    
+    def get_worksheet_with_fields(self, sheet_name: str, fields: List[str] = None):
+        """
+        Obtiene una hoja con campos específicos usando field masks
+        Reduce la cantidad de datos transferidos
+        """
+        try:
+            self._rate_limit()
+            
+            # Crear clave de cache con campos
+            cache_key = self._get_cache_key("worksheet_fields", sheet_name, str(fields))
+            cached_data = self._get_from_cache(cache_key)
+            if cached_data:
+                return cached_data
+            
+            # Obtener worksheet con field mask si se especifica
+            if fields:
+                # Usar field mask para obtener solo campos específicos
+                worksheet = self.spreadsheet.worksheet(sheet_name)
+                # Nota: gspread no soporta field masks directamente
+                # Esta es una implementación básica
+                all_values = worksheet.get_all_values()
+                
+                # Filtrar por campos si es necesario
+                if all_values and fields:
+                    headers = all_values[0]
+                    field_indices = [headers.index(field) for field in fields if field in headers]
+                    filtered_values = []
+                    for row in all_values:
+                        filtered_row = [row[i] for i in field_indices if i < len(row)]
+                        filtered_values.append(filtered_row)
+                    
+                    result = {'values': filtered_values, 'fields': fields}
+                else:
+                    result = {'values': all_values, 'fields': fields}
+            else:
+                # Obtener worksheet completo
+                worksheet = self.spreadsheet.worksheet(sheet_name)
+                result = {'values': worksheet.get_all_values(), 'fields': None}
+            
+            # Guardar en cache
+            self._set_cache(cache_key, result)
+            
+            logger.info(f"✅ Worksheet obtenido con fields: {fields}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo worksheet con fields: {e}")
+            return None
+    
+    def optimized_get_all_records(self, sheet_name: str, fields: List[str] = None):
+        """
+        Versión optimizada de get_all_records con field masks
+        """
+        try:
+            result = self.get_worksheet_with_fields(sheet_name, fields)
+            if not result or 'values' not in result:
+                return []
+            
+            values = result['values']
+            if not values:
+                return []
+            
+            # Convertir a records
+            headers = values[0]
+            records = []
+            
+            for row in values[1:]:
+                record = {}
+                for i, header in enumerate(headers):
+                    if i < len(row):
+                        record[header] = row[i]
+                    else:
+                        record[header] = ''
+                records.append(record)
+            
+            logger.info(f"✅ Records optimizados obtenidos: {len(records)} registros")
+            return records
+            
+        except Exception as e:
+            logger.error(f"❌ Error en optimized_get_all_records: {e}")
+            return []
+
+    def optimized_get_user_data(self, user_id: str):
+        """
+        Obtiene todos los datos de un usuario en una sola operación batch
+        """
+        try:
+            # Definir rangos para obtener todos los datos del usuario
+            ranges = [
+                f"Usuarios!A:L",  # Datos básicos del usuario
+                f"Atenciones_Medicas!A:N",  # Atenciones médicas
+                f"Medicamentos!A:K",  # Medicamentos
+                f"Examenes!A:I",  # Exámenes
+                f"Familiares!A:H"  # Familiares autorizados
+            ]
+            
+            # Obtener todos los datos en batch
+            batch_result = self.batch_get_values(ranges)
+            if not batch_result or 'valueRanges' not in batch_result:
+                return None
+            
+            # Procesar resultados
+            user_data = {
+                'user_info': None,
+                'atenciones': [],
+                'medicamentos': [],
+                'examenes': [],
+                'familiares': []
+            }
+            
+            # Procesar cada rango
+            for i, value_range in enumerate(batch_result['valueRanges']):
+                values = value_range.get('values', [])
+                if not values:
+                    continue
+                
+                headers = values[0]
+                records = []
+                
+                for row in values[1:]:
+                    record = {}
+                    for j, header in enumerate(headers):
+                        if j < len(row):
+                            record[header] = row[j]
+                        else:
+                            record[header] = ''
+                    records.append(record)
+                
+                # Asignar a la estructura correspondiente
+                if i == 0:  # Usuarios
+                    user_data['user_info'] = next((r for r in records if r.get('user_id') == user_id), None)
+                elif i == 1:  # Atenciones
+                    user_data['atenciones'] = [r for r in records if r.get('user_id') == user_id]
+                elif i == 2:  # Medicamentos
+                    user_data['medicamentos'] = [r for r in records if r.get('user_id') == user_id]
+                elif i == 3:  # Exámenes
+                    user_data['examenes'] = [r for r in records if r.get('user_id') == user_id]
+                elif i == 4:  # Familiares
+                    user_data['familiares'] = [r for r in records if r.get('user_id') == user_id]
+            
+            logger.info(f"✅ Datos de usuario obtenidos en batch: {user_id}")
+            return user_data
+            
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo datos de usuario en batch: {e}")
+            return None
+    
+    def optimized_create_multiple_records(self, sheet_name: str, records: List[Dict]):
+        """
+        Crea múltiples registros en una sola operación batch
+        """
+        try:
+            if not records:
+                return []
+            
+            # Obtener headers de la hoja
+            worksheet = self.get_worksheet(sheet_name)
+            if not worksheet:
+                return []
+            
+            # Preparar datos para batch update
+            values = []
+            for record in records:
+                row = []
+                for key, value in record.items():
+                    row.append(str(value) if value is not None else '')
+                values.append(row)
+            
+            # Ejecutar batch update
+            update_data = [{
+                'range': f"{sheet_name}!A:Z",  # Rango dinámico
+                'values': values
+            }]
+            
+            result = self.batch_update_values(update_data)
+            
+            if result:
+                logger.info(f"✅ {len(records)} registros creados en batch en {sheet_name}")
+                return [f"Record_{i}" for i in range(len(records))]
+            else:
+                logger.error(f"❌ Error creando registros en batch en {sheet_name}")
+                return []
+                
+        except Exception as e:
+            logger.error(f"❌ Error en optimized_create_multiple_records: {e}")
+            return []
+    
+    def optimized_update_multiple_records(self, sheet_name: str, updates: List[Dict]):
+        """
+        Actualiza múltiples registros en una sola operación batch
+        """
+        try:
+            if not updates:
+                return False
+            
+            # Preparar datos para batch update
+            batch_updates = []
+            
+            for update in updates:
+                record_id = update.get('id')
+                if not record_id:
+                    continue
+                
+                # Encontrar la fila del registro
+                worksheet = self.get_worksheet(sheet_name)
+                if not worksheet:
+                    continue
+                
+                all_values = worksheet.get_all_values()
+                headers = all_values[0] if all_values else []
+                
+                # Buscar la fila del registro
+                row_index = None
+                for i, row in enumerate(all_values[1:], start=2):
+                    if row and len(row) > 0 and str(row[0]) == str(record_id):
+                        row_index = i
+                        break
+                
+                if row_index:
+                    # Preparar actualización
+                    for field, value in update.items():
+                        if field != 'id' and field in headers:
+                            col_index = headers.index(field) + 1
+                            batch_updates.append({
+                                'range': f"{sheet_name}!{chr(64 + col_index)}{row_index}",
+                                'values': [[str(value)]]
+                            })
+            
+            # Ejecutar batch update
+            if batch_updates:
+                result = self.batch_update_values(batch_updates)
+                if result:
+                    logger.info(f"✅ {len(updates)} registros actualizados en batch en {sheet_name}")
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"❌ Error en optimized_update_multiple_records: {e}")
+            return False
+    
+    def get_professional_schedule_optimized(self, professional_id: str, fecha_inicio: str = None, fecha_fin: str = None):
+        """
+        Obtiene la agenda del profesional de manera optimizada usando batch operations
+        """
+        try:
+            # Rate limiting
+            self._rate_limit()
+            
+            # Crear clave de cache
+            cache_key = self._get_cache_key("schedule", professional_id, fecha_inicio, fecha_fin)
+            cached_data = self._get_from_cache(cache_key)
+            if cached_data:
+                return cached_data
+            
+            # Verificar que el spreadsheet esté disponible
+            if not self.spreadsheet:
+                logger.warning("⚠️ Spreadsheet no disponible en get_professional_schedule_optimized")
+                return []
+            
+            # Obtener datos en batch
+            ranges = [
+                "Citas!A:Z",  # Todas las citas
+                "Profesionales!A:L"  # Información de profesionales
+            ]
+            
+            batch_result = self.batch_get_values(ranges)
+            if not batch_result or 'valueRanges' not in batch_result:
+                logger.warning("⚠️ No se pudieron obtener datos en batch, usando método individual")
+                return self.get_professional_schedule_fallback(professional_id, fecha_inicio, fecha_fin)
+            
+            # Procesar resultados
+            citas = []
+            profesionales = {}
+            
+            # Procesar citas
+            if len(batch_result['valueRanges']) > 0:
+                citas_values = batch_result['valueRanges'][0].get('values', [])
+                if citas_values:
+                    headers = citas_values[0]
+                    for row in citas_values[1:]:
+                        if len(row) >= len(headers):
+                            cita = {}
+                            for i, header in enumerate(headers):
+                                if i < len(row):
+                                    cita[header] = row[i]
+                                else:
+                                    cita[header] = ''
+                            
+                            # Filtrar por profesional y fechas
+                            if cita.get('profesional_id') == professional_id:
+                                if fecha_inicio and fecha_fin:
+                                    fecha_cita = cita.get('fecha', '')
+                                    if fecha_inicio <= fecha_cita <= fecha_fin:
+                                        citas.append(cita)
+                                else:
+                                    citas.append(cita)
+            
+            # Procesar profesionales
+            if len(batch_result['valueRanges']) > 1:
+                prof_values = batch_result['valueRanges'][1].get('values', [])
+                if prof_values:
+                    headers = prof_values[0]
+                    for row in prof_values[1:]:
+                        if len(row) >= len(headers):
+                            prof = {}
+                            for i, header in enumerate(headers):
+                                if i < len(row):
+                                    prof[header] = row[i]
+                                else:
+                                    prof[header] = ''
+                            profesionales[prof.get('id', '')] = prof
+            
+            # Guardar en cache
+            result = {
+                'citas': citas,
+                'profesional': profesionales.get(professional_id, {})
+            }
+            self._set_cache(cache_key, result)
+            
+            logger.info(f"✅ Agenda optimizada obtenida para profesional {professional_id}: {len(citas)} citas")
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo agenda optimizada: {e}")
+            return self.get_professional_schedule_fallback(professional_id, fecha_inicio, fecha_fin)
+    
+    def get_professional_schedule_fallback(self, professional_id: str, fecha_inicio: str = None, fecha_fin: str = None):
+        """
+        Método de fallback para obtener agenda usando métodos individuales
+        """
+        try:
+            logger.info(f"🔄 Usando método de fallback para agenda del profesional {professional_id}")
+            
+            citas = []
+            profesional = {}
+            
+            # Obtener citas individualmente
+            try:
+                worksheet = self.get_worksheet('Citas')
+                if worksheet:
+                    all_citas = worksheet.get_all_records()
+                    for cita in all_citas:
+                        if cita.get('profesional_id') == professional_id:
+                            if fecha_inicio and fecha_fin:
+                                fecha_cita = cita.get('fecha', '')
+                                if fecha_inicio <= fecha_cita <= fecha_fin:
+                                    citas.append(cita)
+                            else:
+                                citas.append(cita)
+            except Exception as e:
+                logger.error(f"❌ Error obteniendo citas en fallback: {e}")
+            
+            # Obtener información del profesional
+            try:
+                prof_worksheet = self.get_worksheet('Profesionales')
+                if prof_worksheet:
+                    all_profesionales = prof_worksheet.get_all_records()
+                    profesional = next(
+                        (p for p in all_profesionales if p.get('id') == professional_id),
+                        {}
+                    )
+            except Exception as e:
+                logger.error(f"❌ Error obteniendo profesional en fallback: {e}")
+            
+            result = {
+                'citas': citas,
+                'profesional': profesional
+            }
+            
+            logger.info(f"✅ Fallback exitoso: {len(citas)} citas encontradas")
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Error en método de fallback: {e}")
+            return {'citas': [], 'profesional': {}}
+    
+    def get_user_active_reminders(self, user_id: str):
+        """
+        Obtiene los recordatorios activos de un usuario de manera optimizada
+        """
+        try:
+            self._rate_limit()
+            
+            # Crear clave de cache
+            cache_key = self._get_cache_key("reminders", user_id)
+            cached_data = self._get_from_cache(cache_key)
+            if cached_data:
+                return cached_data
+            
+            # Verificar que el spreadsheet esté disponible
+            if not self.spreadsheet:
+                logger.warning("⚠️ Spreadsheet no disponible en get_user_active_reminders")
+                return None
+            
+            # Obtener recordatorios usando batch
+            ranges = ["Recordatorios_Profesional!A:M"]
+            batch_result = self.batch_get_values(ranges)
+            
+            if not batch_result or 'valueRanges' not in batch_result:
+                logger.warning("⚠️ No se pudieron obtener recordatorios en batch")
+                return self.get_user_active_reminders_fallback(user_id)
+            
+            # Procesar resultados
+            recordatorios = []
+            if len(batch_result['valueRanges']) > 0:
+                values = batch_result['valueRanges'][0].get('values', [])
+                if values:
+                    headers = values[0]
+                    for row in values[1:]:
+                        if len(row) >= len(headers):
+                            recordatorio = {}
+                            for i, header in enumerate(headers):
+                                if i < len(row):
+                                    recordatorio[header] = row[i]
+                                else:
+                                    recordatorio[header] = ''
+                            
+                            # Filtrar por usuario y estado activo
+                            if (str(recordatorio.get('profesional_id', '')) == str(user_id) and 
+                                recordatorio.get('estado', '') == 'activo'):
+                                recordatorios.append({
+                                    'id': recordatorio.get('recordatorio_id', ''),
+                                    'tipo': recordatorio.get('tipo', ''),
+                                    'paciente_id': recordatorio.get('paciente_id', ''),
+                                    'titulo': recordatorio.get('titulo', ''),
+                                    'mensaje': recordatorio.get('mensaje', ''),
+                                    'fecha': recordatorio.get('fecha', ''),
+                                    'hora': recordatorio.get('hora', ''),
+                                    'prioridad': recordatorio.get('prioridad', 'media'),
+                                    'repetir': recordatorio.get('repetir', 'false').lower() == 'true',
+                                    'tipo_repeticion': recordatorio.get('tipo_repeticion', ''),
+                                    'estado': recordatorio.get('estado', 'activo')
+                                })
+            
+            # Guardar en cache
+            self._set_cache(cache_key, recordatorios)
+            
+            logger.info(f"✅ Recordatorios obtenidos para usuario {user_id}: {len(recordatorios)} recordatorios")
+            return recordatorios
+            
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo recordatorios optimizados: {e}")
+            return self.get_user_active_reminders_fallback(user_id)
+    
+    def get_user_active_reminders_fallback(self, user_id: str):
+        """
+        Método de fallback para obtener recordatorios usando métodos individuales
+        """
+        try:
+            logger.info(f"🔄 Usando método de fallback para recordatorios del usuario {user_id}")
+            
+            recordatorios = []
+            
+            try:
+                worksheet = self.get_worksheet('Recordatorios_Profesional')
+                if worksheet:
+                    all_records = worksheet.get_all_records()
+                    for record in all_records:
+                        if (str(record.get('profesional_id', '')) == str(user_id) and 
+                            record.get('estado', '') == 'activo'):
+                            recordatorios.append({
+                                'id': record.get('recordatorio_id', ''),
+                                'tipo': record.get('tipo', ''),
+                                'paciente_id': record.get('paciente_id', ''),
+                                'titulo': record.get('titulo', ''),
+                                'mensaje': record.get('mensaje', ''),
+                                'fecha': record.get('fecha', ''),
+                                'hora': record.get('hora', ''),
+                                'prioridad': record.get('prioridad', 'media'),
+                                'repetir': record.get('repetir', 'false').lower() == 'true',
+                                'tipo_repeticion': record.get('tipo_repeticion', ''),
+                                'estado': record.get('estado', 'activo')
+                            })
+            except Exception as e:
+                logger.error(f"❌ Error obteniendo recordatorios en fallback: {e}")
+            
+            logger.info(f"✅ Fallback exitoso: {len(recordatorios)} recordatorios encontrados")
+            return recordatorios
+            
+        except Exception as e:
+            logger.error(f"❌ Error en método de fallback de recordatorios: {e}")
             return []
 
 # Instancia global del gestor
