@@ -1,7 +1,25 @@
 document.addEventListener('DOMContentLoaded', function () {
     initializeTooltips();
     setupImageUpload();
+    setupReportesNavigation();
 });
+
+// Configurar navegación a la sección de reportes
+function setupReportesNavigation() {
+    // Verificar si hay un hash en la URL que apunte a reportes
+    if (window.location.hash === '#reportes') {
+        // Hacer scroll suave a la sección de reportes
+        setTimeout(() => {
+            const reportesSection = document.getElementById('reportes');
+            if (reportesSection) {
+                reportesSection.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        }, 500); // Pequeño delay para asegurar que el DOM esté listo
+    }
+}
 
 // Inicializar tooltips de Bootstrap
 function initializeTooltips() {
@@ -484,4 +502,5 @@ async function guardarArea() {
     } catch (error) {
         showNotification(error.message, 'error');
     }
-} 
+}
+
