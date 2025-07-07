@@ -872,6 +872,27 @@ def profile():
         logger.error(f"❌ Traceback: {traceback.format_exc()}")
         return render_template('profile.html', user={})
 
+@app.route('/reports')
+@login_required
+def reports():
+    """Página de reportes para profesionales"""
+    try:
+        user_data = session.get('user_data', {})
+        if not user_data:
+            return redirect(url_for('login'))
+        
+        # Verificar que sea un profesional
+        if user_data.get('tipo_usuario') != 'profesional':
+            return redirect(url_for('professional_dashboard'))
+        
+        logger.info(f"🔍 Datos del usuario en reportes: {user_data}")
+        
+        return render_template('reports.html', user=user_data)
+        
+    except Exception as e:
+        logger.error(f"Error en reports: {e}")
+        return redirect(url_for('login'))
+
 @app.route('/services')
 @login_required
 def services():
@@ -6475,6 +6496,318 @@ def api_monitor():
             'error': str(e),
             'timestamp': datetime.now().isoformat()
         }), 500
+
+# ===== ENDPOINTS DE REPORTES =====
+
+@app.route('/api/professional/reports', methods=['POST'])
+@login_required
+def generate_professional_reports():
+    """Generar reportes para el profesional"""
+    try:
+        data = request.get_json()
+        periodo = data.get('periodo', 30)
+        tipo = data.get('tipo', 'atenciones')
+        
+        # Obtener datos del profesional actual
+        user = get_current_user()
+        professional_id = user.get('id')
+        
+        # Calcular fechas
+        fecha_fin = datetime.now()
+        fecha_inicio = fecha_fin - timedelta(days=periodo)
+        
+        # Obtener datos según el tipo de reporte
+        if tipo == 'atenciones':
+            datos = obtener_datos_atenciones(professional_id, fecha_inicio, fecha_fin)
+        elif tipo == 'pacientes':
+            datos = obtener_datos_pacientes(professional_id, fecha_inicio, fecha_fin)
+        elif tipo == 'ingresos':
+            datos = obtener_datos_ingresos(professional_id, fecha_inicio, fecha_fin)
+        elif tipo == 'productividad':
+            datos = obtener_datos_productividad(professional_id, fecha_inicio, fecha_fin)
+        else:
+            return jsonify({'error': 'Tipo de reporte no válido'}), 400
+        
+        # Calcular estadísticas
+        estadisticas = calcular_estadisticas_reporte(datos, tipo)
+        
+        return jsonify({
+            'estadisticas': estadisticas,
+            'datos': datos
+        })
+        
+    except Exception as e:
+        logger.error(f"Error generando reporte: {str(e)}")
+        return jsonify({'error': 'Error al generar reporte'}), 500
+
+@app.route('/api/professional/reports/export', methods=['POST'])
+@login_required
+def export_professional_report():
+    """Exportar reporte en diferentes formatos"""
+    try:
+        data = request.get_json()
+        periodo = data.get('periodo', 30)
+        tipo = data.get('tipo', 'atenciones')
+        formato = data.get('formato', 'pdf')
+        
+        # Obtener datos del profesional actual
+        user = get_current_user()
+        professional_id = user.get('id')
+        
+        # Calcular fechas
+        fecha_fin = datetime.now()
+        fecha_inicio = fecha_fin - timedelta(days=periodo)
+        
+        # Obtener datos
+        datos = obtener_datos_atenciones(professional_id, fecha_inicio, fecha_fin)
+        estadisticas = calcular_estadisticas_reporte(datos, tipo)
+        
+        # Generar archivo según formato
+        if formato == 'pdf':
+            return generar_pdf_reporte(datos, estadisticas, tipo)
+        elif formato == 'excel':
+            return generar_excel_reporte(datos, estadisticas, tipo)
+        elif formato == 'csv':
+            return generar_csv_reporte(datos, estadisticas, tipo)
+        else:
+            return jsonify({'error': 'Formato no soportado'}), 400
+            
+    except Exception as e:
+        logger.error(f"Error exportando reporte: {str(e)}")
+        return jsonify({'error': 'Error al exportar reporte'}), 500
+
+# Funciones auxiliares para reportes
+def obtener_datos_atenciones(professional_id, fecha_inicio, fecha_fin):
+    """Obtener datos de atenciones para el reporte"""
+    try:
+        from backend.database.sheets_manager import SheetsManager
+        sheets_manager = SheetsManager()
+        atenciones = sheets_manager.get_atenciones_by_professional(professional_id)
+        
+        # Filtrar por fecha
+        datos_filtrados = []
+        for atencion in atenciones:
+            try:
+                fecha_atencion = datetime.strptime(atencion.get('fecha_hora', ''), '%Y-%m-%dT%H:%M')
+                if fecha_inicio <= fecha_atencion <= fecha_fin:
+                    datos_filtrados.append({
+                        'fecha': atencion.get('fecha_hora', ''),
+                        'paciente': atencion.get('nombre_paciente', ''),
+                        'tipo': atencion.get('tipo_atencion', ''),
+                        'estado': atencion.get('estado', ''),
+                        'duracion': atencion.get('duracion', '')
+                    })
+            except ValueError:
+                # Si no se puede parsear la fecha, saltar
+                continue
+        
+        return datos_filtrados
+        
+    except Exception as e:
+        logger.error(f"Error obteniendo datos de atenciones: {str(e)}")
+        return []
+
+def obtener_datos_pacientes(professional_id, fecha_inicio, fecha_fin):
+    """Obtener datos de pacientes para el reporte"""
+    try:
+        from backend.database.sheets_manager import SheetsManager
+        sheets_manager = SheetsManager()
+        pacientes = sheets_manager.get_patients_by_professional(professional_id)
+        
+        datos_filtrados = []
+        for paciente in pacientes:
+            datos_filtrados.append({
+                'nombre': paciente.get('nombre_completo', ''),
+                'edad': paciente.get('edad', ''),
+                'genero': paciente.get('genero', ''),
+                'ultima_consulta': paciente.get('ultima_consulta', ''),
+                'total_atenciones': paciente.get('num_atenciones', 0)
+            })
+        
+        return datos_filtrados
+        
+    except Exception as e:
+        logger.error(f"Error obteniendo datos de pacientes: {str(e)}")
+        return []
+
+def obtener_datos_ingresos(professional_id, fecha_inicio, fecha_fin):
+    """Obtener datos de ingresos para el reporte (simulado)"""
+    # Por ahora simulamos datos de ingresos
+    return [
+        {
+            'fecha': '2025-07-01',
+            'concepto': 'Consulta General',
+            'monto': '$50.000',
+            'estado': 'Pagado',
+            'metodo_pago': 'Transferencia'
+        },
+        {
+            'fecha': '2025-07-02',
+            'concepto': 'Control',
+            'monto': '$30.000',
+            'estado': 'Pendiente',
+            'metodo_pago': 'Efectivo'
+        }
+    ]
+
+def obtener_datos_productividad(professional_id, fecha_inicio, fecha_fin):
+    """Obtener datos de productividad para el reporte (simulado)"""
+    # Por ahora simulamos datos de productividad
+    return [
+        {
+            'fecha': '2025-07-01',
+            'atenciones': 5,
+            'horas_trabajadas': 8,
+            'eficiencia': '85%',
+            'calificacion': '4.8'
+        },
+        {
+            'fecha': '2025-07-02',
+            'atenciones': 3,
+            'horas_trabajadas': 6,
+            'eficiencia': '90%',
+            'calificacion': '4.9'
+        }
+    ]
+
+def calcular_estadisticas_reporte(datos, tipo):
+    """Calcular estadísticas del reporte"""
+    if not datos:
+        return {
+            'total': 0,
+            'promedio': 0,
+            'maximo': 0,
+            'crecimiento': 0,
+            'tendencia': []
+        }
+    
+    # Calcular estadísticas básicas
+    total = len(datos)
+    
+    # Simular datos de tendencia
+    import random
+    tendencia = [random.randint(1, 10) for _ in range(7)]
+    
+    return {
+        'total': total,
+        'promedio': round(total / 7, 1) if total > 0 else 0,
+        'maximo': max(tendencia) if tendencia else 0,
+        'crecimiento': random.randint(5, 25),
+        'tendencia': tendencia
+    }
+
+def generar_pdf_reporte(datos, estadisticas, tipo):
+    """Generar PDF del reporte"""
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+        from reportlab.lib.styles import getSampleStyleSheet
+        from io import BytesIO
+        
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        elements = []
+        
+        # Título
+        styles = getSampleStyleSheet()
+        title = Paragraph(f"Reporte de {tipo.capitalize()}", styles['Title'])
+        elements.append(title)
+        
+        # Estadísticas
+        stats_data = [
+            ['Total', estadisticas['total']],
+            ['Promedio', estadisticas['promedio']],
+            ['Máximo', estadisticas['maximo']],
+            ['Crecimiento', f"{estadisticas['crecimiento']}%"]
+        ]
+        
+        stats_table = Table(stats_data)
+        stats_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), '#CCCCCC'),
+            ('TEXTCOLOR', (0, 0), (-1, 0), '#000000'),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 14),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), '#F0F0F0'),
+            ('GRID', (0, 0), (-1, -1), 1, '#000000')
+        ]))
+        elements.append(stats_table)
+        
+        doc.build(elements)
+        buffer.seek(0)
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f'reporte_{tipo}_{datetime.now().strftime("%Y%m%d")}.pdf',
+            mimetype='application/pdf'
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generando PDF: {str(e)}")
+        return jsonify({'error': 'Error generando PDF'}), 500
+
+def generar_excel_reporte(datos, estadisticas, tipo):
+    """Generar Excel del reporte"""
+    try:
+        import pandas as pd
+        from io import BytesIO
+        
+        # Crear DataFrame con los datos
+        df = pd.DataFrame(datos)
+        
+        # Crear Excel en memoria
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Datos', index=False)
+            
+            # Agregar hoja de estadísticas
+            stats_df = pd.DataFrame([
+                ['Total', estadisticas['total']],
+                ['Promedio', estadisticas['promedio']],
+                ['Máximo', estadisticas['maximo']],
+                ['Crecimiento', f"{estadisticas['crecimiento']}%"]
+            ], columns=['Métrica', 'Valor'])
+            stats_df.to_excel(writer, sheet_name='Estadísticas', index=False)
+        
+        output.seek(0)
+        
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f'reporte_{tipo}_{datetime.now().strftime("%Y%m%d")}.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generando Excel: {str(e)}")
+        return jsonify({'error': 'Error generando Excel'}), 500
+
+def generar_csv_reporte(datos, estadisticas, tipo):
+    """Generar CSV del reporte"""
+    try:
+        import pandas as pd
+        from io import BytesIO
+        
+        # Crear DataFrame con los datos
+        df = pd.DataFrame(datos)
+        
+        # Crear CSV en memoria
+        output = BytesIO()
+        df.to_csv(output, index=False, encoding='utf-8')
+        output.seek(0)
+        
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f'reporte_{tipo}_{datetime.now().strftime("%Y%m%d")}.csv',
+            mimetype='text/csv'
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generando CSV: {str(e)}")
+        return jsonify({'error': 'Error generando CSV'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
