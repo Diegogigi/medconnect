@@ -90,7 +90,6 @@ beautifulsoup4>=4.12.0
 
 # Cache y persistencia
 redis>=5.0.0
-sqlite3
 
 # Logging y monitoreo
 structlog>=23.0.0 
