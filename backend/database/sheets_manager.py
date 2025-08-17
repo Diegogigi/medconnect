@@ -28,12 +28,12 @@ class SheetsManager:
         self.last_request_time = 0
         self.request_count = 0
         self.cache = {}
-        self.cache_duration = 30  # segundos
-        self.max_requests_per_minute = 50  # Límite conservador
+        self.cache_duration = 60  # segundos - aumentar cache para reducir requests
+        self.max_requests_per_minute = 45  # Límite más conservador para evitar 429
         self.connect()
     
     def _rate_limit(self):
-        """Implementa rate limiting para evitar exceder límites de API"""
+        """Implementa rate limiting mejorado para evitar exceder límites de API"""
         current_time = time.time()
         
         # Resetear contador si ha pasado más de 1 minuto
@@ -41,7 +41,7 @@ class SheetsManager:
             self.request_count = 0
             self.last_request_time = current_time
         
-        # Si hemos alcanzado el límite, esperar
+        # Límite más conservador para evitar 429
         if self.request_count >= self.max_requests_per_minute:
             wait_time = 60 - (current_time - self.last_request_time)
             if wait_time > 0:
@@ -118,6 +118,12 @@ class SheetsManager:
             for attempt in range(max_retries):
                 try:
                     self.spreadsheet = self.gc.open_by_key(Config.GOOGLE_SHEETS_ID)
+                    
+                    # Verificar que el objeto spreadsheet esté disponible
+                    if not self.spreadsheet:
+                        logger.error("❌ El objeto spreadsheet no está disponible")
+                        return False
+                    
                     logger.info("✅ Conexión exitosa con Google Sheets")
                     return True
                 except Exception as e:
@@ -1140,17 +1146,48 @@ class SheetsManager:
                     logger.error("❌ No se pudo reconectar al spreadsheet")
                     return None
             
+            # Verificar que el objeto spreadsheet esté disponible
+            if not self.spreadsheet:
+                logger.error("❌ El objeto spreadsheet no está disponible")
+                # Intentar reconectar
+                if not self.connect():
+                    return None
+            
             # Crear clave de cache para batch
             cache_key = self._get_cache_key("batch_get", str(ranges), major_dimension)
             cached_data = self._get_from_cache(cache_key)
             if cached_data:
                 return cached_data
             
-            # Usar batchGet para múltiples rangos
-            result = self.spreadsheet.values().batchGet(
-                ranges=ranges,
-                majorDimension=major_dimension
-            ).execute()
+            # Usar métodos de gspread para obtener múltiples rangos
+            result = {
+                'valueRanges': []
+            }
+            
+            for range_str in ranges:
+                try:
+                    # Parsear el rango para obtener sheet_name y rango
+                    if '!' in range_str:
+                        sheet_name, cell_range = range_str.split('!', 1)
+                        worksheet = self.spreadsheet.worksheet(sheet_name)
+                        values = worksheet.get(cell_range)
+                    else:
+                        # Si no hay sheet especificado, usar la primera hoja
+                        worksheet = self.spreadsheet.get_worksheet(0)
+                        values = worksheet.get(range_str)
+                    
+                    result['valueRanges'].append({
+                        'range': range_str,
+                        'majorDimension': major_dimension,
+                        'values': values
+                    })
+                except Exception as e:
+                    logger.warning(f"⚠️ Error obteniendo rango {range_str}: {e}")
+                    result['valueRanges'].append({
+                        'range': range_str,
+                        'majorDimension': major_dimension,
+                        'values': []
+                    })
             
             # Guardar en cache
             self._set_cache(cache_key, result)
@@ -1164,15 +1201,38 @@ class SheetsManager:
             # Si es error 429, esperar y reintentar
             if "429" in str(e) or "quota" in str(e).lower():
                 logger.warning("⚠️ Rate limit detectado en batch_get_values, esperando...")
-                time.sleep(5)  # Esperar 5 segundos
+                time.sleep(10)  # Esperar 10 segundos
                 
-                # Reintentar una vez
+                # Reintentar una vez usando gspread
                 try:
                     if self.spreadsheet:
-                        result = self.spreadsheet.values().batchGet(
-                            ranges=ranges,
-                            majorDimension=major_dimension
-                        ).execute()
+                        result = {
+                            'valueRanges': []
+                        }
+                        
+                        for range_str in ranges:
+                            try:
+                                if '!' in range_str:
+                                    sheet_name, cell_range = range_str.split('!', 1)
+                                    worksheet = self.spreadsheet.worksheet(sheet_name)
+                                    values = worksheet.get(cell_range)
+                                else:
+                                    worksheet = self.spreadsheet.get_worksheet(0)
+                                    values = worksheet.get(range_str)
+                                
+                                result['valueRanges'].append({
+                                    'range': range_str,
+                                    'majorDimension': major_dimension,
+                                    'values': values
+                                })
+                            except Exception as range_error:
+                                logger.warning(f"⚠️ Error en reintento rango {range_str}: {range_error}")
+                                result['valueRanges'].append({
+                                    'range': range_str,
+                                    'majorDimension': major_dimension,
+                                    'values': []
+                                })
+                        
                         logger.info("✅ Batch get exitoso después de reintento")
                         return result
                 except Exception as retry_error:
@@ -1196,13 +1256,37 @@ class SheetsManager:
                     'values': update['values']
                 })
             
-            # Ejecutar batchUpdate
-            result = self.spreadsheet.values().batchUpdate(
-                body={
-                    'valueInputOption': 'USER_ENTERED',
-                    'data': data
-                }
-            ).execute()
+            # Ejecutar actualizaciones usando gspread
+            result = {
+                'updatedCells': 0,
+                'updatedRows': 0,
+                'updatedColumns': 0,
+                'updatedRanges': []
+            }
+            
+            for update in updates:
+                try:
+                    range_str = update['range']
+                    values = update['values']
+                    
+                    # Parsear el rango para obtener sheet_name y rango
+                    if '!' in range_str:
+                        sheet_name, cell_range = range_str.split('!', 1)
+                        worksheet = self.spreadsheet.worksheet(sheet_name)
+                    else:
+                        # Si no hay sheet especificado, usar la primera hoja
+                        worksheet = self.spreadsheet.get_worksheet(0)
+                        cell_range = range_str
+                    
+                    # Actualizar usando gspread
+                    worksheet.update(cell_range, values, value_input_option='USER_ENTERED')
+                    
+                    result['updatedRanges'].append(range_str)
+                    result['updatedCells'] += len(values) * len(values[0]) if values and values[0] else 0
+                    result['updatedRows'] += len(values) if values else 0
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error actualizando rango {update.get('range', 'unknown')}: {e}")
             
             logger.info(f"✅ Batch update ejecutado para {len(updates)} rangos")
             return result
@@ -1693,6 +1777,34 @@ class SheetsManager:
             
         except Exception as e:
             logger.error(f"❌ Error en método de fallback de recordatorios: {e}")
+            return []
+
+    def get_data_with_fallback(self, method_name: str, *args, **kwargs):
+        """
+        Método genérico que intenta obtener datos con fallback
+        """
+        try:
+            # Intentar método optimizado
+            if hasattr(self, f"{method_name}_optimized"):
+                result = getattr(self, f"{method_name}_optimized")(*args, **kwargs)
+                if result is not None:
+                    logger.info(f"✅ {method_name} exitoso con método optimizado")
+                    return result
+            
+            # Si falla, usar método de fallback
+            if hasattr(self, f"{method_name}_fallback"):
+                logger.warning(f"⚠️ Método optimizado falló, usando fallback: {method_name}")
+                result = getattr(self, f"{method_name}_fallback")(*args, **kwargs)
+                if result is not None:
+                    logger.info(f"✅ {method_name} exitoso con fallback")
+                    return result
+            
+            # Si ambos fallan, retornar datos vacíos
+            logger.error(f"❌ Ambos métodos fallaron para: {method_name}")
+            return []
+            
+        except Exception as e:
+            logger.error(f"❌ Error en get_data_with_fallback: {e}")
             return []
 
 # Instancia global del gestor

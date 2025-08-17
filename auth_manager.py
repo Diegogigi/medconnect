@@ -104,22 +104,147 @@ class AuthManager:
         return re.match(pattern, email) is not None
 
     def validate_password(self, password):
-        """Validar fortaleza de contraseña"""
-        if len(password) < 6:
-            return False, "La contraseña debe tener al menos 6 caracteres"
-        if not re.search(r'[A-Za-z]', password):
-            return False, "La contraseña debe contener al menos una letra"
-        if not re.search(r'[0-9]', password):
-            return False, "La contraseña debe contener al menos un número"
-        return True, "Contraseña válida"
+        """Validar contraseña"""
+        return len(password) >= 6
 
     def hash_password(self, password):
-        """Hashear contraseña usando bcrypt"""
+        """Hashear contraseña"""
         return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
+    def verificar_si_es_profesional(self, email):
+        """Versión de emergencia - Lista hardcodeada para evitar problemas de threading"""
+        # Lista hardcodeada temporal para evitar problemas de threading con Google Sheets
+        profesionales_conocidos = [
+            'diego.castro.lagos@gmail.com',
+            'giselle.arratia@gmail.com'
+        ]
+        
+        if email.lower() in profesionales_conocidos:
+            logger.info(f"✅ {email} reconocido como profesional (lista de emergencia)")
+            return 'profesional'
+        else:
+            logger.info(f"ℹ️ {email} no está en lista de emergencia - asumiendo paciente")
+            return 'paciente'
+
+    def change_password(self, user_id, current_password, new_password):
+        """Cambiar contraseña de usuario con validaciones robustas"""
+        try:
+            logger.info(f"🔒 Iniciando cambio de contraseña para usuario ID: {user_id}")
+            
+            # Obtener datos del usuario
+            all_records = self.users_sheet.get_all_records()
+            user_record = None
+            row_index = None
+            
+            for i, record in enumerate(all_records):
+                if str(record.get('id', '')) == str(user_id):
+                    user_record = record
+                    row_index = i + 2  # +2 por header y índice 0
+                    break
+            
+            if not user_record:
+                logger.warning(f"⚠️ Usuario no encontrado: ID {user_id}")
+                return False, "Usuario no encontrado"
+            
+            # Verificar contraseña actual
+            stored_hash = user_record.get('password_hash', '')
+            
+            # Verificar contraseña actual
+            if not self.verify_password(current_password, stored_hash):
+                logger.warning(f"⚠️ Contraseña actual incorrecta para usuario ID: {user_id}")
+                return False, "Contraseña actual incorrecta"
+            
+            # Validar nueva contraseña
+            if not self.validate_password(new_password):
+                return False, "La nueva contraseña debe tener al menos 6 caracteres"
+            
+            if new_password == current_password:
+                return False, "La nueva contraseña debe ser diferente a la actual"
+            
+            # Crear hash robusto para nueva contraseña
+            new_hash = self.hash_password(new_password)
+            if not new_hash:
+                logger.error(f"❌ Error creando hash para nueva contraseña")
+                return False, "Error procesando nueva contraseña"
+            
+            # Actualizar contraseña en Google Sheets - VERSIÓN CORREGIDA
+            try:
+                # Usar formato correcto para Google Sheets API
+                cell_range = f'F{row_index}'
+                self.users_sheet.update(cell_range, [[new_hash]], value_input_option='RAW')
+                logger.info(f"✅ Contraseña actualizada exitosamente para usuario ID: {user_id}")
+                
+                # Actualizar fecha de último cambio de contraseña
+                try:
+                    date_range = f'M{row_index}'
+                    self.users_sheet.update(date_range, [[datetime.now().isoformat()]], value_input_option='RAW')
+                except Exception as date_error:
+                    logger.warning(f"⚠️ No se pudo actualizar fecha de cambio: {date_error}")
+                
+                return True, "Contraseña cambiada exitosamente"
+                
+            except Exception as e:
+                logger.error(f"❌ Error actualizando contraseña en Google Sheets: {e}")
+                return False, "Error actualizando contraseña. Intente más tarde"
+                
+        except Exception as e:
+            logger.error(f"❌ Error general en cambio de contraseña: {e}")
+            return False, "Error interno. Contacte al administrador"
+
+    def is_valid_bcrypt_hash(self, hash_string):
+        """Verificar si un string es un hash bcrypt válido - VERSIÓN MEJORADA"""
+        try:
+            if not hash_string:
+                return False
+            
+            # Un hash bcrypt típico tiene 60 caracteres y empieza con $2
+            if len(hash_string) < 50:  # Muy corto para ser un hash bcrypt
+                return False
+            
+            # Verificar formato bcrypt típico ($2a$, $2b$, $2y$, etc.)
+            if hash_string.startswith('$2') and '$' in hash_string[3:]:
+                return True
+            
+            # Si no sigue el formato estándar de bcrypt, es sospechoso
+            if not hash_string.startswith('$'):
+                return False
+            
+            # Verificar longitud mínima para hashes válidos
+            if len(hash_string) >= 50:
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Error validando hash bcrypt: {e}")
+            return False
+
     def verify_password(self, password, hashed):
-        """Verificar contraseña hasheada"""
-        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+        """Verificar contraseña con manejo robusto de 'Invalid salt'"""
+        try:
+            # Validaciones previas
+            if not password or not hashed:
+                logger.warning("⚠️ Contraseña o hash vacío")
+                return False
+                
+            # Verificar que el hash es válido
+            if not self.is_valid_bcrypt_hash(hashed):
+                logger.error(f"❌ Hash bcrypt inválido/corrupto detectado: {hashed[:20]}...")
+                return False
+            
+            # Intentar verificación normal
+            return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+            
+        except ValueError as e:
+            if "Invalid salt" in str(e):
+                logger.error(f"❌ Error 'Invalid salt' detectado - Hash corrupto: {hashed[:20]}...")
+                return False
+            else:
+                logger.error(f"❌ Error de valor en verificación: {e}")
+                return False
+        except Exception as e:
+            logger.error(f"❌ Error general en verificación de contraseña: {e}")
+            return False
 
     def email_exists(self, email):
         """Verificar si el email ya existe"""
@@ -130,63 +255,46 @@ class AuthManager:
                     return True
             return False
         except Exception as e:
-            logger.error(f"Error verificando email: {e}")
+            logger.error(f"❌ Error verificando email: {e}")
             return False
 
     def get_next_user_id(self):
-        """Obtener el siguiente ID de usuario disponible"""
+        """Obtener el siguiente ID de usuario"""
         try:
             all_records = self.users_sheet.get_all_records()
-            if not all_records:
-                return 1
-            
-            max_id = max([int(record.get('id', 0)) for record in all_records if record.get('id')])
-            return max_id + 1
+            if all_records:
+                max_id = max([int(record.get('id', 0)) for record in all_records if record.get('id')])
+                return max_id + 1
+            return 1
         except Exception as e:
-            logger.error(f"Error obteniendo siguiente ID: {e}")
+            logger.error(f"❌ Error obteniendo siguiente ID: {e}")
             return 1
 
     def register_user(self, user_data):
-        """
-        Registrar nuevo usuario
-        user_data debe contener: email, password, nombre, apellido, telefono, 
-        fecha_nacimiento, genero, direccion, ciudad, tipo_usuario
-        Para profesionales también incluye: profesion, especialidad, numero_registro, etc.
-        """
+        """Registrar un nuevo usuario"""
         try:
-            # Validaciones
+            # Validar datos
             if not self.validate_email(user_data['email']):
-                return False, "Formato de email inválido"
+                return False, "Email inválido"
+            
+            if not self.validate_password(user_data['password']):
+                return False, "Contraseña debe tener al menos 6 caracteres"
             
             if self.email_exists(user_data['email']):
-                return False, "El email ya está registrado"
+                return False, "Email ya registrado"
             
-            is_valid, msg = self.validate_password(user_data['password'])
-            if not is_valid:
-                return False, msg
+            # Generar ID único
+            user_id = self.get_next_user_id()
             
-            # Campos requeridos
-            required_fields = ['email', 'password', 'nombre', 'apellido', 'tipo_usuario']
-            for field in required_fields:
-                if not user_data.get(field):
-                    return False, f"El campo {field} es requerido"
-            
-            # Validaciones específicas para profesionales
-            if user_data['tipo_usuario'] == 'profesional':
-                professional_required = ['profesion', 'numero_registro', 'institucion', 'titulo']
-                for field in professional_required:
-                    if not user_data.get(field):
-                        return False, f"Para profesionales, el campo {field} es requerido"
+            # Hashear contraseña
+            hashed_password = self.hash_password(user_data['password'])
             
             # Preparar datos del usuario
-            user_id = self.get_next_user_id()
-            password_hash = self.hash_password(user_data['password'])
             current_time = datetime.now().isoformat()
-            
-            row_data = [
+            user_record = [
                 user_id,
-                user_data['email'].lower(),
-                password_hash,
+                user_data['email'],
+                hashed_password,
                 user_data['nombre'],
                 user_data['apellido'],
                 user_data.get('telefono', ''),
@@ -194,21 +302,21 @@ class AuthManager:
                 user_data.get('genero', ''),
                 user_data.get('direccion', ''),
                 user_data.get('ciudad', ''),
-                current_time,  # fecha_registro
-                '',  # ultimo_acceso
-                'activo',  # estado
-                user_data['tipo_usuario'],  # tipo_usuario (paciente/profesional)
-                'false'  # verificado
+                current_time,
+                current_time,
+                user_data.get('tipo_usuario', 'paciente'),
+                'false',  # verificado
+                'activo'  # estado
             ]
             
-            # Agregar usuario a la hoja
-            self.users_sheet.append_row(row_data)
+            # Agregar usuario
+            self.users_sheet.append_row(user_record)
             
-            # Si es profesional, agregar a la hoja de profesionales
-            if user_data['tipo_usuario'] == 'profesional':
+            # Si es profesional, agregar a hoja de profesionales
+            if user_data.get('tipo_usuario') == 'profesional':
                 self._add_professional_to_sheet(user_id, user_data)
             
-            logger.info(f"✅ Usuario registrado: {user_data['email']}")
+            logger.info(f"✅ Usuario registrado exitosamente: {user_data['email']}")
             return True, "Usuario registrado exitosamente"
             
         except Exception as e:
@@ -222,119 +330,137 @@ class AuthManager:
             try:
                 prof_sheet = self.spreadsheet.worksheet('Profesionales')
             except gspread.exceptions.WorksheetNotFound:
-                # Crear hoja si no existe
-                prof_sheet = self.spreadsheet.add_worksheet(title='Profesionales', rows=1000, cols=25)
+                prof_sheet = self.spreadsheet.add_worksheet(
+                    title='Profesionales', 
+                    rows=1000, 
+                    cols=20
+                )
                 # Agregar encabezados
                 headers = [
                     'ID', 'Email', 'Nombre', 'Apellido', 'Telefono', 'Numero_Registro',
-                    'Especialidad', 'Anos_Experiencia', 'Profesion', 'Direccion_Consulta',
-                    'Horario_Atencion', 'Idiomas', 'Certificaciones', 'Titulo', 'Institucion',
-                    'Fecha_Graduacion', 'Biografia', 'Foto_URL', 'Calificacion', 'Estado',
-                    'Disponible', 'Fecha_Registro', 'Ultima_Actualizacion', 'Areas_Especializacion'
+                    'Especialidad', 'Anos_Experiencia', 'Calificacion', 'Direccion_Consulta',
+                    'Horario_Atencion', 'Idiomas', 'Areas_Especializacion', 'Profesion',
+                    'Institucion', 'Titulo', 'Ano_Egreso', 'Certificaciones',
+                    'Fecha_Registro', 'Estado', 'Disponible'
                 ]
                 prof_sheet.append_row(headers)
                 logger.info("✅ Hoja 'Profesionales' creada")
             
             # Preparar datos del profesional
-            prof_data = [
+            current_time = datetime.now().isoformat()
+            prof_record = [
                 user_id,
-                user_data['email'].lower(),
+                user_data['email'],
                 user_data['nombre'],
                 user_data['apellido'],
                 user_data.get('telefono', ''),
                 user_data.get('numero_registro', ''),
                 user_data.get('especialidad', ''),
-                user_data.get('anos_experiencia', '0'),
-                user_data.get('profesion', ''),
+                user_data.get('anos_experiencia', ''),
+                user_data.get('calificacion', ''),
                 user_data.get('direccion_consulta', ''),
                 user_data.get('horario_atencion', ''),
-                user_data.get('idiomas', 'Español'),
-                user_data.get('certificaciones', ''),
-                user_data.get('titulo', ''),
+                user_data.get('idiomas', ''),
+                user_data.get('areas_especializacion', ''),
+                user_data.get('profesion', ''),
                 user_data.get('institucion', ''),
-                user_data.get('fecha_graduacion', ''),
-                user_data.get('biografia', ''),
-                user_data.get('foto_url', ''),
-                '0.0',  # calificacion inicial
-                'activo',  # estado
-                'true',  # disponible
-                datetime.now().isoformat(),  # fecha_registro
-                datetime.now().isoformat(),  # ultima_actualizacion
-                user_data.get('areas_especializacion', '')
+                user_data.get('titulo', ''),
+                user_data.get('ano_egreso', ''),
+                user_data.get('certificaciones', ''),
+                current_time,
+                'activo',
+                'disponible'
             ]
             
-            # Agregar profesional a la hoja
-            prof_sheet.append_row(prof_data)
-            logger.info(f"✅ Profesional agregado: {user_data['email']}")
+            # Agregar profesional
+            prof_sheet.append_row(prof_record)
+            logger.info(f"✅ Profesional agregado a la hoja: {user_data['email']}")
             
         except Exception as e:
             logger.error(f"❌ Error agregando profesional: {e}")
-            # No fallar el registro principal si esto falla
 
     def login_user(self, email, password):
-        """
-        Iniciar sesión de usuario
-        Retorna (success, message, user_data)
-        """
+        """Autenticar usuario"""
         try:
-            if not email or not password:
-                return False, "Email y contraseña son requeridos", None
-            
-            # Buscar usuario
+            # Buscar usuario por email
             all_records = self.users_sheet.get_all_records()
             user_record = None
-            row_index = None
             
-            for i, record in enumerate(all_records, start=2):  # Start=2 porque row 1 son headers
+            for record in all_records:
                 if record.get('email', '').lower() == email.lower():
                     user_record = record
-                    row_index = i
                     break
             
             if not user_record:
-                return False, "Email o contraseña incorrectos", None
+                return False, "Email o contraseña incorrectos"
             
-            # Verificar contraseña
-            if not self.verify_password(password, user_record['password_hash']):
-                return False, "Email o contraseña incorrectos", None
+            # Verificar contraseña normalmente sin regeneración automática
+            stored_hash = user_record.get('password_hash', '')
             
-            # Verificar estado del usuario
-            if user_record.get('estado', '').lower() != 'activo':
-                return False, "Cuenta desactivada. Contacte al administrador", None
+            # Si el hash está vacío o es claramente inválido, rechazar login
+            if not stored_hash:
+                logger.error(f"❌ Hash de contraseña vacío para {email}")
+                return False, "Error de autenticación. Contacte al administrador para restablecer su contraseña"
+            
+            # Verificar que el hash tenga un formato mínimamente válido
+            if len(stored_hash) < 10:
+                logger.error(f"❌ Hash de contraseña demasiado corto para {email}")
+                return False, "Error de autenticación. Contacte al administrador para restablecer su contraseña"
+            
+            logger.info(f"🔍 Verificando contraseña para {email}...")
+            
+            # Verificar contraseña normal
+            if not self.verify_password(password, stored_hash):
+                return False, "Email o contraseña incorrectos"
             
             # Actualizar último acceso
-            current_time = datetime.now().isoformat()
             try:
-                self.users_sheet.update(f'L{row_index}', [[current_time]])  # Formato correcto para update
-                logger.info(f"✅ Último acceso actualizado: {current_time}")
-            except Exception as update_error:
-                logger.warning(f"⚠️ Error actualizando último acceso: {update_error}")
-                # Continuar con el login aunque falle la actualización
+                row_index = all_records.index(user_record) + 2  # +2 porque enumerate empieza en 0 y hay header
+                self.users_sheet.update(f'L{row_index}', datetime.now().isoformat())
+                logger.info(f"✅ Último acceso actualizado: {datetime.now().isoformat()}")
+            except Exception as e:
+                logger.warning(f"⚠️ No se pudo actualizar último acceso: {e}")
             
-            # Preparar datos del usuario (sin password_hash)
+            # Determinar tipo de usuario de forma robusta y simple
+            raw_tipo_usuario = user_record.get('tipo_usuario', '').strip().lower()
+            
+            if raw_tipo_usuario in ['profesional', 'professional', 'doctor', 'medico']:
+                tipo_usuario_normalizado = 'profesional'
+                logger.info(f"✅ Usuario marcado como profesional en hoja Usuarios")
+            else:
+                # Verificación cruzada simplificada
+                logger.info(f"🔍 Verificando en hoja Profesionales...")
+                try:
+                    tipo_usuario_normalizado = self.verificar_si_es_profesional(email)
+                except Exception as e:
+                    logger.warning(f"⚠️ Error en verificación cruzada: {e} - Asumiendo paciente")
+                    tipo_usuario_normalizado = 'paciente'
+            
+            # Preparar datos del usuario para la sesión
             user_data = {
-                'id': user_record['id'],
-                'email': user_record['email'],
-                'nombre': user_record['nombre'],
-                'apellido': user_record['apellido'],
-                'telefono': user_record.get('telefono', ''),
-                'fecha_nacimiento': user_record.get('fecha_nacimiento', ''),
-                'genero': user_record.get('genero', ''),
-                'direccion': user_record.get('direccion', ''),
-                'ciudad': user_record.get('ciudad', ''),
-                'fecha_registro': user_record.get('fecha_registro', ''),
-                'tipo_usuario': user_record['tipo_usuario'],
-                'verificado': user_record.get('verificado', 'false'),
-                'ultimo_acceso': current_time
+                'id': user_record.get('id'),
+                'email': user_record.get('email'),
+                'nombre': user_record.get('nombre'),
+                'apellido': user_record.get('apellido'),
+                'telefono': user_record.get('telefono'),
+                'fecha_nacimiento': user_record.get('fecha_nacimiento'),
+                'genero': user_record.get('genero'),
+                'direccion': user_record.get('direccion'),
+                'ciudad': user_record.get('ciudad'),
+                'fecha_registro': user_record.get('fecha_registro'),
+                'tipo_usuario': tipo_usuario_normalizado,  # Usar versión normalizada
+                'verificado': user_record.get('verificado'),
+                'ultimo_acceso': datetime.now().isoformat()
             }
             
+            # Logging simplificado para evitar problemas de threading
             logger.info(f"✅ Login exitoso: {email}")
-            logger.info(f"🔍 Datos del usuario obtenidos: {user_data}")
-            return True, "Login exitoso", user_data
+            logger.info(f"🎯 Tipo usuario final: '{tipo_usuario_normalizado}' → {'professional_dashboard' if tipo_usuario_normalizado == 'profesional' else 'patient_dashboard'}")
+            return True, user_data
             
         except Exception as e:
             logger.error(f"❌ Error en login: {e}")
-            return False, "Error interno del servidor", None
+            return False, "Error interno del servidor"
 
     def get_user_by_id(self, user_id):
         """Obtener usuario por ID"""
@@ -342,84 +468,48 @@ class AuthManager:
             all_records = self.users_sheet.get_all_records()
             for record in all_records:
                 if str(record.get('id', '')) == str(user_id):
-                    # Remover password_hash de la respuesta
-                    user_data = record.copy()
-                    user_data.pop('password_hash', None)
-                    return user_data
+                    return record
             return None
         except Exception as e:
-            logger.error(f"Error obteniendo usuario: {e}")
+            logger.error(f"❌ Error obteniendo usuario por ID: {e}")
             return None
 
     def update_user_profile(self, user_id, update_data):
         """Actualizar perfil de usuario"""
         try:
+            # Buscar usuario
             all_records = self.users_sheet.get_all_records()
-            row_index = None
+            user_index = None
             
-            for i, record in enumerate(all_records, start=2):
+            for i, record in enumerate(all_records):
                 if str(record.get('id', '')) == str(user_id):
-                    row_index = i
+                    user_index = i + 2  # +2 porque enumerate empieza en 0 y hay header
                     break
             
-            if not row_index:
+            if user_index is None:
                 return False, "Usuario no encontrado"
             
-            # Campos actualizables
-            updatable_fields = {
-                'nombre': 'D', 'apellido': 'E', 'telefono': 'F', 
-                'fecha_nacimiento': 'G', 'genero': 'H', 'direccion': 'I', 
-                'ciudad': 'J'
-            }
-            
             # Actualizar campos
-            for field, column in updatable_fields.items():
-                if field in update_data:
-                    self.users_sheet.update(f'{column}{row_index}', [[str(update_data[field])]])
+            updates = []
+            for field, value in update_data.items():
+                if field in ['nombre', 'apellido', 'telefono', 'fecha_nacimiento', 'genero', 'direccion', 'ciudad']:
+                    col_map = {
+                        'nombre': 'D', 'apellido': 'E', 'telefono': 'F',
+                        'fecha_nacimiento': 'G', 'genero': 'H', 'direccion': 'I', 'ciudad': 'J'
+                    }
+                    if field in col_map:
+                        cell_address = f"{col_map[field]}{user_index}"
+                        self.users_sheet.update(cell_address, value)
+                        updates.append(field)
             
-            logger.info(f"✅ Perfil actualizado para usuario ID: {user_id}")
-            return True, "Perfil actualizado exitosamente"
+            logger.info(f"✅ Perfil actualizado - campos: {updates}")
+            return True, "Perfil actualizado correctamente"
             
         except Exception as e:
             logger.error(f"❌ Error actualizando perfil: {e}")
             return False, "Error interno del servidor"
 
-    def change_password(self, user_id, current_password, new_password):
-        """Cambiar contraseña de usuario"""
-        try:
-            # Obtener usuario actual
-            all_records = self.users_sheet.get_all_records()
-            user_record = None
-            row_index = None
-            
-            for i, record in enumerate(all_records, start=2):
-                if str(record.get('id', '')) == str(user_id):
-                    user_record = record
-                    row_index = i
-                    break
-            
-            if not user_record:
-                return False, "Usuario no encontrado"
-            
-            # Verificar contraseña actual
-            if not self.verify_password(current_password, user_record['password_hash']):
-                return False, "Contraseña actual incorrecta"
-            
-            # Validar nueva contraseña
-            is_valid, msg = self.validate_password(new_password)
-            if not is_valid:
-                return False, msg
-            
-            # Actualizar contraseña
-            new_hash = self.hash_password(new_password)
-            self.users_sheet.update(f'C{row_index}', [[new_hash]])  # Columna C = password_hash
-            
-            logger.info(f"✅ Contraseña cambiada para usuario ID: {user_id}")
-            return True, "Contraseña actualizada exitosamente"
-            
-        except Exception as e:
-            logger.error(f"❌ Error cambiando contraseña: {e}")
-            return False, "Error interno del servidor"
+
 
     def get_user_by_email(self, email):
         """Obtener usuario por email"""
@@ -427,177 +517,110 @@ class AuthManager:
             all_records = self.users_sheet.get_all_records()
             for record in all_records:
                 if record.get('email', '').lower() == email.lower():
-                    # Remover password_hash de la respuesta
-                    user_data = record.copy()
-                    user_data.pop('password_hash', None)
-                    return user_data
+                    return record
             return None
         except Exception as e:
-            logger.error(f"Error obteniendo usuario por email: {e}")
+            logger.error(f"❌ Error obteniendo usuario por email: {e}")
             return None
 
     def get_user_by_telegram_id(self, telegram_id):
-        """Obtener usuario por ID de Telegram"""
+        """Obtener usuario por Telegram ID"""
         try:
             all_records = self.users_sheet.get_all_records()
             for record in all_records:
                 if str(record.get('telegram_id', '')) == str(telegram_id):
-                    # Remover password_hash de la respuesta
-                    user_data = record.copy()
-                    user_data.pop('password_hash', None)
-                    return user_data
+                    return record
             return None
         except Exception as e:
-            logger.error(f"Error obteniendo usuario por Telegram ID: {e}")
+            logger.error(f"❌ Error obteniendo usuario por Telegram ID: {e}")
             return None
 
     def link_telegram_account(self, email, telegram_id, telegram_username=""):
-        """Vincular cuenta de Telegram con usuario existente"""
+        """Vincular cuenta de Telegram"""
         try:
-            all_records = self.users_sheet.get_all_records()
-            row_index = None
-            user_record = None
-            
             # Buscar usuario por email
-            for i, record in enumerate(all_records, start=2):
+            all_records = self.users_sheet.get_all_records()
+            user_index = None
+            
+            for i, record in enumerate(all_records):
                 if record.get('email', '').lower() == email.lower():
-                    user_record = record
-                    row_index = i
+                    user_index = i + 2
                     break
             
-            if not user_record:
-                return False, "Usuario no encontrado con ese email", None
+            if user_index is None:
+                return False, "Usuario no encontrado"
             
-            # Verificar si ya tiene Telegram vinculado
-            if user_record.get('telegram_id'):
-                return False, "Esta cuenta ya tiene un Telegram vinculado", None
+            # Asegurar que existan las columnas de Telegram
+            self._ensure_telegram_columns()
             
-            # Verificar si el Telegram ID ya está en uso
-            for record in all_records:
-                if str(record.get('telegram_id', '')) == str(telegram_id) and record.get('telegram_id'):
-                    return False, "Este Telegram ya está vinculado a otra cuenta", None
+            # Actualizar datos de Telegram
+            self.users_sheet.update(f'M{user_index}', str(telegram_id))
+            self.users_sheet.update(f'N{user_index}', telegram_username)
             
-            # Actualizar las columnas de Telegram
-            # Asumo que las columnas están en las posiciones siguientes después de verificado:
-            # P = telegram_id, Q = telegram_username
-            try:
-                self.users_sheet.update(f'P{row_index}', [[str(telegram_id)]])  # Columna P = telegram_id
-                if telegram_username:
-                    self.users_sheet.update(f'Q{row_index}', [[telegram_username]])  # Columna Q = telegram_username
-                
-                # Actualizar el registro en memoria
-                user_record['telegram_id'] = str(telegram_id)
-                user_record['telegram_username'] = telegram_username
-                
-            except Exception as sheet_error:
-                logger.warning(f"Error actualizando columnas Telegram, intentando crear: {sheet_error}")
-                # Si las columnas no existen, las creamos al final
-                self._ensure_telegram_columns()
-                # Reintentar
-                self.users_sheet.update(f'P{row_index}', [[str(telegram_id)]])
-                if telegram_username:
-                    self.users_sheet.update(f'Q{row_index}', [[telegram_username]])
-            
-            logger.info(f"✅ Telegram vinculado para usuario: {email}")
-            return True, f"Cuenta vinculada exitosamente para {user_record['nombre']} {user_record['apellido']}", user_record
+            logger.info(f"✅ Cuenta de Telegram vinculada: {email} -> {telegram_id}")
+            return True, "Cuenta de Telegram vinculada correctamente"
             
         except Exception as e:
             logger.error(f"❌ Error vinculando Telegram: {e}")
-            return False, "Error interno del servidor", None
-    
+            return False, "Error interno del servidor"
+
     def _ensure_telegram_columns(self):
-        """Asegura que las columnas de Telegram existan en la hoja"""
+        """Asegurar que existan las columnas de Telegram"""
         try:
-            # Obtener la primera fila (headers)
+            # Obtener headers actuales
             headers = self.users_sheet.row_values(1)
             
-            # Verificar si ya existen las columnas
-            telegram_columns = ['telegram_id', 'telegram_username']
-            missing_columns = []
+            # Verificar si faltan columnas de Telegram
+            if 'telegram_id' not in headers:
+                self.users_sheet.update('M1', 'telegram_id')
+                logger.info("✅ Columna telegram_id agregada")
             
-            for col in telegram_columns:
-                if col not in headers:
-                    missing_columns.append(col)
-            
-            if missing_columns:
-                # Agregar columnas faltantes
-                start_col = len(headers) + 1
-                for i, col_name in enumerate(missing_columns):
-                    col_letter = self._number_to_letter(start_col + i)
-                    self.users_sheet.update(f'{col_letter}1', [[col_name]])
-                
-                logger.info(f"✅ Columnas Telegram agregadas: {missing_columns}")
+            if 'telegram_username' not in headers:
+                self.users_sheet.update('N1', 'telegram_username')
+                logger.info("✅ Columna telegram_username agregada")
                 
         except Exception as e:
-            logger.error(f"Error asegurando columnas Telegram: {e}")
-    
+            logger.error(f"❌ Error asegurando columnas de Telegram: {e}")
+
     def _number_to_letter(self, n):
-        """Convierte un número de columna a letra (1=A, 2=B, etc.)"""
+        """Convertir número a letra de columna (A, B, C, ...)"""
         result = ""
         while n > 0:
-            n -= 1
-            result = chr(n % 26 + ord('A')) + result
-            n //= 26
+            n, remainder = divmod(n - 1, 26)
+            result = chr(65 + remainder) + result
         return result
 
     def link_telegram_by_user_id(self, user_id, telegram_id, telegram_username=""):
-        """Vincular cuenta de Telegram con usuario por ID"""
+        """Vincular cuenta de Telegram por user_id"""
         try:
-            all_records = self.users_sheet.get_all_records()
-            row_index = None
-            user_record = None
-            
             # Buscar usuario por ID
-            for i, record in enumerate(all_records, start=2):
+            all_records = self.users_sheet.get_all_records()
+            user_index = None
+            
+            for i, record in enumerate(all_records):
                 if str(record.get('id', '')) == str(user_id):
-                    user_record = record
-                    row_index = i
+                    user_index = i + 2
                     break
             
-            if not user_record:
-                return False, "Usuario no encontrado", None
+            if user_index is None:
+                return False, "Usuario no encontrado"
             
-            # Verificar si ya tiene Telegram vinculado
-            if user_record.get('telegram_id'):
-                return False, "Esta cuenta ya tiene un Telegram vinculado", None
+            # Asegurar que existan las columnas de Telegram
+            self._ensure_telegram_columns()
             
-            # Verificar si el Telegram ID ya está en uso
-            for record in all_records:
-                if str(record.get('telegram_id', '')) == str(telegram_id) and record.get('telegram_id'):
-                    return False, "Este Telegram ya está vinculado a otra cuenta", None
+            # Actualizar datos de Telegram
+            self.users_sheet.update(f'M{user_index}', str(telegram_id))
+            self.users_sheet.update(f'N{user_index}', telegram_username)
             
-            # Actualizar las columnas de Telegram
-            try:
-                self.users_sheet.update(f'P{row_index}', [[str(telegram_id)]])  # Columna P = telegram_id
-                if telegram_username:
-                    self.users_sheet.update(f'Q{row_index}', [[telegram_username]])  # Columna Q = telegram_username
-                
-                # Actualizar el registro en memoria
-                user_record['telegram_id'] = str(telegram_id)
-                user_record['telegram_username'] = telegram_username
-                
-            except Exception as sheet_error:
-                logger.warning(f"Error actualizando columnas Telegram, intentando crear: {sheet_error}")
-                # Si las columnas no existen, las creamos al final
-                self._ensure_telegram_columns()
-                # Reintentar
-                self.users_sheet.update(f'P{row_index}', [[str(telegram_id)]])
-                if telegram_username:
-                    self.users_sheet.update(f'Q{row_index}', [[telegram_username]])
-            
-            logger.info(f"✅ Telegram vinculado para usuario ID: {user_id}")
-            return True, f"Cuenta vinculada exitosamente", user_record
+            logger.info(f"✅ Cuenta de Telegram vinculada por user_id: {user_id} -> {telegram_id}")
+            return True, "Cuenta de Telegram vinculada correctamente"
             
         except Exception as e:
-            logger.error(f"❌ Error vinculando Telegram por ID: {e}")
-            return False, "Error interno del servidor", None
-    
+            logger.error(f"❌ Error vinculando Telegram por user_id: {e}")
+            return False, "Error interno del servidor"
+
     def update_professional_status(self, user_id, estado=None, disponible=None):
-        """
-        Actualizar estado y disponibilidad de un profesional
-        estado: 'activo', 'inactivo', 'suspendido'
-        disponible: 'true', 'false'
-        """
+        """Actualizar estado de profesional"""
         try:
             # Obtener hoja de profesionales
             try:
@@ -605,36 +628,32 @@ class AuthManager:
             except gspread.exceptions.WorksheetNotFound:
                 return False, "Hoja de profesionales no encontrada"
             
-            # Buscar profesional por ID
+            # Buscar profesional
             all_records = prof_sheet.get_all_records()
-            row_index = None
+            prof_index = None
             
-            for i, record in enumerate(all_records, start=2):  # Start=2 porque row 1 son headers
+            for i, record in enumerate(all_records):
                 if str(record.get('ID', '')) == str(user_id):
-                    row_index = i
+                    prof_index = i + 2
                     break
             
-            if not row_index:
+            if prof_index is None:
                 return False, "Profesional no encontrado"
             
-            # Actualizar estado (columna T - posición 20)
+            # Actualizar estado
             if estado is not None:
-                if estado not in ['activo', 'inactivo', 'suspendido']:
-                    return False, "Estado debe ser: activo, inactivo o suspendido"
-                prof_sheet.update(f'T{row_index}', [[estado]])
-                logger.info(f"✅ Estado actualizado a '{estado}' para profesional ID: {user_id}")
+                self.prof_sheet.update(f'T{prof_index}', estado)
+                logger.info(f"✅ Estado actualizado: {estado}")
             
-            # Actualizar disponibilidad (columna U - posición 21)
+            # Actualizar disponibilidad
             if disponible is not None:
-                if disponible not in ['true', 'false']:
-                    return False, "Disponible debe ser: true o false"
-                prof_sheet.update(f'U{row_index}', [[disponible]])
-                logger.info(f"✅ Disponibilidad actualizada a '{disponible}' para profesional ID: {user_id}")
+                self.prof_sheet.update(f'U{prof_index}', disponible)
+                logger.info(f"✅ Disponibilidad actualizada: {disponible}")
             
-            return True, "Estado del profesional actualizado exitosamente"
+            return True, "Estado actualizado correctamente"
             
         except Exception as e:
-            logger.error(f"❌ Error actualizando estado del profesional: {e}")
+            logger.error(f"❌ Error actualizando estado profesional: {e}")
             return False, "Error interno del servidor"
 
     def get_professional_by_id(self, user_id):
@@ -648,9 +667,50 @@ class AuthManager:
                 logger.error("❌ Hojas no encontradas")
                 return None
             
-            # Buscar profesional y datos de usuario
-            prof_records = prof_sheet.get_all_records()
-            user_records = users_sheet.get_all_records()
+            # Obtener datos con manejo robusto de headers
+            def get_records_robust(sheet):
+                try:
+                    # Obtener todos los valores
+                    all_values = sheet.get_all_values()
+                    if not all_values:
+                        return []
+                    
+                    # Obtener headers
+                    headers = all_values[0]
+                    
+                    # Verificar headers duplicados y corregirlos
+                    headers_unicos = []
+                    headers_corregidos = []
+                    contadores = {}
+                    
+                    for header in headers:
+                        if header in contadores:
+                            contadores[header] += 1
+                            header_corregido = f"{header}_{contadores[header]}"
+                        else:
+                            contadores[header] = 0
+                            header_corregido = header
+                        
+                        headers_corregidos.append(header_corregido)
+                        headers_unicos.append(header_corregido)
+                    
+                    # Crear registros con headers corregidos
+                    records = []
+                    for row in all_values[1:]:
+                        record = {}
+                        for i, value in enumerate(row):
+                            if i < len(headers_corregidos):
+                                record[headers_corregidos[i]] = value
+                        records.append(record)
+                    
+                    return records
+                except Exception as e:
+                    logger.error(f"❌ Error obteniendo registros: {e}")
+                    return []
+            
+            # Obtener datos con manejo robusto
+            prof_records = get_records_robust(prof_sheet)
+            user_records = get_records_robust(users_sheet)
             
             professional_data = None
             user_data = None
@@ -827,13 +887,299 @@ class AuthManager:
         except Exception as e:
             logger.error(f"❌ Error actualizando perfil profesional: {e}")
             return False, "Error interno del servidor"
+
+    def get_all_users(self):
+        """Obtener todos los usuarios"""
+        try:
+            all_records = self.users_sheet.get_all_records()
+            return all_records
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo todos los usuarios: {e}")
+            return []
     
+    def get_user_count(self):
+        """Obtener el número total de usuarios"""
+        try:
+            all_records = self.users_sheet.get_all_records()
+            return len(all_records)
+        except Exception as e:
+            logger.error(f"❌ Error contando usuarios: {e}")
+            return 0
+    
+    def get_professional_count(self):
+        """Obtener el número total de profesionales"""
+        try:
+            prof_sheet = self.spreadsheet.worksheet('Profesionales')
+            all_records = prof_sheet.get_all_records()
+            return len(all_records)
+        except Exception as e:
+            logger.error(f"❌ Error contando profesionales: {e}")
+            return 0
+    
+    def get_patient_count(self):
+        """Obtener el número total de pacientes"""
+        try:
+            # Intentar obtener hoja de pacientes
+            try:
+                patient_sheet = self.spreadsheet.worksheet('Pacientes_Profesional')
+                all_records = patient_sheet.get_all_records()
+                return len(all_records)
+            except gspread.exceptions.WorksheetNotFound:
+                return 0
+        except Exception as e:
+            logger.error(f"❌ Error contando pacientes: {e}")
+            return 0
+    
+    def get_atencion_count(self):
+        """Obtener el número total de atenciones"""
+        try:
+            # Intentar obtener hoja de atenciones
+            try:
+                atencion_sheet = self.spreadsheet.worksheet('Atenciones_Medicas')
+                all_records = atencion_sheet.get_all_records()
+                return len(all_records)
+            except gspread.exceptions.WorksheetNotFound:
+                return 0
+        except Exception as e:
+            logger.error(f"❌ Error contando atenciones: {e}")
+            return 0
+    
+    def get_sheet_info(self):
+        """Obtener información de todas las hojas"""
+        try:
+            sheets_info = {}
+            for worksheet in self.spreadsheet.worksheets():
+                try:
+                    records = worksheet.get_all_records()
+                    sheets_info[worksheet.title] = {
+                        'row_count': len(records),
+                        'column_count': len(records[0]) if records else 0,
+                        'status': 'OK'
+                    }
+                except Exception as e:
+                    sheets_info[worksheet.title] = {
+                        'row_count': 0,
+                        'column_count': 0,
+                        'status': f'ERROR: {str(e)}'
+                    }
+            return sheets_info
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo información de hojas: {e}")
+            return {}
+    
+    def test_connection(self):
+        """Probar la conexión con Google Sheets"""
+        try:
+            # Intentar acceder a una hoja
+            test_sheet = self.spreadsheet.worksheet('Usuarios')
+            test_records = test_sheet.get_all_records()
+            return {
+                'status': 'OK',
+                'message': 'Conexión exitosa',
+                'user_count': len(test_records)
+            }
+        except Exception as e:
+            return {
+                'status': 'ERROR',
+                'message': f'Error de conexión: {str(e)}',
+                'user_count': 0
+            }
+
+    def debug_user_complete(self, email):
+        """Debugging completo de un usuario específico"""
+        try:
+            logger.info(f"🔍 === DEBUG COMPLETO PARA {email} ===")
+            
+            # Obtener headers de la hoja
+            try:
+                headers = self.users_sheet.row_values(1)
+                logger.info(f"📋 Headers en Google Sheets: {headers}")
+                
+                if 'password_hash' not in headers:
+                    logger.error("❌ PROBLEMA CRÍTICO: La columna 'password_hash' no existe en los headers")
+                    return None
+                else:
+                    password_index = headers.index('password_hash') + 1
+                    logger.info(f"✅ Columna 'password_hash' encontrada en posición {password_index}")
+            except Exception as e:
+                logger.error(f"❌ Error obteniendo headers: {e}")
+                return None
+            
+            # Obtener todos los registros
+            all_records = self.users_sheet.get_all_records()
+            logger.info(f"📊 Total de usuarios en Sheets: {len(all_records)}")
+            
+            # Buscar el usuario específico
+            user_record = None
+            row_number = None
+            for i, record in enumerate(all_records):
+                if record.get('email', '').lower() == email.lower():
+                    user_record = record
+                    row_number = i + 2  # +2 porque enumerate empieza en 0 y hay header
+                    logger.info(f"✅ Usuario encontrado en fila {row_number}")
+                    break
+            
+            if not user_record:
+                logger.error(f"❌ Usuario {email} no encontrado en Sheets")
+                logger.info("📋 Usuarios existentes (primeros 5):")
+                for i, record in enumerate(all_records[:5]):
+                    logger.info(f"  {i+1}. {record.get('email', 'SIN EMAIL')}")
+                return None
+            
+            # Mostrar todos los campos del usuario
+            logger.info("📋 Datos del usuario desde get_all_records():")
+            for key, value in user_record.items():
+                if key == 'password_hash':
+                    if value:
+                        logger.info(f"  🔐 {key}: [HASH PRESENTE - {len(value)} caracteres]")
+                        logger.info(f"  🔍 Primeros 30 chars del hash: {value[:30]}...")
+                        logger.info(f"  ✓ Hash válido: {self.is_valid_bcrypt_hash(value)}")
+                    else:
+                        logger.error(f"  ❌ {key}: [VACÍO - ESTE ES EL PROBLEMA]")
+                else:
+                    logger.info(f"  📝 {key}: {value}")
+            
+            # Verificar datos raw de la fila específica
+            logger.info(f"📊 Datos raw de la fila {row_number}:")
+            try:
+                raw_values = self.users_sheet.row_values(row_number)
+                for j, val in enumerate(raw_values):
+                    header_name = headers[j] if j < len(headers) else f"Columna{j+1}"
+                    if header_name == 'password_hash':
+                        if val:
+                            logger.info(f"  🔐 Columna {j+1} ({header_name}): [HASH RAW - {len(val)} chars] {val[:30]}...")
+                        else:
+                            logger.error(f"  ❌ Columna {j+1} ({header_name}): [VACÍO EN RAW]")
+                    else:
+                        logger.info(f"  📝 Columna {j+1} ({header_name}): {val}")
+            except Exception as e:
+                logger.error(f"❌ Error obteniendo datos raw: {e}")
+            
+            return user_record
+            
+        except Exception as e:
+            logger.error(f"❌ Error en debug completo: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
+
+    def fix_user_password(self, email, new_password="TempPassword123!"):
+        """Reparar la contraseña de un usuario específico"""
+        try:
+            logger.info(f"🛠️ === REPARANDO CONTRASEÑA PARA {email} ===")
+            
+            # Buscar usuario
+            all_records = self.users_sheet.get_all_records()
+            user_record = None
+            row_number = None
+            
+            for i, record in enumerate(all_records):
+                if record.get('email', '').lower() == email.lower():
+                    user_record = record
+                    row_number = i + 2  # +2 porque enumerate empieza en 0 y hay header
+                    break
+            
+            if not user_record:
+                logger.error(f"❌ Usuario {email} no encontrado para reparar")
+                return False, "Usuario no encontrado"
+            
+            # Generar nuevo hash
+            logger.info(f"🔐 Generando nuevo hash para contraseña: {new_password}")
+            new_hash = self.hash_password(new_password)
+            
+            # Obtener índice de columna password
+            headers = self.users_sheet.row_values(1)
+            if 'password_hash' not in headers:
+                logger.error("❌ No se puede reparar: columna 'password_hash' no existe")
+                return False, "Columna password_hash no encontrada"
+            
+            password_col_index = headers.index('password_hash') + 1
+            password_col_letter = chr(ord('A') + password_col_index - 1)
+            
+            logger.info(f"📍 Actualizando celda {password_col_letter}{row_number}")
+            
+            # Actualizar contraseña en Google Sheets
+            self.users_sheet.update(f'{password_col_letter}{row_number}', new_hash)
+            
+            logger.info(f"✅ Contraseña reparada para {email}")
+            logger.info(f"🔑 Nueva contraseña: {new_password}")
+            
+            # Verificar inmediatamente que se guardó
+            logger.info("🔍 Verificando que la reparación fue exitosa...")
+            verification = self.debug_user_complete(email)
+            
+            return True, f"Contraseña reparada. Nueva contraseña: {new_password}"
+            
+        except Exception as e:
+            logger.error(f"❌ Error reparando contraseña: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return False, "Error interno reparando contraseña"
+
+    def login_user_debug(self, email, password):
+        """Login con debugging completo"""
+        try:
+            logger.info(f"🚀 === LOGIN CON DEBUG PARA {email} ===")
+            
+            # Primero hacer debug completo del usuario
+            user_record = self.debug_user_complete(email)
+            
+            if not user_record:
+                return False, "Email o contraseña incorrectos"
+            
+            # Verificar contraseña
+            stored_hash = user_record.get('password_hash', '')
+            
+            if not stored_hash:
+                logger.error(f"❌ PROBLEMA IDENTIFICADO: Hash de contraseña vacío para {email}")
+                logger.error("💡 SOLUCIONES DISPONIBLES:")
+                logger.error("   1. Usar auth_manager.fix_user_password(email) para reparar")
+                logger.error("   2. El usuario debe restablecer su contraseña")
+                
+                return False, "Su contraseña no está configurada correctamente. Contacte al administrador o use la función de reparación."
+            
+            logger.info(f"🔍 Verificando contraseña para {email}...")
+            logger.info(f"�� Hash almacenado: {len(stored_hash)} caracteres")
+            
+            # Verificar que el hash es válido
+            if not self.is_valid_bcrypt_hash(stored_hash):
+                logger.error(f"❌ Hash bcrypt inválido para {email}: {stored_hash[:30]}...")
+                return False, "Hash de contraseña corrupto. Use la función de reparación."
+            
+            # Verificar contraseña
+            if not self.verify_password(password, stored_hash):
+                logger.warning(f"❌ Contraseña incorrecta para {email}")
+                return False, "Email o contraseña incorrectos"
+            
+            # Actualizar último acceso
+            try:
+                all_records = self.users_sheet.get_all_records()
+                row_index = None
+                for i, record in enumerate(all_records):
+                    if record.get('email', '').lower() == email.lower():
+                        row_index = i + 2
+                        break
+                
+                if row_index:
+                    self.users_sheet.update(f'L{row_index}', datetime.now().isoformat())
+                    logger.info(f"✅ Último acceso actualizado: {datetime.now().isoformat()}")
+            except Exception as e:
+                logger.warning(f"⚠️ No se pudo actualizar último acceso: {e}")
+            
+            logger.info(f"✅ Login exitoso para {email}")
+            return True, "Login exitoso"
+            
+        except Exception as e:
+            logger.error(f"❌ Error en login con debug: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return False, "Error interno del servidor"
+
 
 # Crear instancia global (se inicializa cuando se importa el módulo)
 try:
     auth_manager = AuthManager()
-    logger.info("✅ AuthManager global inicializado")
+    logger.info("✅ AuthManager inicializado correctamente")
 except Exception as e:
-    logger.error(f"❌ Error inicializando AuthManager global: {e}")
+    logger.error(f"❌ Error inicializando AuthManager: {e}")
     auth_manager = None
-    

@@ -1,0 +1,3823 @@
+<!DOCTYPE html>
+<!-- HTML Updated for Session Button: 2025-07-31 18:16:54 -->
+<!-- HTML Updated: 2025-07-31 18:15:51 -->
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedConnect - Panel de Profesional</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/patient-styles.css">
+    
+    <!-- Librerías para exportación y PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        /* Estilos específicos para profesionales */
+        .dashboard-header.professional {
+            background: linear-gradient(135deg, rgb(96,75,217) 0%, rgb(96,75,217) 100%);
+            color: white;
+        }
+
+        .dashboard-header.professional h1,
+        .dashboard-header.professional p,
+        .dashboard-header.professional small {
+            color: white;
+        }
+
+        .professional-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .stat-card-mini.professional {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-card-mini.professional .stat-icon-mini {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .stat-card-mini.professional .fw-medium,
+        .stat-card-mini.professional small {
+            color: white;
+        }
+
+
+
+        /* Para el formulario de registro */
+        .registration-form {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: 2rem;
+        }
+
+        .form-section-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        /* Estilos para el toast de bienvenida compacto y elegante */
+        .welcome-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1025;
+            max-width: 320px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            border-radius: 16px;
+            color: white;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .welcome-toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .welcome-icon {
+            font-size: 2rem;
+            opacity: 0.9;
+        }
+        
+        .welcome-toast .toast-body {
+            padding: 1.25rem;
+            border-radius: 16px;
+        }
+        
+        .welcome-toast h5 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            line-height: 1.3;
+        }
+        
+        .welcome-toast p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0.25rem;
+            line-height: 1.3;
+        }
+        
+        .welcome-toast small {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            font-weight: 400;
+        }
+        
+        .welcome-icon {
+            font-size: 1.8rem;
+            opacity: 0.9;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Estilos para la sidebar derecha */
+        .sticky-top {
+            z-index: 1020;
+        }
+        
+        #sidebarTerminos, #sidebarPapers {
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        #sidebarTerminos.show, #sidebarPapers.show {
+            animation: slideInRight 0.5s ease-out;
+        }
+        
+        .sidebar-term-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-term-item:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+        }
+        
+        .sidebar-term-item.selected {
+            background: #007bff;
+            color: white;
+            border-color: #0056b3;
+        }
+        
+        .sidebar-paper-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar-paper-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-paper-item.selected {
+            background: #28a745;
+            color: white;
+            border-color: #1e7e34;
+        }
+        
+        .sidebar-paper-item.selected .sidebar-paper-title,
+        .sidebar-paper-item.selected .sidebar-paper-doi,
+        .sidebar-paper-item.selected .sidebar-paper-evidence {
+            color: white !important;
+        }
+        
+        .sidebar-paper-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 6px;
+        }
+        
+        .sidebar-paper-doi {
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+        
+        .sidebar-paper-evidence {
+            font-size: 0.85em;
+            color: #28a745;
+        }
+
+        /* Estilos para el chat elegante y simplificado - Diseño Cursor Agent */
+        .copilot-chat-elegant {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #f0f0f0;
+        }
+
+
+
+        .chat-messages-elegant {
+            flex: 1;
+            overflow-y: auto;
+            margin: 0 0 20px 0;
+            padding-right: 10px;
+        }
+
+        .messages-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2px; /* Reducido de 16px a 2px para mensajes más compactos */
+        }
+
+        .message-elegant {
+            animation: slideInUp 0.4s ease-out;
+        }
+
+        .message-bubble {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            background: transparent; /* Eliminado el fondo blanco */
+            border-radius: 0; /* Eliminado el border-radius */
+            padding: 8px 0; /* Reducido el padding y eliminado horizontal */
+            box-shadow: none; /* Eliminado el box-shadow */
+            border: none; /* Eliminado el border */
+        }
+
+        .message-icon {
+            width: 24px; /* Reducido de 32px */
+            height: 24px; /* Reducido de 32px */
+            background: transparent; /* Eliminado el fondo */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999999; /* Color más sutil */
+            font-size: 0.7rem; /* Reducido de 0.8rem */
+            flex-shrink: 0;
+            border: none; /* Eliminado el border */
+        }
+
+        .message-text {
+            flex: 1;
+        }
+
+        .message-text p {
+            margin: 0;
+            color: #333333;
+            line-height: 1.3; /* Reducido de 1.4 */
+            font-size: 0.85rem; /* Reducido de 0.9rem */
+        }
+
+        .message-time {
+            font-size: 0.65rem; /* Reducido de 0.7rem */
+            color: #cccccc; /* Color más sutil */
+            margin-top: 2px; /* Reducido de 6px */
+            text-align: right;
+        }
+
+        .typing-elegant {
+            margin-top: 16px;
+        }
+
+        .typing-bubble {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .typing-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .typing-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .typing-content span {
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .typing-animation {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-animation span {
+            width: 8px;
+            height: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            animation: elegantTyping 1.4s infinite ease-in-out;
+        }
+
+        .typing-animation span:nth-child(1) { animation-delay: 0s; }
+        .typing-animation span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-animation span:nth-child(3) { animation-delay: 0.4s; }
+
+        .results-area {
+            margin: 20px 0;
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .main-action {
+            margin-top: auto;
+        }
+
+        .btn-copilot-primary {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 16px;
+            padding: 16px 24px;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .btn-copilot-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-copilot-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-copilot-primary.analyzing {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        .btn-copilot-primary.analyzing .btn-status {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes elegantTyping {
+            0%, 60%, 100% { 
+                transform: translateY(0); 
+                opacity: 0.4; 
+            }
+            30% { 
+                transform: translateY(-8px); 
+                opacity: 1; 
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar personalizado */
+        .chat-messages-elegant::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages-elegant::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+
+        .chat-messages-elegant::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+        }
+
+                 .chat-messages-elegant::-webkit-scrollbar-thumb:hover {
+             background: rgba(255,255,255,0.5);
+         }
+
+         /* Estilos para resultados elegantes */
+         .results-header {
+             border-bottom: 1px solid rgba(255,255,255,0.2);
+             padding-bottom: 10px;
+             margin-bottom: 15px;
+         }
+
+         .results-header h6 {
+             color: white;
+             margin: 0;
+             font-weight: 600;
+         }
+
+         .result-section {
+             margin-bottom: 20px;
+             padding: 15px;
+             background: rgba(255,255,255,0.95);
+             border-radius: 12px;
+             box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+         }
+
+         .result-section h6 {
+             color: #333;
+             margin-bottom: 10px;
+             font-weight: 600;
+         }
+
+         .result-section p {
+             color: #666;
+             margin: 0;
+             line-height: 1.5;
+         }
+
+         .questions-list, .evidence-list {
+             display: flex;
+             flex-direction: column;
+             gap: 10px;
+         }
+
+         .question-item, .evidence-item {
+             padding: 12px;
+             background: rgba(255,255,255,0.8);
+             border-radius: 8px;
+             border: 1px solid rgba(0,0,0,0.1);
+             cursor: pointer;
+             transition: all 0.3s ease;
+         }
+
+         .question-item:hover, .evidence-item:hover {
+             background: rgba(255,255,255,0.95);
+             transform: translateY(-2px);
+             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+         }
+
+         .question-text, .evidence-title {
+             font-weight: 500;
+             color: #333;
+             margin-bottom: 5px;
+         }
+
+         .evidence-authors {
+             font-size: 0.85rem;
+             color: #666;
+             margin-bottom: 3px;
+         }
+
+         .evidence-year {
+             font-size: 0.8rem;
+             color: #888;
+         }
+
+         .question-actions {
+             margin-top: 8px;
+         }
+
+         .question-actions .btn {
+             padding: 4px 8px;
+             font-size: 0.8rem;
+         }
+
+         /* Estilos para modo automático */
+         .indicador-analisis-auto {
+             position: fixed;
+             top: 20px;
+             right: 20px;
+             background: rgba(0, 123, 255, 0.9);
+             color: white;
+             padding: 10px 15px;
+             border-radius: 8px;
+             z-index: 9999;
+             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+             animation: slideInRight 0.3s ease;
+         }
+
+         .message-auto {
+             background: rgba(0, 123, 255, 0.1);
+             border-left: 4px solid #007bff;
+         }
+
+         .message-auto-success {
+             background: rgba(40, 167, 69, 0.1);
+             border-left: 4px solid #28a745;
+         }
+
+         .message-auto-error {
+             background: rgba(220, 53, 69, 0.1);
+             border-left: 4px solid #dc3545;
+         }
+
+         /* Estilos para mensajes de preguntas - Diseño Cursor Agent */
+         .message-pregunta {
+             background: #fff8e1;
+             border-left: 3px solid #ffc107;
+         }
+
+         .pregunta-mensaje {
+             display: block; /* Cambiado de flex a block */
+             padding: 0; /* Eliminado el padding */
+             background: transparent; /* Eliminado el fondo */
+             border-radius: 0; /* Eliminado el border-radius */
+             margin: 0; /* Eliminado el margin */
+             border: none; /* Eliminado el border */
+         }
+
+         .pregunta-texto {
+             font-weight: 400; /* Reducido de 500 */
+             font-size: 0.85rem; /* Reducido de 0.9rem */
+             color: #333333;
+             line-height: 1.3;
+         }
+
+         .insertar-pregunta-btn {
+             display: none; /* Ocultar completamente el botón */
+         }
+
+         /* Estilos para mensajes de papers - Diseño Cursor Agent */
+         .message-paper {
+             background: #e3f2fd;
+             border-left: 3px solid #2196f3;
+         }
+
+         .paper-mensaje {
+             display: block; /* Cambiado de flex a block */
+             padding: 0; /* Eliminado el padding */
+             background: transparent; /* Eliminado el fondo */
+             border-radius: 0; /* Eliminado el border-radius */
+             margin: 0; /* Eliminado el margin */
+             border: none; /* Eliminado el border */
+         }
+
+         .paper-titulo {
+             font-weight: 500; /* Reducido de 600 */
+             margin-bottom: 2px; /* Reducido de 4px */
+             color: #1976d2;
+             font-size: 0.85rem; /* Reducido de 0.9rem */
+         }
+
+         .paper-autores {
+             font-size: 0.75rem; /* Reducido de 0.8rem */
+             color: #666666;
+             margin-bottom: 1px; /* Reducido de 2px */
+         }
+
+         .paper-ano {
+             font-size: 0.7rem; /* Reducido de 0.75rem */
+             color: #888888;
+             margin-bottom: 0; /* Eliminado el margin */
+         }
+
+         .insertar-paper-btn {
+             display: none; /* Ocultar completamente el botón */
+         }
+
+         @keyframes slideInRight {
+             from {
+                 transform: translateX(100%);
+                 opacity: 0;
+             }
+             to {
+                 transform: translateX(0);
+                 opacity: 1;
+             }
+         }
+
+         /* Estilos para resultados automáticos */
+         .result-section.auto-result {
+             border-left: 4px solid #007bff;
+             background: rgba(0, 123, 255, 0.05);
+         }
+
+         .auto-result h6 {
+             color: #007bff;
+         }
+
+         /* Estilos para indicador de modo automático - Diseño Cursor Agent */
+         .auto-mode-indicator {
+             background: #f8f9fa;
+             border-radius: 8px;
+             padding: 12px 16px;
+             margin: 16px 0;
+             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+             border: 1px solid #e9ecef;
+         }
+
+         .auto-mode-content {
+             display: flex;
+             align-items: center;
+             justify-content: space-between;
+             color: #333333;
+         }
+
+         .auto-mode-text {
+             font-weight: 500;
+             font-size: 0.9rem;
+             margin-left: 8px;
+         }
+
+         .auto-mode-status {
+             display: flex;
+             align-items: center;
+         }
+
+         .auto-mode-status i {
+             font-size: 1rem;
+             animation: pulse 2s infinite;
+             color: #28a745;
+         }
+
+         @keyframes pulse {
+             0% { opacity: 1; }
+             50% { opacity: 0.7; }
+             100% { opacity: 1; }
+         }
+        
+        /* Responsive para la sidebar */
+        @media (max-width: 1199.98px) {
+            .col-lg-4.col-xl-3 {
+                margin-top: 20px;
+            }
+            
+            .sticky-top {
+                position: relative !important;
+                top: 0 !important;
+            }
+        }
+        
+        /* Asegurar que la sidebar esté siempre visible en desktop */
+        @media (min-width: 1200px) {
+            .col-lg-8.col-xl-9 {
+                padding-right: 20px;
+            }
+            
+            .col-lg-4.col-xl-3 {
+                padding-left: 20px;
+            }
+            
+            .sticky-top {
+                position: sticky !important;
+                top: 100px !important;
+                height: calc(100vh - 120px);
+                overflow-y: auto;
+            }
+        }
+        
+        /* Estilos específicos para la sidebar - Diseño Cursor Agent */
+        .sidebar-container {
+            z-index: 1020;
+            background: #ffffff;
+            border-left: 1px solid #e9ecef;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.05);
+        }
+        
+        .sidebar-section {
+            transition: all 0.3s ease;
+            box-shadow: none;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #f0f0f0;
+            background: #ffffff;
+        }
+        
+        .sidebar-section.show {
+            animation: slideInRight 0.5s ease-out;
+        }
+        
+        .sidebar-content {
+            max-height: 400px;
+            min-height: 200px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #e0e0e0 #ffffff;
+            padding: 8px 0;
+        }
+        
+        .sidebar-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .sidebar-content::-webkit-scrollbar-track {
+            background: #ffffff;
+            border-radius: 2px;
+        }
+        
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: #e0e0e0;
+            border-radius: 2px;
+        }
+        
+        .sidebar-content::-webkit-scrollbar-thumb:hover {
+            background: #d0d0d0;
+        }
+        
+        /* Asegurar que las secciones tengan tamaño normal */
+        .sidebar-section .card-body {
+            padding: 1.25rem;
+            min-height: 120px;
+            background: #ffffff;
+        }
+        
+        .sidebar-section .card-header {
+            padding: 0.75rem 1.25rem;
+            font-size: 1rem;
+            font-weight: 500;
+            background: #fafafa;
+            border-bottom: 1px solid #f0f0f0;
+            color: #333333;
+        }
+        
+        /* Mejorar la visibilidad de la sidebar */
+        .sidebar-section {
+            border: 1px solid #f0f0f0;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+        
+        /* Estilos para elementos dentro de la sidebar - Diseño Cursor Agent */
+        .sidebar-term-item {
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            border: 1px solid #f0f0f0;
+            background: #ffffff;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-size: 0.9rem;
+            line-height: 1.3;
+            color: #333333;
+        }
+        
+        .sidebar-term-item:hover {
+            background: #f8f9fa;
+            transform: translateX(2px);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+        
+        .sidebar-term-item.selected {
+            background: #f0f8ff;
+            color: #0066cc;
+            border-color: #0066cc;
+        }
+        
+        .sidebar-paper-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border: 1px solid #f0f0f0;
+            background: #ffffff;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+        
+        .sidebar-paper-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .sidebar-paper-item.selected {
+            border-color: rgb(96,75,217);
+            box-shadow: 0 4px 12px rgba(96,75,217,0.2);
+        }
+        
+        .sidebar-paper-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .sidebar-paper-description {
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+        
+        .sidebar-paper-doi {
+            font-size: 0.8rem;
+            color: #007bff;
+            text-decoration: none;
+        }
+        
+        .sidebar-paper-doi:hover {
+            text-decoration: underline;
+        }
+        
+
+        
+        .panel-content {
+            background: #f8f9fa; /* Fondo claro para mejor contraste */
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+        }
+        
+        .panel-section {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(96,75,217,0.2);
+            box-shadow: 0 2px 8px rgba(96,75,217,0.1);
+        }
+        
+        .section-header {
+            border-bottom: 1px solid rgba(96,75,217,0.2);
+            padding-bottom: 0.5rem;
+        }
+        
+        .section-content {
+            color: #333; /* Texto oscuro para mejor legibilidad */
+        }
+        
+        .sidebar-content {
+            max-height: 300px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgb(96,75,217) #f8f9fa;
+        }
+        
+        .sidebar-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar-content::-webkit-scrollbar-track {
+            background: #f8f9fa;
+        }
+        
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: rgb(96,75,217);
+            border-radius: 3px;
+        }
+        
+        .sidebar-content::-webkit-scrollbar-thumb:hover {
+            background: rgb(86,65,207);
+        }
+        
+        /* Hacer el panel más prominente */
+        @media (min-width: 1200px) {
+            .sidebar-container {
+                background: #1a1a1a;
+                border-left: 1px solid #333;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+            }
+        }
+        
+        /* Panel completo estilo Cursor que ocupa toda la altura */
+        .sidebar-container {
+            position: fixed;
+            right: 0;
+            top: 60px; /* Ajustado para empezar debajo del header */
+            width: 40%;
+            min-width: 300px; /* Ancho mínimo */
+            max-width: 60%; /* Ancho máximo */
+            height: calc(100vh - 60px); /* Ajustado para ocupar el resto de la altura */
+            overflow-y: auto;
+            z-index: 1050;
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+            opacity: 0;
+            visibility: hidden;
+            background: #f8f9fa;
+            border-left: 1px solid rgba(96,75,217,0.3);
+            box-shadow: -5px 0 15px rgba(96,75,217,0.2);
+            resize: horizontal; /* Hacer la sidebar redimensionable horizontalmente */
+            overflow: hidden; /* Ocultar scrollbar del resize */
+        }
+        
+        /* Handle de resize personalizado */
+        .sidebar-resize-handle {
+            position: absolute;
+            left: -2px; /* Extender ligeramente hacia la izquierda */
+            top: 0;
+            width: 8px; /* Área de agarre más amplia */
+            height: 100%;
+            background: rgba(96,75,217,0.3);
+            cursor: col-resize;
+            transition: all 0.3s ease;
+            z-index: 1001; /* Asegurar que esté por encima */
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .sidebar-resize-handle:hover {
+            background: rgb(96,75,217);
+            width: 10px; /* Expandir ligeramente al hover */
+            left: -3px;
+            box-shadow: 0 0 8px rgba(96,75,217,0.4);
+        }
+        
+        .sidebar-resize-handle:active {
+            background: rgb(86,65,207);
+            width: 12px; /* Expandir más al activar */
+            left: -4px;
+            box-shadow: 0 0 12px rgba(96,75,217,0.6);
+        }
+        
+        /* Agregar indicador visual adicional */
+        .sidebar-resize-handle::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 20px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 1px;
+        }
+        
+        .sidebar-resize-handle::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 20px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 1px;
+            margin-left: 2px;
+        }
+        
+        /* Mejorar la visibilidad del handle */
+        .sidebar-container:hover .sidebar-resize-handle {
+            background: rgba(96,75,217,0.5);
+        }
+        
+        .sidebar-container.show {
+            transform: translateX(0);
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Ajustar el contenido principal cuando el panel está visible */
+        @media (min-width: 1200px) {
+            .col-lg-8.col-xl-9 {
+                margin-right: 40%;
+                transition: margin-right 0.3s ease-in-out;
+                width: 60%;
+            }
+            
+            .col-lg-8.col-xl-9.sidebar-hidden {
+                margin-right: 0;
+                width: 100%;
+            }
+            
+            /* Asegurar que todos los elementos dentro se ajusten */
+            .col-lg-8.col-xl-9 .row {
+                width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9 .col-12 {
+                width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9 .registration-form {
+                width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9 .tab-content {
+                width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9 .nav-tabs {
+                width: 100%;
+            }
+            
+            /* Asegurar que todos los elementos se expandan */
+            .col-lg-8.col-xl-9 .card {
+                width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9 .form-control {
+                width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9 .form-select {
+                width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9 .btn {
+                width: auto;
+            }
+            
+            .col-lg-8.col-xl-9 .d-flex {
+                width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9 .row {
+                margin-left: 0;
+                margin-right: 0;
+            }
+            
+            .col-lg-8.col-xl-9 .col-md-6,
+            .col-lg-8.col-xl-9 .col-md-4,
+            .col-lg-8.col-xl-9 .col-md-8 {
+                width: 100%;
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+        }
+        
+        /* Estilos específicos cuando la sidebar está oculta */
+        @media (min-width: 1200px) {
+            .col-lg-8.col-xl-9.sidebar-hidden {
+                margin-right: 0;
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9.sidebar-hidden .row {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9.sidebar-hidden .col-12 {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9.sidebar-hidden .registration-form {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9.sidebar-hidden .tab-content {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9.sidebar-hidden .nav-tabs {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9.sidebar-hidden .card {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9.sidebar-hidden .form-control {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9.sidebar-hidden .form-select {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .col-lg-8.col-xl-9.sidebar-hidden .d-flex {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+        
+        /* Botón para mostrar/ocultar sidebar estilo Cursor */
+        /* Botón para mostrar/ocultar panel estilo Cursor (dentro del header) */
+        .sidebar-toggle {
+            background: rgb(96,75,217); /* Color principal de la plataforma */
+            border: none;
+            color: white;
+            padding: 8px; /* Padding ajustado para el header */
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(96,75,217,0.3); /* Sombra con color de la plataforma */
+            transition: all 0.3s ease;
+            font-size: 0.9rem; /* Tamaño de fuente más pequeño */
+            cursor: pointer;
+            width: 36px; /* Tamaño ajustado */
+            height: 36px; /* Tamaño ajustado */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Eliminado position: fixed, right, top, z-index ya que estará dentro del nav */
+        }
+        
+        .sidebar-toggle:hover {
+            background: rgb(86,65,207); /* Color más oscuro al hacer hover */
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(96,75,217,0.4);
+        }
+        
+        .sidebar-toggle:hover {
+            background: #4a5568;
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+        }
+        
+        .sidebar-toggle:active {
+            transform: scale(0.95);
+        }
+        
+        .sidebar-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .welcome-toast .toast-body {
+            background: linear-gradient(135deg, rgb(96,75,217) 0%, rgb(96,75,217) 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(93, 62, 143, 0.3);
+        }
+        
+
+
+        /* Estilos para la agenda */
+        .schedule-timeline {
+            padding: 1rem 0;
+        }
+
+        /* Estilos mejorados para el resumen y recordatorios */
+        .reminder-item {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .reminder-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .card.shadow-sm {
+            transition: all 0.3s ease;
+        }
+
+        .card.shadow-sm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+        }
+
+        .bg-light {
+            transition: all 0.3s ease;
+        }
+
+        .bg-light:hover {
+            background-color: #f8f9fa !important;
+            transform: scale(1.02);
+        }
+
+        .border-start {
+            border-left-width: 4px !important;
+        }
+
+        /* Estilos para acciones de recordatorios */
+        .reminder-actions {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .reminder-item:hover .reminder-actions {
+            opacity: 1;
+        }
+
+        .reminder-actions .btn {
+            padding: 2px 6px;
+            font-size: 12px;
+            margin-left: 2px;
+        }
+
+        .reminder-item {
+            position: relative;
+        }
+
+        .reminder-item .d-flex {
+            align-items: flex-start;
+        }
+
+        .time-slot {
+            display: flex;
+            margin-bottom: 1rem;
+            align-items: stretch;
+        }
+
+        .time-label {
+            width: 80px;
+            font-weight: 600;
+            color: var(--gray-600);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-100);
+            border-radius: var(--border-radius);
+            margin-right: 1rem;
+            font-size: 14px;
+        }
+
+        .appointment {
+            flex: 1;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            border: 2px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+        }
+
+        .appointment.available {
+            border-style: dashed;
+            cursor: pointer;
+            background: var(--gray-50);
+        }
+
+        .appointment.available:hover {
+            border-color: var(--primary-color);
+            background: rgba(93, 62, 143, 0.05);
+        }
+
+        .appointment.scheduled {
+            background: white;
+            border-color: var(--primary-color);
+        }
+
+        .appointment-info h6 {
+            color: var(--gray-800);
+            margin-bottom: 0.25rem;
+        }
+
+        .appointment-actions {
+            margin-left: 1rem;
+        }
+        
+        /* Estilos para vista semanal */
+        .agenda-semanal {
+            font-size: 0.85rem;
+        }
+        
+        .agenda-semanal th {
+            background-color: #f8f9fa;
+            text-align: center;
+            font-weight: 600;
+            padding: 8px 4px;
+        }
+        
+        .agenda-semanal td {
+            height: 45px;
+            padding: 2px;
+            vertical-align: top;
+            position: relative;
+        }
+        
+        .cita-semanal {
+            background-color: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin: 1px 0;
+            font-size: 0.75rem;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .cita-semanal:hover {
+            background-color: #bbdefb;
+        }
+        
+        .cita-semanal.confirmada {
+            background-color: #e8f5e8;
+            border-color: #4caf50;
+        }
+        
+        .cita-semanal.pendiente {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+        }
+        
+        .cita-semanal.cancelada {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+        }
+        
+        .slot-disponible {
+            background-color: #f8f9fa;
+            border: 1px dashed #dee2e6;
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin: 1px 0;
+            font-size: 0.7rem;
+            color: #6c757d;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .slot-disponible:hover {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
+            color: #2196f3;
+        }
+        
+        /* Estilos para vista mensual */
+        .calendario-mensual {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background-color: #dee2e6;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .dia-header {
+            background-color: #f8f9fa;
+            padding: 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+        
+        .dia-celda {
+            background-color: white;
+            min-height: 100px;
+            padding: 4px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .dia-celda:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .dia-celda.otro-mes {
+            background-color: #f8f9fa;
+            color: #adb5bd;
+        }
+        
+        .dia-celda.hoy {
+            background-color: #e3f2fd;
+            font-weight: bold;
+        }
+        
+        .dia-numero {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        
+        .cita-mensual {
+            background-color: #2196f3;
+            color: white;
+            border-radius: 3px;
+            padding: 1px 3px;
+            margin: 1px 0;
+            font-size: 0.7rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        
+        .cita-mensual:hover {
+            background-color: #1976d2;
+        }
+        
+        .cita-mensual.confirmada {
+            background-color: #4caf50;
+        }
+        
+        .cita-mensual.pendiente {
+            background-color: #ff9800;
+        }
+        
+        .cita-mensual.cancelada {
+            background-color: #f44336;
+        }
+        
+        .contador-citas {
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            background-color: #6c757d;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .alert-sm {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Estilos para tablas verticales sin scroll */
+        .table-container {
+            width: 100%;
+            overflow: visible;
+        }
+
+        .table {
+            table-layout: fixed;
+            width: 100%;
+            min-width: auto;
+        }
+
+        .patient-info-vertical,
+        .contact-info,
+        .service-info,
+        .date-info,
+        .status-info {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.75rem 0;
+        }
+
+        .user-avatar-sm {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        /* Hacer las filas más altas para acomodar contenido vertical */
+        .table tbody tr {
+            height: auto;
+            min-height: 80px;
+        }
+
+        .table td {
+            vertical-align: top;
+            padding: 1rem 0.75rem;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        /* Información estructurada verticalmente */
+        .patient-info-vertical > div:last-child,
+        .contact-info,
+        .service-info,
+        .date-info,
+        .status-info {
+            line-height: 1.4;
+        }
+
+        /* Badges más pequeños para diseño vertical */
+        .badge.d-block {
+            width: fit-content;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Botones de acción verticales */
+        .d-flex.flex-column.gap-1 .btn {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            min-width: 70px;
+        }
+
+        /* Estilos para modales */
+        .modal-header {
+            background: var(--primary-color);
+            color: white;
+            border-bottom: none;
+        }
+
+        .modal-header .btn-close {
+            filter: invert(1);
+        }
+
+        .form-floating > label {
+            color: var(--gray-600);
+        }
+
+        .form-floating > .form-control:focus ~ label,
+        .form-floating > .form-control:not(:placeholder-shown) ~ label {
+            color: var(--primary-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .welcome-toast {
+                top: 70px;
+                right: 10px;
+                min-width: 300px;
+            }
+            
+            .time-slot {
+                flex-direction: column;
+            }
+            
+            .time-label {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 0.5rem;
+            }
+            
+            .appointment {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .appointment-actions {
+                margin-left: 0;
+                margin-top: 0.5rem;
+            }
+
+            /* Tablas responsive verticales */
+            .table th,
+            .table td {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.875rem;
+            }
+
+            .patient-info-vertical,
+            .contact-info,
+            .service-info,
+            .date-info,
+            .status-info {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 0.5rem 0;
+            }
+
+            .user-avatar-sm {
+                margin-bottom: 0.5rem;
+                margin-right: 0;
+            }
+
+            .d-flex.flex-column.gap-1 .btn {
+                font-size: 0.7rem;
+                padding: 0.2rem 0.4rem;
+                min-width: 60px;
+            }
+
+            /* Ocultar columnas menos importantes en móvil */
+            .table th:nth-child(3),
+            .table td:nth-child(3) {
+                display: none;
+            }
+        }
+
+        /* Estilos adicionales para mejorar legibilidad */
+        .table tbody tr:hover {
+            background-color: rgba(93, 62, 143, 0.05);
+        }
+
+        .fw-medium {
+            font-weight: 600;
+        }
+
+        .text-muted.d-block {
+            margin-bottom: 0.25rem;
+        }
+
+        /* ELIMINAR SCROLLS INTERNOS - Expandir secciones naturalmente */
+        .tab-content {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .tab-pane {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .card {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .card-body {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .table-container {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .registration-form {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        .schedule-timeline {
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+        }
+
+        /* Asegurar que el contenido principal no tenga scrolls */
+        .container-fluid {
+            overflow: visible !important;
+        }
+
+        /* Eliminar cualquier restricción de Bootstrap */
+        .h-100 {
+            height: auto !important;
+        }
+
+        .mh-100 {
+            max-height: none !important;
+        }
+    </style>
+</head>
+<body class="dashboard-body">
+                                    <!-- Mensaje de bienvenida mejorado -->
+    <div class="welcome-toast" id="welcomeToast">
+                    <div class="toast-body">
+            <div>
+                            <h5 class="mb-1">
+                    {% if user and user.profesion_gendered %}
+                                    ¡Bienvenido/a, {{ user.profesion_gendered }}!
+                    {% else %}
+                                    ¡Bienvenido/a, {{ user.nombre if user else 'Usuario' }}!
+                                {% endif %}
+                            </h5>
+                            <p class="mb-0">
+                                {% if user and user.especialidad %}
+                                    Tu asistente de IA está listo para ayudarte con {{ user.especialidad }}
+                                {% else %}
+                                    Tu asistente de IA está listo para potenciar tu práctica médica
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="/static/images/logo.png" alt="MedConnect Logo">
+                MedConnect
+            </a>
+            <div class="d-flex align-items-center">
+                <div class="dropdown">
+                    <a class="d-flex align-items-center text-decoration-none dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="fw-medium">
+                            {% if user and user.profesion_gendered %}
+                                {{ user.profesion_gendered }} {{ user.nombre if user else 'Usuario' }} {{ user.apellido if user else '' }}
+                            {% else %}
+                                {{ user.nombre if user else 'Usuario' }} {{ user.apellido if user else '' }}
+                            {% endif %}
+                        </span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('profile') }}">
+                                <i class="fas fa-user-circle me-2 text-primary"></i>
+                                Mi Perfil
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#">
+                                <i class="fas fa-cogs me-2 text-info"></i>
+                                Configuración
+                            </a>
+                </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('reports') }}">
+                                <i class="fas fa-chart-bar me-2 text-success"></i>
+                                Reportes
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="/logout">
+                                <i class="fas fa-sign-out-alt me-2 text-danger"></i>
+                                Cerrar sesión
+                            </a>
+                        </li>
+                    </ul>
+                            </div>
+                            <!-- Botón para mostrar/ocultar panel estilo Cursor -->
+                            <button class="sidebar-toggle ms-3" id="sidebarToggle" onclick="toggleSidebar()" title="Mostrar/Ocultar Panel Copilot Health">
+                                <i class="fas fa-columns" id="sidebarToggleIcon"></i>
+                            </button>
+                            </div>
+        </div>
+    </nav>
+
+    <!-- Header Mejorado -->
+    <header class="dashboard-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <div class="welcome-section">
+                            <h1 class="mb-1">
+                                {% if user and user.profesion_gendered %}
+                                    ¡Hola, {{ user.profesion_gendered }} {{ user.nombre if user else 'Usuario' }}!
+                                {% else %}
+                                    ¡Hola, {{ user.nombre if user else 'Usuario' }}!
+                                {% endif %}
+                            </h1>
+                        <p class="mb-1">
+                                {% if user and user.profesion_gendered %}
+                                    {{ user.profesion_gendered }} {{ user.nombre if user else 'Usuario' }} {{ user.apellido if user else '' }}
+                                {% else %}
+                                    {{ user.nombre if user else 'Usuario' }} {{ user.apellido if user else '' }}
+                                {% endif %}
+                        </p>
+                        <p class="mb-1">
+                                {% if user and user.especialidad %}
+                                {{ user.especialidad }} - Sistema de Gestión de Atenciones Médicas
+                                {% else %}
+                                Sistema de Gestión de Atenciones Médicas
+                                {% endif %}
+                            </p>
+                            {% if user and user.ultimo_acceso %}
+                            <small>Último acceso: {{ user.ultimo_acceso[:10] if user.ultimo_acceso else 'Primera vez' }}</small>
+                            {% endif %}
+                            </div>
+                            </div>
+                <div class="col-lg-6">
+                    <div class="stats-section">
+                    <div class="row g-2">
+                        <div class="col-3">
+                                <div class="stat-card-mini atenciones text-center">
+                                    <div class="stat-icon-mini">
+                                    <i class="fas fa-clipboard-list"></i>
+                                </div>
+                                <div class="fw-medium" id="total-atenciones">0</div>
+                                <small>Atenciones</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                                <div class="stat-card-mini citas-hoy text-center">
+                                    <div class="stat-icon-mini">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="fw-medium" id="citas-hoy">0</div>
+                                <small>Citas Hoy</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                                <div class="stat-card-mini pacientes text-center">
+                                    <div class="stat-icon-mini">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="fw-medium" id="total-pacientes">0</div>
+                                <small>Pacientes</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                                <div class="stat-card-mini pendientes text-center">
+                                    <div class="stat-icon-mini">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="fw-medium" id="atenciones-pendientes">0</div>
+                                <small>Pendientes</small>
+                            </div>
+                        </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+    </header>
+
+                    <!-- Main Content -->
+        <main class="container-fluid py-4">
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const navbar = document.querySelector(".navbar");
+        if (navbar) {
+            const navbarHeight = navbar.offsetHeight;
+            const sidebarContainer = document.getElementById("sidebarContainer");
+            if (sidebarContainer) {
+                sidebarContainer.style.top = navbarHeight + "px";
+                sidebarContainer.style.height = `calc(100vh - ${navbarHeight}px)`;
+            }
+        }
+    });
+</script>
+        <!-- Layout con sidebar derecha -->
+        <div class="row g-4">
+            <!-- Contenido principal -->
+            <div class="col-lg-8 col-xl-9">
+                <!-- Tabs de Gestión -->
+                <div class="row">
+                    <div class="col-12">
+                <ul class="nav nav-tabs" id="professionalTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab">
+                            <i class="fas fa-plus-circle"></i>
+                            Registrar Atención
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
+                            <i class="fas fa-history"></i>
+                            Historial de Atenciones
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="patients-tab" data-bs-toggle="tab" data-bs-target="#patients" type="button" role="tab">
+                            <i class="fas fa-users"></i>
+                            Mis Pacientes
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule" type="button" role="tab">
+                            <i class="fas fa-calendar-alt"></i>
+                            Agenda
+                        </button>
+                    </li>
+
+                </ul>
+
+                <div class="tab-content" id="professionalTabsContent">
+                    <!-- Registrar Nueva Atención -->
+                    <div class="tab-pane fade show active" id="register" role="tabpanel">
+                        <div class="registration-form mt-4">
+                            <h4 class="form-section-title">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                Registrar Nueva Atención de Salud
+                            </h4>
+                            
+                            <form id="atencionForm" enctype="multipart/form-data">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted mb-3">Información del Paciente</h6>
+                                        
+                                        <!-- Selector de paciente existente o nuevo -->
+                                        <div class="mb-3">
+                                            <label for="seleccionPaciente" class="form-label">
+                                                <i class="fas fa-user me-1"></i>Seleccionar Paciente
+                                            </label>
+                                            <div class="d-flex gap-2">
+                                                <select class="form-select" id="seleccionPaciente" onchange="manejarSeleccionPaciente()">
+                                                    <option value="">Seleccionar paciente existente...</option>
+                                                    <option value="nuevo">➕ Crear nuevo paciente</option>
+                                                </select>
+                                                <button type="button" class="btn btn-outline-primary" onclick="recargarListaPacientes()" title="Actualizar lista">
+                                                    <i class="fas fa-sync-alt"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Campos del paciente (se muestran cuando se selecciona "nuevo" o se edita) -->
+                                        <div id="camposPaciente" style="display: none;">
+                                            <div class="mb-3">
+                                                <label for="pacienteNombre" class="form-label">Nombre Completo</label>
+                                                <input type="text" class="form-control" id="pacienteNombre" placeholder="Ej: Juan Pérez López">
+                                            </div>
+
+                                            <div class="row g-2 mb-3">
+                                                <div class="col-8">
+                                                    <label for="pacienteRut" class="form-label">RUT</label>
+                                                    <input type="text" class="form-control" id="pacienteRut" placeholder="12.345.678-9">
+                                                </div>
+                                                <div class="col-4">
+                                                    <label for="pacienteEdad" class="form-label">Edad</label>
+                                                    <input type="number" class="form-control" id="pacienteEdad" placeholder="25">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Información del paciente seleccionado -->
+                                        <div id="infoPacienteSeleccionado" style="display: none;">
+                                            <div class="card bg-light">
+                                                <div class="card-body p-3">
+                                                    <h6 class="card-title mb-2">
+                                                        <i class="fas fa-user-check me-1 text-success"></i>
+                                                        <span id="nombrePacienteSeleccionado"></span>
+                                                    </h6>
+                                                    <div class="row text-sm">
+                                                        <div class="col-6">
+                                                            <small class="text-muted">RUT:</small><br>
+                                                            <span id="rutPacienteSeleccionado"></span>
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <small class="text-muted">Edad:</small><br>
+                                                            <span id="edadPacienteSeleccionado"></span> años
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="editarDatosPaciente()">
+                                                        <i class="fas fa-edit me-1"></i>Editar datos
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="tipoAtencion" class="form-label">
+                                                <i class="fas fa-stethoscope me-2 text-info"></i>
+                                                Tipo de Atención
+                                                <span class="badge bg-info ms-2">IA Considerada</span>
+                                            </label>
+                                            <select class="form-select" id="tipoAtencion" required onchange="actualizarAnalisisConTipoAtencion()">
+                                                <option value="">Seleccionar...</option>
+                                                <option value="medicina_general">Medicina General / Medicina Familiar</option>
+                                                <option value="fisioterapia">Fisioterapia / Fisio</option>
+                                                <option value="kinesiologia">Kinesiología / Kinesio</option>
+                                                <option value="terapia_ocupacional">Terapia Ocupacional / Ergoterapia</option>
+                                                <option value="enfermeria">Enfermería</option>
+                                                <option value="psicologia">Psicología / Psicoterapia</option>
+                                                <option value="nutricion">Nutrición / Dietética</option>
+                                                <option value="fonoaudiologia">Fonoaudiología / Logopedia</option>
+                                                <option value="urgencia">Urgencia / Emergencia</option>
+                                            </select>
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                La IA ajustará las sugerencias según el tipo de atención seleccionado
+                                            </small>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="fechaAtencion" class="form-label">Fecha y Hora</label>
+                                            <input type="datetime-local" class="form-control" id="fechaAtencion" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <h6 class="text-muted mb-3">Información de la Atención</h6>
+                                        
+                                        <div class="mb-3">
+                                            <label for="motivoConsulta" class="form-label">
+                                                <i class="fas fa-robot me-2 text-primary"></i>
+                                                Motivo de la Atención
+                                                <span class="badge bg-info ms-2">IA Asistida</span>
+                                            </label>
+                                            <textarea class="form-control" id="motivoConsulta" rows="3" 
+                                                    placeholder="Describe el motivo de la atención... La IA analizará automáticamente y sugerirá preguntas relevantes..." 
+                                                    required oninput="analizarMotivoEnTiempoReal()"></textarea>
+                                            
+                                            <!-- Indicador de análisis de IA -->
+                                            <div id="iaAnalysisIndicator" class="mt-2" style="display: none;">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                                        <span class="visually-hidden">Analizando...</span>
+                                                    </div>
+                                                    <small class="text-primary">IA analizando motivo de consulta...</small>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Resultados del análisis de IA -->
+                                            <div id="iaAnalysisResults" class="mt-3" style="display: none;">
+                                                <div class="card border-primary">
+                                                    <div class="card-header bg-primary text-white py-2">
+                                                        <h6 class="mb-0">
+                                                            <i class="fas fa-robot me-2"></i>
+                                                            Análisis de IA
+                                                        </h6>
+                                                    </div>
+                                                    <div class="card-body p-3">
+                                                        <div class="row">
+                                                            <div class="col-md-6">
+                                                                <small class="text-muted">Especialidad Detectada:</small>
+                                                                <div class="fw-bold text-primary" id="especialidadDetectada">-</div>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <small class="text-muted">Categoría:</small>
+                                                                <div class="fw-bold text-info" id="categoriaDetectada">-</div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mt-2">
+                                                            <div class="col-md-6">
+                                                                <small class="text-muted">Urgencia:</small>
+                                                                <div class="fw-bold" id="urgenciaDetectada">-</div>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <small class="text-muted">Síntomas:</small>
+                                                                <div class="fw-bold text-warning" id="sintomasDetectados">-</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="diagnostico" class="form-label">
+                                                <i class="fas fa-clipboard-check me-2 text-success"></i>
+                                                Evaluación/Observaciones
+                                                <span class="badge bg-success ms-2">IA Sugerida</span>
+                                            </label>
+                                            <textarea class="form-control" id="diagnostico" rows="4" 
+                                                    placeholder="Evaluación inicial u observaciones relevantes... Las preguntas de evaluación aparecen en la sidebar de Copilot Health..."></textarea>
+                                            
+                                            <!-- SECCIÓN ELIMINADA: Las preguntas ahora aparecen en la sidebar de Copilot Health -->
+                                            <!-- <div id="preguntasSugeridas" class="mt-3" style="display: none;">
+                                                <div class="card border-success">
+                                                    <div class="card-header bg-success text-white py-2">
+                                                        <h6 class="mb-0">
+                                                            <i class="fas fa-question-circle me-2"></i>
+                                                            Preguntas Sugeridas por IA
+                                                        </h6>
+                                                    </div>
+                                                    <div class="card-body p-3">
+                                                        <div id="listaPreguntasSugeridas"></div>
+                                                        <div class="mt-2">
+                                                            <button type="button" class="btn btn-outline-success btn-sm" onclick="insertarPreguntasEnEvaluacion()">
+                                                                <i class="fas fa-plus me-1"></i>
+                                                                Insertar Preguntas en Evaluación
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div> -->
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="tratamiento" class="form-label">
+                                                <i class="fas fa-stethoscope me-2 text-warning"></i>
+                                                Plan de Intervención
+                                                <span class="badge bg-warning ms-2">IA Sugerida</span>
+                                            </label>
+                                            <textarea class="form-control" id="tratamiento" rows="3" placeholder="Plan de intervención o indicaciones..."></textarea>
+                                            
+
+                                            
+                                            <!-- Evidencia científica -->
+                                            <div id="sugerenciasTratamiento" class="mt-3" style="display: none;">
+                                                <div class="card border-info">
+                                                    <div class="card-header bg-info text-white py-2">
+                                                        <h6 class="mb-0">
+                                                            <i class="fas fa-microscope me-2"></i>
+                                                            Evidencia Científica
+                                                        </h6>
+                                                    </div>
+                                                    <div class="card-body p-3">
+                                                        <div id="listaSugerenciasTratamiento"></div>
+                                                        <div class="mt-2">
+                                                            <button type="button" class="btn btn-outline-info btn-sm" onclick="insertarSugerenciasTratamiento()">
+                                                                <i class="fas fa-plus me-1"></i>
+                                                                Insertar Evidencia
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="atencionObservaciones" class="form-label">Observaciones Adicionales</label>
+                                            <textarea class="form-control" id="atencionObservaciones" rows="3"></textarea>
+                                        </div>
+
+                                        <!-- Campo para adjuntar archivos -->
+                                        <div class="mb-3">
+                                            <label for="fileUpload" class="form-label">
+                                                <i class="fas fa-paperclip me-2"></i>Adjuntar Archivos
+                                                <span class="badge bg-info ms-2">PDF, JPG, PNG, GIF</span>
+                                            </label>
+                                            <input type="file" class="form-control" id="fileUpload" name="files[]" 
+                                                   multiple accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx">
+                                            <small class="text-muted d-block mt-1">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Máximo 16MB por archivo
+                                            </small>
+                                            <div id="fileList" class="mt-2">
+                                                <!-- Los archivos seleccionados se mostrarán aquí -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <!-- Análisis Completo con IA -->
+                                        <div class="card border-info mb-3">
+                                            <div class="card-header bg-info text-white">
+                                                <h6 class="mb-0">
+                                                    <i class="fas fa-robot me-2"></i>
+                                                    Análisis Completo con IA
+                                                </h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="text-muted mb-3">
+                                                    <i class="fas fa-info-circle me-2"></i>
+                                                    La IA analizará toda la información ingresada y generará un resumen completo con recomendaciones.
+                                                </p>
+                                                <button type="button" class="btn btn-info" onclick="realizarAnalisisCompletoIA()">
+                                                    <i class="fas fa-magic me-2"></i>
+                                                    Realizar Análisis Completo con IA
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="d-flex gap-2 justify-content-end">
+                                            <button type="button" class="btn btn-warning" onclick="probarRegistroAtencion()">
+                                                <i class="fas fa-flask me-2"></i>
+                                                Prueba
+                                            </button>
+                                            <button type="reset" class="btn btn-secondary">
+                                                <i class="fas fa-undo me-2"></i>
+                                                Limpiar
+                                            </button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save me-2"></i>
+                                                Registrar Atención
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Historial de Atenciones -->
+                    <div class="tab-pane fade" id="history" role="tabpanel">
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Historial de Atenciones</h5>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Buscar..." id="searchAtencion">
+                                    <select class="form-select form-select-sm" id="filterAtencion">
+                                        <option value="all">Todos</option>
+                                        <option value="today">Hoy</option>
+                                        <option value="week">Esta semana</option>
+                                        <option value="month">Este mes</option>
+                                    </select>
+                                    <div class="dropdown">
+                                        <button class="btn btn-primary btn-sm dropdown-toggle" type="button" id="exportarBtn" data-bs-toggle="dropdown">
+                                            <i class="fas fa-download me-1"></i>Exportar
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#" onclick="exportarHistorial('excel')">
+                                                <i class="fas fa-file-excel me-2 text-success"></i>Excel
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#" onclick="exportarHistorial('csv')">
+                                                <i class="fas fa-file-csv me-2 text-primary"></i>CSV
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Fecha</th>
+                                                <th>Paciente</th>
+                                                <th>Tipo</th>
+                                                <th>Diagnóstico</th>
+                                                <th>Estado</th>
+                                                <th class="text-center">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="historialAtenciones">
+                                            {% for atencion in atenciones %}
+                                            <tr>
+                                                <td>{{ atencion.fecha_hora }}</td>
+                                                <td>{{ atencion.paciente_nombre }}</td>
+                                                <td><span class="badge bg-primary">{{ atencion.tipo }}</span></td>
+                                                <td>{{ atencion.diagnostico }}</td>
+                                                <td>
+                                                    <span class="badge {{ 'bg-success' if atencion.completada else 'bg-warning' }}">
+                                                        {{ 'Completada' if atencion.completada else 'En Seguimiento' }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex justify-content-center gap-2">
+                                                        <button class="btn btn-sm btn-info" onclick="verDetalleAtencion('{{ atencion.id }}')" title="Ver Detalle">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-primary" onclick="editarAtencion('{{ atencion.id }}')" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-success" onclick="registrarSesion('{{ atencion.id }}', '{{ atencion.paciente_nombre }}')" title="Registrar Sesión">
+                                                            <i class="fas fa-clipboard-list"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-secondary" onclick="generarPDF('{{ atencion.id }}')" title="Generar PDF">
+                                                            <i class="fas fa-file-pdf"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mis Pacientes -->
+                    <div class="tab-pane fade" id="patients" role="tabpanel">
+                        <div class="card mt-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-users me-2 text-primary"></i>
+                                    Mis Pacientes
+                                </h5>
+                                <button class="btn btn-primary btn-sm" onclick="showAddPatientModal()">
+                                    <i class="fas fa-user-plus me-1"></i>
+                                    Agregar Paciente
+                                </button>
+                    </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" id="searchPatients" placeholder="Buscar paciente por nombre o RUT...">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <select class="form-select" id="filterPatients">
+                                            <option value="">Todos los pacientes</option>
+                                            <option value="activo">Pacientes activos</option>
+                                            <option value="inactivo">Pacientes inactivos</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="button" class="btn btn-outline-info btn-sm" onclick="testBusqueda()" title="Probar búsqueda">
+                                            <i class="fas fa-search me-1"></i>Probar Búsqueda
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="table-container">
+                                    <table class="table table-hover" id="patientsTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 30%;">Paciente</th>
+                                                <th style="width: 25%;">Contacto</th>
+                                                <th style="width: 20%;">Última Consulta</th>
+                                                <th style="width: 15%;">Estado</th>
+                                                <th class="text-end" style="width: 10%;">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Los pacientes se cargarán dinámicamente aquí -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+
+                    <!-- Agenda -->
+                    <div class="tab-pane fade" id="schedule" role="tabpanel">
+                        <div class="row mt-4">
+                            <div class="col-lg-8">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                            Agenda de Hoy - <span id="currentDate">16 de Enero, 2025</span>
+                                        </h5>
+                                        <div class="d-flex gap-2">
+                                            <!-- Selector de vista -->
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <input type="radio" class="btn-check" name="vistaAgenda" id="vistaDiaria" autocomplete="off" checked>
+                                                <label class="btn btn-outline-primary" for="vistaDiaria" onclick="cambiarVista('diaria')">
+                                                    <i class="fas fa-calendar-day me-1"></i>Día
+                                                </label>
+                                                
+                                                <input type="radio" class="btn-check" name="vistaAgenda" id="vistaSemanal" autocomplete="off">
+                                                <label class="btn btn-outline-primary" for="vistaSemanal" onclick="cambiarVista('semanal')">
+                                                    <i class="fas fa-calendar-week me-1"></i>Semana
+                                                </label>
+                                                
+                                                <input type="radio" class="btn-check" name="vistaAgenda" id="vistaMensual" autocomplete="off">
+                                                <label class="btn btn-outline-primary" for="vistaMensual" onclick="cambiarVista('mensual')">
+                                                    <i class="fas fa-calendar me-1"></i>Mes
+                                                </label>
+                                            </div>
+                                            
+                                            <!-- Navegación -->
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="navegarAnterior()">
+                                                    <i class="fas fa-chevron-left"></i>
+                                                </button>
+                                                <button class="btn btn-outline-primary" onclick="irHoy()">Hoy</button>
+                                                <button class="btn btn-outline-primary" onclick="navegarSiguiente()">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                    </div>
+                                    <div class="card-body">
+                                        <!-- Vista Diaria -->
+                                        <div id="vistaDiariaContent" class="agenda-view">
+                                            <div class="schedule-timeline" id="scheduleTimeline">
+                                                <!-- El contenido se cargará dinámicamente -->
+                                                <div class="text-center py-4">
+                                                    <div class="spinner-border text-primary" role="status">
+                                                        <span class="visually-hidden">Cargando agenda...</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Vista Semanal -->
+                                        <div id="vistaSemanalContent" class="agenda-view d-none">
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered agenda-semanal">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="width: 80px;">Hora</th>
+                                                            <th>Lunes</th>
+                                                            <th>Martes</th>
+                                                            <th>Miércoles</th>
+                                                            <th>Jueves</th>
+                                                            <th>Viernes</th>
+                                                            <th>Sábado</th>
+                                                            <th>Domingo</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="agendaSemanalBody">
+                                                        <!-- El contenido se cargará dinámicamente -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Vista Mensual -->
+                                        <div id="vistaMensualContent" class="agenda-view d-none">
+                                            <div class="calendario-mensual" id="calendarioMensual">
+                                                <!-- El contenido se cargará dinámicamente -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                    </div>
+                            
+                            <div class="col-lg-4">
+                                <!-- Resumen del Día -->
+                                <div class="card shadow-sm border-0 mb-4">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0 fw-bold">
+                                            <i class="fas fa-chart-pie me-2"></i>
+                                            Resumen del Día
+                                        </h6>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-6">
+                                                <div class="text-center p-3 rounded bg-light">
+                                                    <div class="h4 mb-1 text-primary fw-bold" id="totalCitas">5</div>
+                                                    <small class="text-muted">Total Citas</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="text-center p-3 rounded bg-light">
+                                                    <div class="h4 mb-1 text-success fw-bold" id="confirmadas">2</div>
+                                                    <small class="text-muted">Confirmadas</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="text-center p-3 rounded bg-light">
+                                                    <div class="h4 mb-1 text-warning fw-bold" id="pendientes">1</div>
+                                                    <small class="text-muted">Pendientes</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="text-center p-3 rounded bg-light">
+                                                    <div class="h4 mb-1 text-info fw-bold" id="disponibles">2</div>
+                                                    <small class="text-muted">Disponibles</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-primary btn-sm" onclick="showScheduleModal()">
+                                                <i class="fas fa-plus me-2"></i>
+                                                Nueva Cita
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm" onclick="configurarHorarios()">
+                                                <i class="fas fa-clock me-2"></i>
+                                                Configurar Horarios
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Recordatorios -->
+                                <div class="card shadow-sm border-0">
+                                    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0 fw-bold">
+                                            <i class="fas fa-bell me-2"></i>
+                                            Recordatorios
+                                        </h6>
+                                        <button class="btn btn-sm btn-outline-light" id="btnCrearRecordatorio" title="Crear Recordatorio">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        <div id="recordatoriosContainer">
+                                            <div class="reminder-item mb-3 p-3 rounded bg-info bg-opacity-10 border-start border-info border-4">
+                                                <div class="d-flex align-items-start">
+                                                    <i class="fas fa-info-circle text-info me-2 mt-1"></i>
+                                                    <div class="flex-grow-1">
+                                                        <small class="text-muted d-block">Confirmación Pendiente</small>
+                                                        <strong class="text-dark">Roberto Silva</strong> necesita confirmar su cita de las <strong>14:30</strong>
+                                                    </div>
+                                                    <div class="reminder-actions">
+                                                        <button class="btn btn-sm btn-outline-info btn-edit-reminder" data-id="1" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger btn-delete-reminder" data-id="1" title="Eliminar">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="reminder-item mb-3 p-3 rounded bg-warning bg-opacity-10 border-start border-warning border-4">
+                                                <div class="d-flex align-items-start">
+                                                    <i class="fas fa-exclamation-triangle text-warning me-2 mt-1"></i>
+                                                    <div class="flex-grow-1">
+                                                        <small class="text-muted d-block">Llamada Requerida</small>
+                                                        <strong class="text-dark">Recordar llamar a Ana Martín</strong> antes de su cita
+                                                    </div>
+                                                    <div class="reminder-actions">
+                                                        <button class="btn btn-sm btn-outline-warning btn-edit-reminder" data-id="2" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger btn-delete-reminder" data-id="2" title="Eliminar">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-center mt-3">
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>
+                                                Actualizado hace 5 minutos
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar derecha para términos sugeridos y papers -->
+            <div class="col-lg-4 col-xl-3">
+                <!-- Espacio reservado para la sidebar -->
+            </div>
+        </div>
+    </main>
+    
+    <!-- Panel Copilot Health completo -->
+    <div class="sidebar-container" id="sidebarContainer">
+        <!-- Handle de resize -->
+        <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
+
+
+        <!-- Contenido del Panel -->
+        <div class="panel-content p-3">
+            <!-- Sistema de Chat Simplificado y Elegante -->
+            <div class="copilot-chat-elegant" id="copilotChatElegant">
+
+
+                <!-- Área de Mensajes Simplificada -->
+                <div class="chat-messages-elegant" id="chatMessagesElegant">
+                    <div class="messages-container" id="messagesContainer">
+                        <!-- Mensaje de bienvenida elegante -->
+                        <div class="message-elegant system-message">
+                            <div class="message-bubble">
+                                                <div class="message-icon">
+                </div>
+                                <div class="message-text">
+                                    <p>¡Hola! Soy tu asistente de IA para análisis clínico. Completa el formulario y observa cómo trabajo en tiempo real.</p>
+                                </div>
+                            </div>
+                            <div class="message-time">Ahora</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Indicador de typing elegante -->
+                    <div class="typing-elegant" id="typingElegant" style="display: none;">
+                        <div class="typing-bubble">
+                            <div class="typing-avatar">
+                            </div>
+                            <div class="typing-content">
+                                <span>Copilot Health está analizando...</span>
+                                <div class="typing-animation">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Área de Resultados Simplificada -->
+                <div class="results-area" id="resultsArea" style="display: none;">
+                    <!-- Los resultados aparecen aquí dinámicamente -->
+                </div>
+
+                <!-- Indicador de Modo Automático -->
+                <div class="auto-mode-indicator">
+                    <div class="auto-mode-content">
+                        
+                        <span class="auto-mode-text">Copilot Health - Modo Automático</span>
+                        <div class="auto-mode-status">
+                            <i class="fas fa-check-circle text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </main>
+
+    <!-- Modal para agregar paciente -->
+    <div class="modal fade" id="addPatientModal" tabindex="-1" aria-labelledby="addPatientModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addPatientModalLabel">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Agregar Nuevo Paciente
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                <div class="modal-body">
+                    <form id="addPatientForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="text" class="form-control" id="patientName" placeholder="Nombre completo" required>
+                                    <label for="patientName">Nombre completo</label>
+                                    </div>
+                                </div>
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="text" class="form-control" id="patientRut" placeholder="RUT">
+                                    <label for="patientRut">RUT</label>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <input type="number" class="form-control" id="patientAge" placeholder="Edad">
+                                    <label for="patientAge">Edad</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <select class="form-select" id="patientGender">
+                                        <option value="">Seleccionar...</option>
+                                        <option value="Masculino">Masculino</option>
+                                        <option value="Femenino">Femenino</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                    <label for="patientGender">Género</label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-floating mb-3">
+                                    <input type="date" class="form-control" id="patientBirthdate">
+                                    <label for="patientBirthdate">Fecha de nacimiento</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                                    <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="tel" class="form-control" id="patientPhone" placeholder="Teléfono">
+                                    <label for="patientPhone">Teléfono</label>
+                                </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="email" class="form-control" id="patientEmail" placeholder="Email">
+                                    <label for="patientEmail">Email</label>
+                                    </div>
+                                </div>
+                            </div>
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="patientAddress" style="height: 80px" placeholder="Dirección"></textarea>
+                            <label for="patientAddress">Dirección</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="patientMedicalHistory" style="height: 100px" placeholder="Antecedentes de salud"></textarea>
+                            <label for="patientMedicalHistory">Antecedentes de salud relevantes</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="savePatient()">
+                        <i class="fas fa-save me-2"></i>
+                        Guardar Paciente
+                    </button>
+                </div>
+            </div>
+                </div>
+            </div>
+
+    <!-- Modal para nueva cita -->
+    <div class="modal fade" id="scheduleModal" tabindex="-1" aria-labelledby="scheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="scheduleModalLabel">
+                        <i class="fas fa-calendar-plus me-2"></i>
+                        Agendar Nueva Cita
+                        </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                <div class="modal-body">
+                    <form id="scheduleForm">
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="appointmentPatient" required>
+                                <option value="">Seleccionar paciente...</option>
+                                <!-- Los pacientes se cargarán dinámicamente -->
+                            </select>
+                            <label for="appointmentPatient">Paciente</label>
+                    </div>
+                        <div class="form-floating mb-3">
+                            <input type="date" class="form-control" id="appointmentDate" required>
+                            <label for="appointmentDate">Fecha</label>
+                                    </div>
+                        <div class="form-floating mb-3">
+                            <input type="time" class="form-control" id="appointmentTime" required>
+                            <label for="appointmentTime">Hora</label>
+                                            </div>
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="appointmentType" required>
+                                <option value="">Seleccionar tipo...</option>
+                                <option value="consulta_general">Consulta General</option>
+                                <option value="fisioterapia">Fisioterapia</option>
+                                <option value="enfermeria">Enfermería</option>
+                                <option value="terapia_ocupacional">Terapia Ocupacional</option>
+                                <option value="psicologia">Psicología</option>
+                                <option value="nutricion">Nutrición</option>
+                                <option value="kinesiologia">Kinesiología</option>
+                                <option value="fonoaudiologia">Fonoaudiología</option>
+                            </select>
+                            <label for="appointmentType">Tipo de atención</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="appointmentNotes" style="height: 80px" placeholder="Notas adicionales"></textarea>
+                            <label for="appointmentNotes">Notas adicionales</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveAppointment()">
+                        <i class="fas fa-save me-2"></i>
+                        Agendar Cita
+                    </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+    <!-- Modal para configurar horarios -->
+    <div class="modal fade" id="horariosModal" tabindex="-1" aria-labelledby="horariosModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="horariosModalLabel">
+                        <i class="fas fa-clock me-2"></i>
+                        Configurar Horarios de Trabajo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="horariosForm">
+                        <div class="row">
+                            <div class="col-12">
+                                <p class="text-muted mb-4">Configure sus horarios de atención para cada día de la semana.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Lunes -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="lunes_disponible" checked>
+                                    <label class="form-check-label fw-bold" for="lunes_disponible">
+                                        Lunes
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="lunes_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="lunes_fin" value="18:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="lunes_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Martes -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="martes_disponible" checked>
+                                    <label class="form-check-label fw-bold" for="martes_disponible">
+                                        Martes
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="martes_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="martes_fin" value="18:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="martes_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Miércoles -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="miercoles_disponible" checked>
+                                    <label class="form-check-label fw-bold" for="miercoles_disponible">
+                                        Miércoles
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="miercoles_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="miercoles_fin" value="18:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="miercoles_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Jueves -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="jueves_disponible" checked>
+                                    <label class="form-check-label fw-bold" for="jueves_disponible">
+                                        Jueves
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="jueves_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="jueves_fin" value="18:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="jueves_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Viernes -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="viernes_disponible" checked>
+                                    <label class="form-check-label fw-bold" for="viernes_disponible">
+                                        Viernes
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="viernes_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="viernes_fin" value="18:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="viernes_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Sábado -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="sabado_disponible">
+                                    <label class="form-check-label fw-bold" for="sabado_disponible">
+                                        Sábado
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="sabado_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="sabado_fin" value="14:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="sabado_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <!-- Domingo -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="domingo_disponible">
+                                    <label class="form-check-label fw-bold" for="domingo_disponible">
+                                        Domingo
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="domingo_inicio" value="08:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="time" class="form-control" id="domingo_fin" value="14:00">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control" id="domingo_notas" placeholder="Notas">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Nota:</strong> Los horarios configurados determinarán los slots disponibles para agendar citas. Desmarque los días en los que no atiende.
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="guardarHorarios()">
+                        <i class="fas fa-save me-2"></i>
+                        Guardar Horarios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+                            
+    <!-- Modal para ver historial de paciene -->
+    <div class="modal fade" id="patientHistoryModal" tabindex="-1" aria-labelledby="patientHistoryModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="patientHistoryModalLabel">
+                        <i class="fas fa-history me-2"></i>
+                        Historial del Paciente
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                <div class="modal-body">
+                    <div id="patientHistoryContent">
+                        <!-- El contenido se cargará dinámicamente -->
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando historial...</span>
+                                            </div>
+                                        </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+    <!-- Modal de Detalle de Atención -->
+    <div class="modal fade" id="detalleAtencionModal" tabindex="-1" aria-labelledby="detalleAtencionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detalleAtencionModalLabel">Detalle de la Atención</h5>
+                    <div class="ms-auto">
+                        <button type="button" class="btn btn-outline-primary me-2" onclick="descargarPDFAtencion(atencionActualId)">
+                            <i class="fas fa-file-pdf"></i> Descargar PDF
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div id="detalleAtencionContent">
+                        <!-- Información básica de la atención -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-id-card me-2"></i>ID de Atención:</strong></p>
+                                <p id="detalleAtencionId" class="text-muted"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-toggle-on me-2"></i>Estado:</strong></p>
+                                <p><span id="detalleEstado" class="badge"></span></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Información del paciente -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-user me-2"></i>Paciente:</strong></p>
+                                <p id="detallePacienteNombre"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-id-badge me-2"></i>RUT:</strong></p>
+                                <p id="detallePacienteRUT"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Información de la atención -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-calendar me-2"></i>Fecha y Hora:</strong></p>
+                                <p id="detalleFechaHora"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-stethoscope me-2"></i>Tipo de Atención:</strong></p>
+                                <p id="detalleTipoAtencion"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Detalles clínicos -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <p><strong><i class="fas fa-question-circle me-2"></i>Motivo de Consulta:</strong></p>
+                                <p id="detalleMotivoConsulta"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <p><strong><i class="fas fa-diagnoses me-2"></i>Diagnóstico:</strong></p>
+                                <p id="detalleDiagnostico"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <p><strong><i class="fas fa-prescription-bottle-alt me-2"></i>Tratamiento:</strong></p>
+                                <p id="detalleTratamiento"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <p><strong><i class="fas fa-notes-medical me-2"></i>Observaciones:</strong></p>
+                                <p id="detalleObservaciones"></p>
+                            </div>
+                        </div>
+
+                        <hr>
+                        
+                        <!-- Sección de Archivos Adjuntos -->
+                        <h5><i class="fas fa-paperclip me-2"></i>Archivos Adjuntos</h5>
+                        <div id="detalleArchivosContainer" class="mt-3">
+                            <!-- Los archivos se cargarán aquí dinámicamente -->
+                            <p id="noArchivos" class="text-muted">No hay archivos adjuntos para esta atención.</p>
+                            <ul id="listaArchivos" class="list-group"></ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Vista Previa de Archivos -->
+    <div class="modal fade" id="filePreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Vista Previa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- El contenido se cargará dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template para archivo adjunto -->
+    <template id="archivoAdjuntoTemplate">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-file fa-2x me-2"></i>
+                        <div class="flex-grow-1">
+                            <h6 class="card-title mb-1 archivo-nombre"></h6>
+                            <p class="card-text small text-muted archivo-fecha"></p>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary btn-ver" title="Ver archivo">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger btn-eliminar" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Contenedor de Notificaciones -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <!-- Los toasts se agregarán dinámicamente aquí -->
+    </div>
+
+    <!-- Modal para previsualizar imágenes -->
+    <div class="modal fade" id="imagenModal" tabindex="-1" aria-labelledby="imagenModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imagenModalLabel">Vista Previa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="imagenPreview" class="img-fluid" alt="Vista previa">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para crear/editar recordatorios -->
+    <div class="modal fade" id="reminderModal" tabindex="-1" aria-labelledby="reminderModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reminderModalLabel">
+                        <i class="fas fa-bell me-2"></i>
+                        <span id="reminderModalTitle">Crear Recordatorio</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="reminderForm">
+                        <input type="hidden" id="reminderId" value="">
+                        
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="reminderType" required>
+                                <option value="">Seleccionar tipo...</option>
+                                <option value="confirmacion">Confirmación de Cita</option>
+                                <option value="llamada">Llamada al Paciente</option>
+                                <option value="preparacion">Preparación Médica</option>
+                                <option value="seguimiento">Seguimiento</option>
+                                <option value="personal">Recordatorio Personal</option>
+                            </select>
+                            <label for="reminderType">Tipo de Recordatorio</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="reminderPatient">
+                                <option value="">Seleccionar paciente (opcional)...</option>
+                                <!-- Los pacientes se cargarán dinámicamente -->
+                            </select>
+                            <label for="reminderPatient">Paciente Relacionado</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="reminderTitle" placeholder="Título del recordatorio" required>
+                            <label for="reminderTitle">Título</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="reminderMessage" style="height: 100px" placeholder="Descripción del recordatorio" required></textarea>
+                            <label for="reminderMessage">Descripción</label>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="date" class="form-control" id="reminderDate" required>
+                                    <label for="reminderDate">Fecha</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="time" class="form-control" id="reminderTime" required>
+                                    <label for="reminderTime">Hora</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <select class="form-select" id="reminderPriority">
+                                <option value="baja">Baja</option>
+                                <option value="media" selected>Media</option>
+                                <option value="alta">Alta</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
+                            <label for="reminderPriority">Prioridad</label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="reminderRepeat" value="1">
+                            <label class="form-check-label" for="reminderRepeat">
+                                Repetir recordatorio
+                            </label>
+                        </div>
+                        
+                        <div id="repeatOptions" class="d-none">
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="reminderRepeatType">
+                                    <option value="diario">Diario</option>
+                                    <option value="semanal">Semanal</option>
+                                    <option value="mensual">Mensual</option>
+                                </select>
+                                <label for="reminderRepeatType">Frecuencia</label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveReminder()">
+                        <i class="fas fa-save me-2"></i>
+                        <span id="saveReminderText">Guardar Recordatorio</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para registrar sesión -->
+    <div class="modal fade" id="sesionModal" tabindex="-1" aria-labelledby="sesionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sesionModalLabel">
+                        <i class="fas fa-clipboard-list me-2 text-success"></i>
+                        Registrar Sesión
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="sesionForm">
+                        <input type="hidden" id="sesionAtencionId" name="atencion_id">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="text" class="form-control" id="sesionPaciente" readonly>
+                                    <label for="sesionPaciente">Paciente</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="datetime-local" class="form-control" id="sesionFecha" name="fecha_sesion" required>
+                                    <label for="sesionFecha">Fecha y Hora de la Sesión</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <input type="number" class="form-control" id="sesionDuracion" name="duracion" min="15" max="180" value="60" required>
+                                    <label for="sesionDuracion">Duración (minutos)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <select class="form-select" id="sesionTipo" name="tipo_sesion" required>
+                                        <option value="">Seleccionar tipo</option>
+                                        <option value="evaluacion">Evaluación</option>
+                                        <option value="tratamiento">Tratamiento</option>
+                                        <option value="seguimiento">Seguimiento</option>
+                                        <option value="reeducacion">Reeducación</option>
+                                        <option value="terapia">Terapia</option>
+                                        <option value="control">Control</option>
+                                    </select>
+                                    <label for="sesionTipo">Tipo de Sesión</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="sesionObjetivos" name="objetivos" rows="3" placeholder="Objetivos de la sesión..." required></textarea>
+                            <label for="sesionObjetivos">Objetivos de la Sesión</label>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="sesionActividades" name="actividades" rows="4" placeholder="Actividades realizadas durante la sesión..." required></textarea>
+                            <label for="sesionActividades">Actividades Realizadas</label>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="sesionObservaciones" name="observaciones" rows="3" placeholder="Observaciones importantes..."></textarea>
+                            <label for="sesionObservaciones">Observaciones</label>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <select class="form-select" id="sesionProgreso" name="progreso" required>
+                                        <option value="">Seleccionar progreso</option>
+                                        <option value="excelente">Excelente</option>
+                                        <option value="muy_bueno">Muy Bueno</option>
+                                        <option value="bueno">Bueno</option>
+                                        <option value="regular">Regular</option>
+                                        <option value="necesita_mejora">Necesita Mejora</option>
+                                    </select>
+                                    <label for="sesionProgreso">Progreso del Paciente</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-floating mb-3">
+                                    <select class="form-select" id="sesionEstado" name="estado" required>
+                                        <option value="completada">Completada</option>
+                                        <option value="pendiente">Pendiente</option>
+                                        <option value="cancelada">Cancelada</option>
+                                        <option value="reprogramada">Reprogramada</option>
+                                    </select>
+                                    <label for="sesionEstado">Estado de la Sesión</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="sesionRecomendaciones" name="recomendaciones" rows="3" placeholder="Recomendaciones para el paciente..."></textarea>
+                            <label for="sesionRecomendaciones">Recomendaciones</label>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <textarea class="form-control" id="sesionProximaSesion" name="proxima_sesion" rows="2" placeholder="Plan para la próxima sesión..."></textarea>
+                            <label for="sesionProximaSesion">Próxima Sesión</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" onclick="guardarSesion()">
+                        <i class="fas fa-save me-2"></i>
+                        Guardar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="{{ url_for('static', filename='js/global-functions.js') }}"></script>
+            <script src="{{ url_for('static', filename='js/professional.js') }}?v=3.9&t={{ range(1, 1000000) | random }}"></script>
+    <script src="{{ url_for('static', filename='js/welcome-toast.js') }}"></script>
+    
+    <!-- Script de inicialización con delay -->
+    <script>
+        // Función para esperar a que las funciones estén disponibles
+        function esperarFuncionesDisponibles() {
+            console.log('⏳ Esperando a que las funciones estén disponibles...');
+            
+            let intentos = 0;
+            const maxIntentos = 100; // 10 segundos máximo
+            
+            const verificarFunciones = () => {
+                intentos++;
+                
+                // Verificar si las funciones reales están disponibles
+                const funcionesReales = [
+                    'inicializarCopilotChat',
+                    'toggleCopilotChat',
+                    'mostrarBotonCopilotChat',
+                    'agregarMensajeCopilot',
+                    'mostrarTypingCopilot',
+                    'removerTypingCopilot',
+                    'limpiarChatCopilot',
+                    'toggleSidebar',
+                    'inicializarSidebarDinamica',
+                    'manejarSeleccionPaciente',
+                    'mostrarInfoPacienteSeleccionado',
+                    'llenarCamposOcultosPaciente',
+                    'limpiarCamposPaciente',
+                    'editarDatosPaciente',
+                    'cargarPacientesDropdown',
+                    'recargarListaPacientes'
+                ];
+                
+                const funcionesDisponibles = funcionesReales.filter(func => typeof window[func] === 'function');
+                
+                if (funcionesDisponibles.length === funcionesReales.length) {
+                    console.log('✅ Todas las funciones están disponibles, ejecutando inicialización...');
+                    inicializarTodasLasFunciones();
+                } else if (intentos < maxIntentos) {
+                    console.log(`⏳ Intento ${intentos}/${maxIntentos} - Funciones disponibles: ${funcionesDisponibles.length}/${funcionesReales.length}`);
+                    setTimeout(verificarFunciones, 100);
+            } else {
+                    console.log('⚠️ Tiempo de espera agotado, usando funciones temporales...');
+                    inicializarTodasLasFunciones();
+                }
+            };
+            
+            verificarFunciones();
+        }
+
+        // Función de inicialización global para asegurar que todas las funciones estén disponibles
+        function inicializarTodasLasFunciones() {
+            console.log('🚀 Inicializando todas las funciones...');
+            
+            // Verificar que las funciones críticas estén disponibles
+            const funcionesCriticas = [
+                'inicializarCopilotChat',
+                'toggleCopilotChat',
+                'mostrarBotonCopilotChat',
+                'agregarMensajeCopilot',
+                'mostrarTypingCopilot',
+                'removerTypingCopilot',
+                'limpiarChatCopilot',
+                'toggleSidebar',
+                'inicializarSidebarDinamica',
+                'manejarSeleccionPaciente',
+                'mostrarInfoPacienteSeleccionado',
+                'llenarCamposOcultosPaciente',
+                'limpiarCamposPaciente',
+                'editarDatosPaciente',
+                'cargarPacientesDropdown',
+                'recargarListaPacientes'
+            ];
+            
+            const funcionesNoDisponibles = funcionesCriticas.filter(func => typeof window[func] !== 'function');
+            
+            if (funcionesNoDisponibles.length > 0) {
+                console.error('❌ Funciones no disponibles:', funcionesNoDisponibles);
+                
+                // Intentar definir funciones faltantes con implementaciones básicas
+                if (typeof window.inicializarCopilotChat !== 'function') {
+                    window.inicializarCopilotChat = function() {
+                        console.log('⚠️ inicializarCopilotChat - Función temporal');
+                    };
+                }
+                
+                if (typeof window.toggleCopilotChat !== 'function') {
+                    window.toggleCopilotChat = function() {
+                        console.log('⚠️ toggleCopilotChat - Función temporal');
+                    };
+                }
+                
+                if (typeof window.mostrarBotonCopilotChat !== 'function') {
+                    window.mostrarBotonCopilotChat = function() {
+                        console.log('⚠️ mostrarBotonCopilotChat - Función temporal');
+                    };
+                }
+                
+                if (typeof window.agregarMensajeCopilot !== 'function') {
+                    window.agregarMensajeCopilot = function(mensaje, tipo) {
+                        console.log('⚠️ agregarMensajeCopilot - Función temporal:', mensaje);
+                    };
+                }
+                
+                if (typeof window.mostrarTypingCopilot !== 'function') {
+                    window.mostrarTypingCopilot = function() {
+                        console.log('⚠️ mostrarTypingCopilot - Función temporal');
+                    };
+                }
+                
+                if (typeof window.removerTypingCopilot !== 'function') {
+                    window.removerTypingCopilot = function() {
+                        console.log('⚠️ removerTypingCopilot - Función temporal');
+                    };
+                }
+                
+                if (typeof window.limpiarChatCopilot !== 'function') {
+                    window.limpiarChatCopilot = function() {
+                        console.log('⚠️ limpiarChatCopilot - Función temporal');
+                    };
+                }
+                
+                if (typeof window.toggleSidebar !== 'function') {
+                    window.toggleSidebar = function() {
+                        console.log('⚠️ toggleSidebar - Función temporal');
+                        const sidebarContainer = document.getElementById('sidebarContainer');
+                        const mainContent = document.querySelector('.col-lg-8.col-xl-9');
+                        
+                        if (sidebarContainer) {
+                            const isVisible = sidebarContainer.classList.contains('show');
+                            
+                            if (isVisible) {
+                                // Ocultar sidebar
+                                sidebarContainer.classList.remove('show');
+                                
+                                // Restaurar tamaño del formulario
+                                if (mainContent) {
+                                    mainContent.classList.add('sidebar-hidden');
+                                    mainContent.style.width = '100%';
+                                    mainContent.style.maxWidth = '100%';
+                                }
+                                
+                                // Actualizar icono
+                                const toggleIcon = document.getElementById('sidebarToggleIcon');
+                                if (toggleIcon) {
+                                    toggleIcon.className = 'fas fa-columns';
+                                }
+            } else {
+                                // Mostrar sidebar
+                                sidebarContainer.classList.add('show');
+                                
+                                // Ajustar tamaño del formulario
+                                if (mainContent) {
+                                    mainContent.classList.remove('sidebar-hidden');
+                                    mainContent.style.width = 'calc(100% - 400px)';
+                                    mainContent.style.maxWidth = 'calc(100% - 400px)';
+                                }
+                                
+                                // Actualizar icono
+                                const toggleIcon = document.getElementById('sidebarToggleIcon');
+                                if (toggleIcon) {
+                                    toggleIcon.className = 'fas fa-window-minimize';
+                                }
+                            }
+                        }
+                    };
+                }
+                
+                if (typeof window.inicializarSidebarDinamica !== 'function') {
+                    window.inicializarSidebarDinamica = function() {
+                        console.log('⚠️ inicializarSidebarDinamica - Función temporal');
+                        
+                        // Configurar estado inicial de la sidebar
+                        const sidebarContainer = document.getElementById('sidebarContainer');
+                        const mainContent = document.querySelector('.col-lg-8.col-xl-9');
+                        
+                        if (sidebarContainer && mainContent) {
+                            // Ocultar sidebar por defecto
+                            sidebarContainer.classList.remove('show');
+                            
+                            // Configurar tamaño del formulario
+                            mainContent.classList.add('sidebar-hidden');
+                            mainContent.style.width = '100%';
+                            mainContent.style.maxWidth = '100%';
+                        }
+                    };
+                }
+            } else {
+                console.log('✅ Todas las funciones críticas están disponibles');
+            }
+            
+            // Inicializar funciones principales
+            try {
+                if (typeof inicializarSidebarDinamica === 'function') {
+                    inicializarSidebarDinamica();
+                }
+                
+                if (typeof inicializarCopilotChat === 'function') {
+                    inicializarCopilotChat();
+                }
+                
+                console.log('✅ Inicialización completada');
+            } catch (error) {
+                console.error('❌ Error durante la inicialización:', error);
+            }
+        }
+
+        // Función para forzar el reajuste del layout
+        function forceLayoutUpdate() {
+            const mainContent = document.querySelector('.col-lg-8.col-xl-9');
+            const sidebarContainer = document.getElementById('sidebarContainer');
+            
+            if (mainContent && sidebarContainer) {
+                const isSidebarVisible = sidebarContainer.classList.contains('show');
+                
+                if (isSidebarVisible) {
+                    mainContent.style.width = 'calc(100% - 400px)';
+                    mainContent.style.maxWidth = 'calc(100% - 400px)';
+            } else {
+                    mainContent.style.width = '100%';
+                    mainContent.style.maxWidth = '100%';
+                }
+                
+                // Forzar reflow
+                mainContent.offsetHeight;
+            }
+        }
+
+        // Agregar función global para debug
+        window.debugFunction = function(functionName) {
+            console.log(`🔍 Verificando función: ${functionName}`);
+            if (typeof window[functionName] === 'function') {
+                console.log(`✅ ${functionName} está disponible`);
+                return true;
+            } else {
+                console.error(`❌ ${functionName} NO está disponible`);
+                return false;
+            }
+        };
+        
+        // Definir funciones críticas inmediatamente para evitar errores
+        if (typeof window.inicializarCopilotChat !== 'function') {
+            window.inicializarCopilotChat = function() {
+                console.log('⚠️ inicializarCopilotChat - Función temporal');
+            };
+        }
+        
+        if (typeof window.toggleCopilotChat !== 'function') {
+            window.toggleCopilotChat = function() {
+                console.log('⚠️ toggleCopilotChat - Función temporal');
+            };
+        }
+        
+        if (typeof window.mostrarBotonCopilotChat !== 'function') {
+            window.mostrarBotonCopilotChat = function() {
+                console.log('⚠️ mostrarBotonCopilotChat - Función temporal');
+            };
+        }
+        
+        if (typeof window.agregarMensajeCopilot !== 'function') {
+            window.agregarMensajeCopilot = function(mensaje, tipo) {
+                console.log('⚠️ agregarMensajeCopilot - Función temporal:', mensaje);
+            };
+        }
+        
+        if (typeof window.mostrarTypingCopilot !== 'function') {
+            window.mostrarTypingCopilot = function() {
+                console.log('⚠️ mostrarTypingCopilot - Función temporal');
+            };
+        }
+        
+        if (typeof window.removerTypingCopilot !== 'function') {
+            window.removerTypingCopilot = function() {
+                console.log('⚠️ removerTypingCopilot - Función temporal');
+            };
+        }
+        
+        if (typeof window.limpiarChatCopilot !== 'function') {
+            window.limpiarChatCopilot = function() {
+                console.log('⚠️ limpiarChatCopilot - Función temporal');
+            };
+        }
+        
+        if (typeof window.toggleSidebar !== 'function') {
+            window.toggleSidebar = function() {
+                console.log('⚠️ toggleSidebar - Función temporal');
+                const sidebarContainer = document.getElementById('sidebarContainer');
+                const mainContent = document.querySelector('.col-lg-8.col-xl-9');
+                
+                if (sidebarContainer) {
+                    const isVisible = sidebarContainer.classList.contains('show');
+                    
+                    if (isVisible) {
+                        // Ocultar sidebar
+                        sidebarContainer.classList.remove('show');
+                        
+                        // Restaurar tamaño del formulario
+                        if (mainContent) {
+                            mainContent.classList.add('sidebar-hidden');
+                            mainContent.style.width = '100%';
+                            mainContent.style.maxWidth = '100%';
+                        }
+                        
+                        // Actualizar icono
+                        const toggleIcon = document.getElementById('sidebarToggleIcon');
+                        if (toggleIcon) {
+                            toggleIcon.className = 'fas fa-columns';
+                        }
+            } else {
+                        // Mostrar sidebar
+                        sidebarContainer.classList.add('show');
+                        
+                        // Ajustar tamaño del formulario
+                        if (mainContent) {
+                            mainContent.classList.remove('sidebar-hidden');
+                            mainContent.style.width = 'calc(100% - 400px)';
+                            mainContent.style.maxWidth = 'calc(100% - 400px)';
+                        }
+                        
+                        // Actualizar icono
+                        const toggleIcon = document.getElementById('sidebarToggleIcon');
+                        if (toggleIcon) {
+                            toggleIcon.className = 'fas fa-window-minimize';
+                        }
+                    }
+                }
+            };
+        }
+        
+        if (typeof window.inicializarSidebarDinamica !== 'function') {
+            window.inicializarSidebarDinamica = function() {
+                console.log('⚠️ inicializarSidebarDinamica - Función temporal');
+                
+                // Configurar estado inicial de la sidebar
+                const sidebarContainer = document.getElementById('sidebarContainer');
+                const mainContent = document.querySelector('.col-lg-8.col-xl-9');
+                
+                if (sidebarContainer && mainContent) {
+                    // Ocultar sidebar por defecto
+                    sidebarContainer.classList.remove('show');
+                    
+                    // Configurar tamaño del formulario
+                    mainContent.classList.add('sidebar-hidden');
+                    mainContent.style.width = '100%';
+                    mainContent.style.maxWidth = '100%';
+                }
+            };
+        }
+
+        console.log('✅ Funciones críticas definidas inmediatamente');
+
+        // Definir funciones relacionadas con pacientes
+        if (typeof window.manejarSeleccionPaciente !== 'function') {
+            window.manejarSeleccionPaciente = function() {
+                console.log('⚠️ manejarSeleccionPaciente - Función temporal');
+                const dropdown = document.getElementById('seleccionPaciente');
+                const selectedValue = dropdown ? dropdown.value : '';
+
+                const camposPaciente = document.getElementById('camposPaciente');
+                const infoPacienteSeleccionado = document.getElementById('infoPacienteSeleccionado');
+
+                // Ocultar ambos paneles inicialmente
+                if (camposPaciente) camposPaciente.style.display = 'none';
+                if (infoPacienteSeleccionado) infoPacienteSeleccionado.style.display = 'none';
+
+                if (selectedValue === 'nuevo') {
+                    // Mostrar campos para nuevo paciente
+                    console.log('Seleccionado: Crear nuevo paciente');
+                    if (camposPaciente) camposPaciente.style.display = 'block';
+                    
+                    // Limpiar campos
+                    const pacienteNombre = document.getElementById('pacienteNombre');
+                    const pacienteRut = document.getElementById('pacienteRut');
+                    const pacienteEdad = document.getElementById('pacienteEdad');
+                    
+                    if (pacienteNombre) pacienteNombre.value = '';
+                    if (pacienteRut) pacienteRut.value = '';
+                    if (pacienteEdad) pacienteEdad.value = '';
+
+                    // Hacer campos requeridos
+                    if (pacienteNombre) pacienteNombre.required = true;
+                    if (pacienteRut) pacienteRut.required = true;
+
+                } else if (selectedValue && selectedValue !== '') {
+                    // Mostrar información del paciente seleccionado
+                    console.log(`Seleccionado paciente: ${selectedValue}`);
+                    if (infoPacienteSeleccionado) infoPacienteSeleccionado.style.display = 'block';
+
+                    // Campos no requeridos (paciente ya existe)
+                    const pacienteNombre = document.getElementById('pacienteNombre');
+                    const pacienteRut = document.getElementById('pacienteRut');
+                    
+                    if (pacienteNombre) pacienteNombre.required = false;
+                    if (pacienteRut) pacienteRut.required = false;
+
+                        } else {
+                    // No hay selección
+                    console.log('No hay paciente seleccionado');
+                    
+                    // Limpiar campos
+                    const pacienteNombre = document.getElementById('pacienteNombre');
+                    const pacienteRut = document.getElementById('pacienteRut');
+                    const pacienteEdad = document.getElementById('pacienteEdad');
+                    
+                    if (pacienteNombre) pacienteNombre.value = '';
+                    if (pacienteRut) pacienteRut.value = '';
+                    if (pacienteEdad) pacienteEdad.value = '';
+
+                    // Campos no requeridos
+                    if (pacienteNombre) pacienteNombre.required = false;
+                    if (pacienteRut) pacienteRut.required = false;
+                }
+            };
+        }
+
+        if (typeof window.mostrarInfoPacienteSeleccionado !== 'function') {
+            window.mostrarInfoPacienteSeleccionado = function(paciente) {
+                console.log('⚠️ mostrarInfoPacienteSeleccionado - Función temporal:', paciente);
+            };
+        }
+
+        if (typeof window.llenarCamposOcultosPaciente !== 'function') {
+            window.llenarCamposOcultosPaciente = function(paciente) {
+                console.log('⚠️ llenarCamposOcultosPaciente - Función temporal:', paciente);
+            };
+        }
+
+        if (typeof window.limpiarCamposPaciente !== 'function') {
+            window.limpiarCamposPaciente = function() {
+                console.log('⚠️ limpiarCamposPaciente - Función temporal');
+            };
+        }
+
+        if (typeof window.editarDatosPaciente !== 'function') {
+            window.editarDatosPaciente = function() {
+                console.log('⚠️ editarDatosPaciente - Función temporal');
+            };
+        }
+
+        if (typeof window.cargarPacientesDropdown !== 'function') {
+            window.cargarPacientesDropdown = async function() {
+                console.log('⚠️ cargarPacientesDropdown - Función temporal');
+            };
+        }
+
+        if (typeof window.recargarListaPacientes !== 'function') {
+            window.recargarListaPacientes = async function() {
+                console.log('⚠️ recargarListaPacientes - Función temporal');
+            };
+        }
+
+        // Ejecutar inicialización cuando el DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', esperarFuncionesDisponibles);
+        } else {
+            esperarFuncionesDisponibles();
+        }
+
+        // También ejecutar cuando la ventana esté completamente cargada
+        window.addEventListener('load', function() {
+            console.log('🌐 Página completamente cargada');
+            // Verificar una vez más que las funciones estén disponibles
+            setTimeout(esperarFuncionesDisponibles, 100);
+        });
+    </script>
+</body>
+</html>
+
+
+
+

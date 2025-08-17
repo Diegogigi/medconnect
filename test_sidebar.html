@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Sidebar Resizable</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        
+        .main-content {
+            margin-right: 40%;
+            transition: margin-right 0.3s ease;
+            background: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .sidebar-container {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 40%;
+            min-width: 300px;
+            max-width: 60%;
+            height: 100vh;
+            background: #1a1a1a;
+            color: white;
+            overflow-y: auto;
+            z-index: 1050;
+            border-left: 1px solid #333;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+        }
+        
+        .sidebar-resize-handle {
+            position: absolute;
+            left: -2px;
+            top: 0;
+            width: 8px;
+            height: 100%;
+            background: rgba(96,75,217,0.3);
+            cursor: col-resize;
+            transition: all 0.3s ease;
+            z-index: 1001;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .sidebar-resize-handle:hover {
+            background: rgb(96,75,217);
+            width: 10px;
+            left: -3px;
+            box-shadow: 0 0 8px rgba(96,75,217,0.4);
+        }
+        
+        .sidebar-resize-handle:active {
+            background: rgb(86,65,207);
+            width: 12px;
+            left: -4px;
+            box-shadow: 0 0 12px rgba(96,75,217,0.6);
+        }
+        
+        .sidebar-resize-handle::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 20px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 1px;
+        }
+        
+        .sidebar-resize-handle::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 20px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 1px;
+            margin-left: 2px;
+        }
+        
+        .sidebar-content {
+            padding: 20px;
+        }
+        
+        .test-info {
+            background: rgba(96,75,217,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .size-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(96,75,217,0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10000;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-content">
+        <h1>Prueba de Sidebar Resizable</h1>
+        <p>Esta es una página de prueba para verificar la funcionalidad de resize de la sidebar.</p>
+        <p>Instrucciones:</p>
+        <ul>
+            <li>Arrastra el handle de resize (barra vertical) en el borde izquierdo de la sidebar</li>
+            <li>Doble click en el handle para resetear el tamaño</li>
+            <li>El tamaño se guardará automáticamente en localStorage</li>
+        </ul>
+        <div id="status"></div>
+    </div>
+    
+    <div class="sidebar-container" id="sidebarContainer">
+        <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
+        <div class="sidebar-content">
+            <div class="test-info">
+                <h3>Sidebar de Prueba</h3>
+                <p>Esta sidebar es redimensionable. Arrastra el handle para cambiar su tamaño.</p>
+                <p><strong>Ancho actual:</strong> <span id="currentWidth">40%</span></p>
+            </div>
+            
+            <h4>Características:</h4>
+            <ul>
+                <li>✅ Resize horizontal</li>
+                <li>✅ Límites mínimo (300px) y máximo (60%)</li>
+                <li>✅ Persistencia en localStorage</li>
+                <li>✅ Feedback visual</li>
+                <li>✅ Doble click para resetear</li>
+            </ul>
+            
+            <h4>Información técnica:</h4>
+            <div id="techInfo">
+                <p><strong>Ancho en píxeles:</strong> <span id="pixelWidth">-</span></p>
+                <p><strong>Porcentaje de pantalla:</strong> <span id="percentageWidth">-</span></p>
+                <p><strong>Guardado en localStorage:</strong> <span id="localStorageInfo">-</span></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="size-indicator" id="sizeIndicator"></div>
+    
+    <script>
+        // Función para inicializar el resize de la sidebar
+        function initializeSidebarResize() {
+            const sidebarContainer = document.getElementById('sidebarContainer');
+            const resizeHandle = document.getElementById('sidebarResizeHandle');
+            const mainContent = document.querySelector('.main-content');
+            const statusDiv = document.getElementById('status');
+
+            if (!sidebarContainer || !resizeHandle) {
+                console.log('❌ Elementos de sidebar no encontrados');
+                return;
+            }
+
+            console.log('🔧 Inicializando resize de sidebar...');
+
+            let isResizing = false;
+            let startX, startWidth;
+
+            // Función para actualizar el contenido principal
+            function updateMainContent() {
+                if (mainContent) {
+                    const sidebarWidth = sidebarContainer.offsetWidth;
+                    const windowWidth = window.innerWidth;
+                    const sidebarPercentage = (sidebarWidth / windowWidth) * 100;
+
+                    mainContent.style.transition = 'margin-right 0.3s ease';
+                    mainContent.style.marginRight = sidebarPercentage + '%';
+
+                    // Guardar el ancho en localStorage para persistencia
+                    localStorage.setItem('sidebarWidth', sidebarWidth);
+                    
+                    // Actualizar información en pantalla
+                    updateDisplayInfo();
+                }
+            }
+
+            // Función para actualizar información en pantalla
+            function updateDisplayInfo() {
+                const sidebarWidth = sidebarContainer.offsetWidth;
+                const windowWidth = window.innerWidth;
+                const percentage = ((sidebarWidth / windowWidth) * 100).toFixed(1);
+                
+                document.getElementById('currentWidth').textContent = sidebarWidth + 'px';
+                document.getElementById('pixelWidth').textContent = sidebarWidth + 'px';
+                document.getElementById('percentageWidth').textContent = percentage + '%';
+                document.getElementById('localStorageInfo').textContent = localStorage.getItem('sidebarWidth') + 'px';
+            }
+
+            // Función para restaurar el ancho guardado
+            function restoreSidebarWidth() {
+                const savedWidth = localStorage.getItem('sidebarWidth');
+                if (savedWidth) {
+                    const width = parseInt(savedWidth);
+                    const minWidth = 300;
+                    const maxWidth = window.innerWidth * 0.6;
+                    
+                    if (width >= minWidth && width <= maxWidth) {
+                        sidebarContainer.style.width = width + 'px';
+                        updateMainContent();
+                    }
+                }
+            }
+
+            // Restaurar ancho al inicializar
+            restoreSidebarWidth();
+
+            // Evento de inicio de resize
+            resizeHandle.addEventListener('mousedown', function (e) {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = sidebarContainer.offsetWidth;
+
+                // Agregar clases para el cursor y feedback visual
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+                resizeHandle.style.background = 'rgb(96,75,217)';
+                sidebarContainer.style.transition = 'none';
+
+                // Agregar overlay para mejor UX
+                const overlay = document.createElement('div');
+                overlay.id = 'resizeOverlay';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.1);
+                    z-index: 9999;
+                    cursor: col-resize;
+                `;
+                document.body.appendChild(overlay);
+
+                e.preventDefault();
+                e.stopPropagation();
+                
+                statusDiv.innerHTML = '<p style="color: green;">🔄 Redimensionando sidebar...</p>';
+            });
+
+            // Evento de movimiento del mouse
+            document.addEventListener('mousemove', function (e) {
+                if (!isResizing) return;
+
+                const deltaX = startX - e.clientX;
+                const newWidth = startWidth + deltaX;
+
+                // Limitar el ancho mínimo y máximo
+                const minWidth = 300;
+                const maxWidth = window.innerWidth * 0.6;
+
+                if (newWidth >= minWidth && newWidth <= maxWidth) {
+                    sidebarContainer.style.width = newWidth + 'px';
+                    updateMainContent();
+
+                    // Mostrar indicador de tamaño
+                    showResizeIndicator(newWidth);
+                }
+            });
+
+            // Evento de fin de resize
+            document.addEventListener('mouseup', function () {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.style.cursor = '';
+                    document.body.style.userSelect = '';
+                    resizeHandle.style.background = 'rgba(96,75,217,0.3)';
+                    sidebarContainer.style.transition = 'width 0.3s ease';
+
+                    // Remover overlay
+                    const overlay = document.getElementById('resizeOverlay');
+                    if (overlay) {
+                        overlay.remove();
+                    }
+
+                    // Ocultar indicador
+                    hideResizeIndicator();
+
+                    // Guardar el nuevo ancho
+                    const newWidth = sidebarContainer.offsetWidth;
+                    localStorage.setItem('sidebarWidth', newWidth);
+
+                    console.log('✅ Sidebar redimensionada a:', newWidth + 'px');
+                    statusDiv.innerHTML = '<p style="color: green;">✅ Sidebar redimensionada a ' + newWidth + 'px</p>';
+                }
+            });
+
+            // Evento de doble click para resetear el tamaño
+            resizeHandle.addEventListener('dblclick', function () {
+                const defaultWidth = window.innerWidth * 0.4;
+                sidebarContainer.style.width = defaultWidth + 'px';
+                updateMainContent();
+                localStorage.setItem('sidebarWidth', defaultWidth);
+                console.log('🔄 Tamaño de sidebar reseteado a:', defaultWidth + 'px');
+                statusDiv.innerHTML = '<p style="color: blue;">🔄 Tamaño reseteado a ' + defaultWidth + 'px</p>';
+            });
+
+            // Función para mostrar indicador de tamaño
+            function showResizeIndicator(width) {
+                let indicator = document.getElementById('sizeIndicator');
+                if (indicator) {
+                    indicator.textContent = `${width}px`;
+                    indicator.style.display = 'block';
+                }
+            }
+
+            // Función para ocultar indicador de tamaño
+            function hideResizeIndicator() {
+                const indicator = document.getElementById('sizeIndicator');
+                if (indicator) {
+                    indicator.style.display = 'none';
+                }
+            }
+
+            // Agregar tooltip al handle
+            resizeHandle.title = 'Arrastra para redimensionar • Doble click para resetear';
+
+            console.log('✅ Resize de sidebar inicializado');
+            statusDiv.innerHTML = '<p style="color: green;">✅ Sidebar inicializada correctamente</p>';
+            
+            // Actualizar información inicial
+            updateDisplayInfo();
+        }
+
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSidebarResize();
+        });
+    </script>
+</body>
+</html> 

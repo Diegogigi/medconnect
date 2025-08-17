@@ -1,41 +1,41 @@
 // MedConnect - Patient Dashboard JavaScript
-// Diseño simple y funcional con carga dinámica de datos
+// Dise o simple y funcional con carga din mica de datos
 
 // Variables globales
 let currentUserId = null;
 
 // Funciones principales
 function scheduleAppointment() {
-    showNotification('📅 Redirigiendo al ChatBot para agendar cita...', 'info');
+    showNotification('  Redirigiendo al ChatBot para agendar cita...', 'info');
     setTimeout(() => {
         window.open('https://t.me/Medconn_bot', '_blank');
     }, 1000);
 }
 
 function addMedication() {
-    showNotification('💊 Redirigiendo al ChatBot para agregar medicamento...', 'info');
+    showNotification('  Redirigiendo al ChatBot para agregar medicamento...', 'info');
     setTimeout(() => {
         window.open('https://t.me/Medconn_bot', '_blank');
     }, 1000);
 }
 
 function addExam() {
-    showNotification('🩺 Redirigiendo al ChatBot para registrar examen...', 'info');
+    showNotification('  Redirigiendo al ChatBot para registrar examen...', 'info');
     setTimeout(() => {
         window.open('https://t.me/Medconn_bot', '_blank');
     }, 1000);
 }
 
 function addFamilyMember() {
-    showNotification('👨‍👩‍👧‍👦 Redirigiendo al ChatBot para agregar familiar...', 'info');
+    showNotification('  Redirigiendo al ChatBot para agregar familiar...', 'info');
     setTimeout(() => {
         window.open('https://t.me/Medconn_bot', '_blank');
     }, 1000);
 }
 
-// Función para obtener el ID del usuario actual
+// Funci n para obtener el ID del usuario actual
 function getCurrentUserId() {
-    // Obtener del contexto global de la página
+    // Obtener del contexto global de la p gina
     if (window.currentUserId) {
         return window.currentUserId;
     }
@@ -46,7 +46,7 @@ function getCurrentUserId() {
     return null;
 }
 
-// Función para cargar consultas del usuario
+// Funci n para cargar consultas del usuario
 async function loadConsultations() {
     const userId = getCurrentUserId();
     if (!userId) {
@@ -72,15 +72,15 @@ async function loadConsultations() {
     }
 }
 
-// Función para mostrar consultas
+// Funci n para mostrar consultas
 function displayConsultations(consultations) {
-    console.log('📋 displayConsultations - Datos recibidos:', consultations);
+    console.log('  displayConsultations - Datos recibidos:', consultations);
 
     const container = document.getElementById('consultations-container');
     container.innerHTML = '';
 
     consultations.forEach((consultation, index) => {
-        console.log(`📋 Consulta ${index}:`, consultation, 'ID:', consultation.id);
+        console.log(`  Consulta ${index}:`, consultation, 'ID:', consultation.id);
         const consultationElement = document.createElement('div');
         consultationElement.className = 'consultation-item d-flex align-items-center';
 
@@ -92,8 +92,8 @@ function displayConsultations(consultations) {
                 <i class="${iconClass}"></i>
             </div>
             <div class="flex-grow-1">
-                <h6 class="mb-1">${consultation.diagnosis || 'Consulta médica'}</h6>
-                <p class="text-muted mb-1">${consultation.doctor || 'Médico'} - ${consultation.specialty || 'Medicina General'}</p>
+                <h6 class="mb-1">${consultation.diagnosis || 'Consulta m dica'}</h6>
+                <p class="text-muted mb-1">${consultation.doctor || 'M dico'} - ${consultation.specialty || 'Medicina General'}</p>
                 <small class="text-muted">${formatDate(consultation.date)}</small>
             </div>
             <div class="d-flex align-items-center gap-2">
@@ -108,7 +108,7 @@ function displayConsultations(consultations) {
     });
 }
 
-// Función para cargar medicamentos del usuario
+// Funci n para cargar medicamentos del usuario
 async function loadMedications() {
     const userId = getCurrentUserId();
     if (!userId) {
@@ -135,15 +135,15 @@ async function loadMedications() {
     }
 }
 
-// Función para mostrar medicamentos
+// Funci n para mostrar medicamentos
 function displayMedications(medications) {
-    console.log('💊 displayMedications - Datos recibidos:', medications);
+    console.log('  displayMedications - Datos recibidos:', medications);
 
     const container = document.getElementById('medications-container');
     container.innerHTML = '';
 
     medications.forEach((medication, index) => {
-        console.log(`💊 Medicamento ${index}:`, medication, 'ID:', medication.id);
+        console.log(`  Medicamento ${index}:`, medication, 'ID:', medication.id);
         const medicationElement = document.createElement('div');
         medicationElement.className = 'medication-item d-flex align-items-center';
 
@@ -156,7 +156,7 @@ function displayMedications(medications) {
             <div class="flex-grow-1">
                 <h6 class="mb-1">${medication.name || medication.medication || 'Medicamento'} ${medication.dosage || ''}</h6>
                 <p class="text-muted mb-1">${medication.frequency || 'Frecuencia no especificada'}</p>
-                <small class="text-muted">Prescrito por ${medication.prescribing_doctor || medication.prescribed_by || 'Médico no especificado'}</small>
+                <small class="text-muted">Prescrito por ${medication.prescribing_doctor || medication.prescribed_by || 'M dico no especificado'}</small>
             </div>
             <div class="d-flex align-items-center gap-2">
                 ${statusBadge}
@@ -170,7 +170,7 @@ function displayMedications(medications) {
     });
 }
 
-// Función para cargar exámenes del usuario
+// Funci n para cargar ex menes del usuario
 async function loadExams() {
     const userId = getCurrentUserId();
     if (!userId) {
@@ -192,20 +192,20 @@ async function loadExams() {
             document.getElementById('exams-empty').style.display = 'block';
         }
     } catch (error) {
-        console.error('Error cargando exámenes:', error);
+        console.error('Error cargando ex menes:', error);
         showExamsError();
     }
 }
 
-// Función para mostrar exámenes
+// Funci n para mostrar ex menes
 function displayExams(exams) {
-    console.log('🩺 displayExams - Datos recibidos:', exams);
+    console.log('  displayExams - Datos recibidos:', exams);
 
     const container = document.getElementById('exams-container');
     container.innerHTML = '';
 
     exams.forEach((exam, index) => {
-        console.log(`🩺 Examen ${index}:`, exam, 'ID:', exam.id);
+        console.log(`  Examen ${index}:`, exam, 'ID:', exam.id);
         const examElement = document.createElement('div');
         examElement.className = 'exam-item d-flex align-items-center';
 
@@ -246,11 +246,11 @@ function displayExams(exams) {
 // Funciones auxiliares para iconos y badges
 function getConsultationIcon(specialty) {
     const icons = {
-        'Cardiología': 'fas fa-heartbeat text-danger',
-        'Traumatología': 'fas fa-bone text-warning',
+        'Cardiolog a': 'fas fa-heartbeat text-danger',
+        'Traumatolog a': 'fas fa-bone text-warning',
         'Medicina General': 'fas fa-user-md text-primary',
-        'Neurología': 'fas fa-brain text-info',
-        'Dermatología': 'fas fa-hand-holding-medical text-success'
+        'Neurolog a': 'fas fa-brain text-info',
+        'Dermatolog a': 'fas fa-hand-holding-medical text-success'
     };
     return icons[specialty] || 'fas fa-stethoscope text-primary';
 }
@@ -259,8 +259,8 @@ function getExamIcon(examType) {
     const icons = {
         'Hemograma': 'fas fa-vial text-success',
         'Electrocardiograma': 'fas fa-heartbeat text-danger',
-        'Radiografía': 'fas fa-x-ray text-warning',
-        'Ecografía': 'fas fa-wave-square text-info'
+        'Radiograf a': 'fas fa-x-ray text-warning',
+        'Ecograf a': 'fas fa-wave-square text-info'
     };
     return icons[examType] || 'fas fa-vial text-primary';
 }
@@ -289,7 +289,7 @@ function formatDate(dateString) {
     }
 
     try {
-        // Si ya está en formato legible español, devolverlo tal como está
+        // Si ya est  en formato legible espa ol, devolverlo tal como est 
         if (dateString.includes('ene') || dateString.includes('feb') || dateString.includes('mar') ||
             dateString.includes('abr') || dateString.includes('may') || dateString.includes('jun') ||
             dateString.includes('jul') || dateString.includes('ago') || dateString.includes('sep') ||
@@ -304,7 +304,7 @@ function formatDate(dateString) {
             const month = parseInt(parts[1]) - 1; // JavaScript months are 0-indexed
             const day = parseInt(parts[2]);
 
-            // Crear fecha específicamente en zona horaria local
+            // Crear fecha espec ficamente en zona horaria local
             const date = new Date(year, month, day);
 
             return date.toLocaleDateString('es-CL', {
@@ -352,7 +352,7 @@ function formatDate(dateString) {
     }
 }
 
-// Función para cargar familiares del usuario
+// Funci n para cargar familiares del usuario
 async function loadFamilyMembers() {
     const userId = getCurrentUserId();
     if (!userId) {
@@ -379,7 +379,7 @@ async function loadFamilyMembers() {
     }
 }
 
-// Función para mostrar familiares
+// Funci n para mostrar familiares
 function displayFamilyMembers(familyMembers) {
     const container = document.getElementById('family-container');
     container.innerHTML = '';
@@ -396,7 +396,7 @@ function displayFamilyMembers(familyMembers) {
             </div>
             <div class="flex-grow-1">
                 <h6 class="mb-1">${member.name}</h6>
-                <p class="text-muted mb-1">${member.phone || 'Teléfono no especificado'}</p>
+                <p class="text-muted mb-1">${member.phone || 'Tel fono no especificado'}</p>
                 <small class="text-muted">${member.email || 'Email no especificado'}</small>
             </div>
             <div class="d-flex align-items-center gap-2">
@@ -439,7 +439,7 @@ function showFamilyError() {
     `;
 }
 
-// Función para cargar datos cuando se cambia de tab  
+// Funci n para cargar datos cuando se cambia de tab  
 function loadTabData(tabName) {
     switch (tabName) {
         case 'medications':
@@ -451,24 +451,24 @@ function loadTabData(tabName) {
         case 'family':
             loadFamilyMembers();
             break;
-        // history se carga automáticamente al inicio
+        // history se carga autom ticamente al inicio
     }
 }
 
 function viewReports() {
-    showNotification('📊 Cargando reportes médicos...', 'info');
+    showNotification('  Cargando reportes m dicos...', 'info');
     setTimeout(() => {
         const historyTab = document.getElementById('history-tab');
         if (historyTab) {
             historyTab.click();
         }
-        showNotification('✅ Reportes cargados', 'success');
+        showNotification('  Reportes cargados', 'success');
     }, 1500);
 }
 
 function callEmergency() {
-    if (confirm('¿Está segura de que desea contactar servicios de emergencia?')) {
-        showNotification('🚨 Contactando servicios de emergencia...', 'error');
+    if (confirm(' Est  segura de que desea contactar servicios de emergencia?')) {
+        showNotification('  Contactando servicios de emergencia...', 'error');
         setTimeout(() => {
             alert('Conectando con contacto de emergencia...');
         }, 1500);
@@ -476,7 +476,7 @@ function callEmergency() {
 }
 
 function viewExamDetails(examName, examId) {
-    console.log('🔍 viewExamDetails llamada:', examName, examId);
+    console.log('  viewExamDetails llamada:', examName, examId);
 
     // Buscar los datos del examen
     const userId = getCurrentUserId();
@@ -503,7 +503,7 @@ function viewExamDetails(examName, examId) {
         });
 }
 
-// Navegación por tabs mejorada con carga dinámica
+// Navegaci n por tabs mejorada con carga din mica
 document.addEventListener('DOMContentLoaded', function () {
     // Cargar datos iniciales
     loadConsultations();
@@ -557,15 +557,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Funciones para eliminar datos
 async function deleteConsultation(consultationId, event) {
-    console.log('🔍 deleteConsultation llamada con ID:', consultationId, 'Tipo:', typeof consultationId);
+    console.log('  deleteConsultation llamada con ID:', consultationId, 'Tipo:', typeof consultationId);
 
     if (!consultationId || consultationId === 'undefined' || consultationId === '') {
-        showNotification('Error: ID de consulta inválido', 'error');
-        console.error('❌ ID de consulta inválido:', consultationId);
+        showNotification('Error: ID de consulta inv lido', 'error');
+        console.error('  ID de consulta inv lido:', consultationId);
         return;
     }
 
-    const confirmed = await showCustomConfirm('Eliminar Consulta', '¿Estás seguro de que deseas eliminar esta consulta médica?', 'Esta acción no se puede deshacer y se perderá toda la información asociada.');
+    const confirmed = await showCustomConfirm('Eliminar Consulta', ' Est s seguro de que deseas eliminar esta consulta m dica?', 'Esta acci n no se puede deshacer y se perder  toda la informaci n asociada.');
     if (!confirmed) {
         return;
     }
@@ -576,7 +576,7 @@ async function deleteConsultation(consultationId, event) {
         return;
     }
 
-    // Encontrar el elemento y agregar animación de eliminación
+    // Encontrar el elemento y agregar animaci n de eliminaci n
     let consultationElement = null;
     if (event && event.target) {
         consultationElement = event.target.closest('.consultation-item');
@@ -596,39 +596,39 @@ async function deleteConsultation(consultationId, event) {
         const data = await response.json();
 
         if (response.ok && data.success) {
-            showNotification('✅ Consulta eliminada exitosamente', 'success');
-            // Esperar un poco para que se vea la animación antes de recargar
+            showNotification('  Consulta eliminada exitosamente', 'success');
+            // Esperar un poco para que se vea la animaci n antes de recargar
             setTimeout(() => {
                 loadConsultations();
-                loadDashboardStats(); // Actualizar estadísticas
+                loadDashboardStats(); // Actualizar estad sticas
             }, 300);
         } else {
-            // Remover la animación si hay error
+            // Remover la animaci n si hay error
             if (consultationElement) {
                 consultationElement.classList.remove('deleting');
             }
             showNotification(data.error || 'Error eliminando la consulta', 'error');
         }
     } catch (error) {
-        // Remover la animación si hay error
+        // Remover la animaci n si hay error
         if (consultationElement) {
             consultationElement.classList.remove('deleting');
         }
         console.error('Error eliminando consulta:', error);
-        showNotification('Error de conexión al eliminar la consulta', 'error');
+        showNotification('Error de conexi n al eliminar la consulta', 'error');
     }
 }
 
 async function deleteMedication(medicationId, event) {
-    console.log('🔍 deleteMedication llamada con ID:', medicationId, 'Tipo:', typeof medicationId);
+    console.log('  deleteMedication llamada con ID:', medicationId, 'Tipo:', typeof medicationId);
 
     if (!medicationId || medicationId === 'undefined' || medicationId === '') {
-        showNotification('Error: ID de medicamento inválido', 'error');
-        console.error('❌ ID de medicamento inválido:', medicationId);
+        showNotification('Error: ID de medicamento inv lido', 'error');
+        console.error('  ID de medicamento inv lido:', medicationId);
         return;
     }
 
-    const confirmed = await showCustomConfirm('Eliminar Medicamento', '¿Estás seguro de que deseas eliminar este medicamento?', 'Esta acción no se puede deshacer y se perderá el historial de prescripción.');
+    const confirmed = await showCustomConfirm('Eliminar Medicamento', ' Est s seguro de que deseas eliminar este medicamento?', 'Esta acci n no se puede deshacer y se perder  el historial de prescripci n.');
     if (!confirmed) {
         return;
     }
@@ -639,7 +639,7 @@ async function deleteMedication(medicationId, event) {
         return;
     }
 
-    // Encontrar el elemento y agregar animación de eliminación
+    // Encontrar el elemento y agregar animaci n de eliminaci n
     let medicationElement = null;
     if (event && event.target) {
         medicationElement = event.target.closest('.medication-item');
@@ -659,10 +659,10 @@ async function deleteMedication(medicationId, event) {
         const data = await response.json();
 
         if (response.ok && data.success) {
-            showNotification('✅ Medicamento eliminado exitosamente', 'success');
+            showNotification('  Medicamento eliminado exitosamente', 'success');
             setTimeout(() => {
                 loadMedications();
-                loadDashboardStats(); // Actualizar estadísticas
+                loadDashboardStats(); // Actualizar estad sticas
             }, 300);
         } else {
             if (medicationElement) {
@@ -675,20 +675,20 @@ async function deleteMedication(medicationId, event) {
             medicationElement.classList.remove('deleting');
         }
         console.error('Error eliminando medicamento:', error);
-        showNotification('Error de conexión al eliminar el medicamento', 'error');
+        showNotification('Error de conexi n al eliminar el medicamento', 'error');
     }
 }
 
 async function deleteExam(examId, event) {
-    console.log('🔍 deleteExam llamada con ID:', examId, 'Tipo:', typeof examId);
+    console.log('  deleteExam llamada con ID:', examId, 'Tipo:', typeof examId);
 
     if (!examId || examId === 'undefined' || examId === '') {
-        showNotification('Error: ID de examen inválido', 'error');
-        console.error('❌ ID de examen inválido:', examId);
+        showNotification('Error: ID de examen inv lido', 'error');
+        console.error('  ID de examen inv lido:', examId);
         return;
     }
 
-    const confirmed = await showCustomConfirm('Eliminar Examen', '¿Estás seguro de que deseas eliminar este examen médico?', 'Esta acción no se puede deshacer y se perderán los resultados asociados.');
+    const confirmed = await showCustomConfirm('Eliminar Examen', ' Est s seguro de que deseas eliminar este examen m dico?', 'Esta acci n no se puede deshacer y se perder n los resultados asociados.');
     if (!confirmed) {
         return;
     }
@@ -699,7 +699,7 @@ async function deleteExam(examId, event) {
         return;
     }
 
-    // Encontrar el elemento y agregar animación de eliminación
+    // Encontrar el elemento y agregar animaci n de eliminaci n
     let examElement = null;
     if (event && event.target) {
         examElement = event.target.closest('.exam-item');
@@ -719,10 +719,10 @@ async function deleteExam(examId, event) {
         const data = await response.json();
 
         if (response.ok && data.success) {
-            showNotification('✅ Examen eliminado exitosamente', 'success');
+            showNotification('  Examen eliminado exitosamente', 'success');
             setTimeout(() => {
                 loadExams();
-                loadDashboardStats(); // Actualizar estadísticas
+                loadDashboardStats(); // Actualizar estad sticas
             }, 300);
         } else {
             if (examElement) {
@@ -735,12 +735,12 @@ async function deleteExam(examId, event) {
             examElement.classList.remove('deleting');
         }
         console.error('Error eliminando examen:', error);
-        showNotification('Error de conexión al eliminar el examen', 'error');
+        showNotification('Error de conexi n al eliminar el examen', 'error');
     }
 }
 
 async function deleteFamilyMember(familyId, event) {
-    const confirmed = await showCustomConfirm('Eliminar Contacto Familiar', '¿Estás seguro de que deseas eliminar este contacto familiar?', 'Esta acción no se puede deshacer y se perderá la información de contacto.');
+    const confirmed = await showCustomConfirm('Eliminar Contacto Familiar', ' Est s seguro de que deseas eliminar este contacto familiar?', 'Esta acci n no se puede deshacer y se perder  la informaci n de contacto.');
     if (!confirmed) {
         return;
     }
@@ -751,7 +751,7 @@ async function deleteFamilyMember(familyId, event) {
         return;
     }
 
-    // Encontrar el elemento y agregar animación de eliminación
+    // Encontrar el elemento y agregar animaci n de eliminaci n
     let familyElement = null;
     if (event && event.target) {
         familyElement = event.target.closest('.family-member');
@@ -771,7 +771,7 @@ async function deleteFamilyMember(familyId, event) {
         const data = await response.json();
 
         if (response.ok && data.success) {
-            showNotification('✅ Contacto familiar eliminado exitosamente', 'success');
+            showNotification('  Contacto familiar eliminado exitosamente', 'success');
             setTimeout(() => {
                 loadFamilyMembers();
             }, 300);
@@ -786,7 +786,7 @@ async function deleteFamilyMember(familyId, event) {
             familyElement.classList.remove('deleting');
         }
         console.error('Error eliminando contacto familiar:', error);
-        showNotification('Error de conexión al eliminar el contacto familiar', 'error');
+        showNotification('Error de conexi n al eliminar el contacto familiar', 'error');
     }
 }
 
@@ -822,7 +822,7 @@ function showExamsError() {
     document.getElementById('exams-container').innerHTML = `
         <div class="text-center py-4">
             <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
-            <h6 class="text-muted">Error cargando exámenes</h6>
+            <h6 class="text-muted">Error cargando ex menes</h6>
             <button class="btn btn-sm btn-outline-primary mt-2" onclick="loadExams()">
                 <i class="fas fa-refresh me-1"></i>Reintentar
             </button>
@@ -862,7 +862,7 @@ function showNotification(message, type = 'info') {
 
 // === FUNCIONES DE TELEGRAM ===
 
-// Función para verificar el estado de vinculación con Telegram
+// Funci n para verificar el estado de vinculaci n con Telegram
 async function checkTelegramStatus() {
     try {
         const response = await fetch('/api/user/telegram-status');
@@ -886,13 +886,13 @@ async function checkTelegramStatus() {
         document.getElementById('telegram-status').innerHTML = `
             <div class="alert alert-danger">
                 <i class="fas fa-exclamation-triangle me-2"></i>
-                Error al verificar el estado de vinculación con Telegram
+                Error al verificar el estado de vinculaci n con Telegram
             </div>
         `;
     }
 }
 
-// Función para vincular cuenta de Telegram
+// Funci n para vincular cuenta de Telegram
 function linkTelegramAccount() {
     const telegramId = document.getElementById('telegram-id-input').value.trim();
 
@@ -901,9 +901,9 @@ function linkTelegramAccount() {
         return;
     }
 
-    // Validar que sea un número
+    // Validar que sea un n mero
     if (!/^\d+$/.test(telegramId)) {
-        showNotification('El ID de Telegram debe ser solo números', 'error');
+        showNotification('El ID de Telegram debe ser solo n meros', 'error');
         return;
     }
 
@@ -919,19 +919,19 @@ function linkTelegramAccount() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Mensaje de éxito con información detallada
-                let successMessage = `¡Cuenta vinculada exitosamente!<br>
+                // Mensaje de  xito con informaci n detallada
+                let successMessage = ` Cuenta vinculada exitosamente!<br>
                                  <strong>Usuario:</strong> ${data.user_name || 'N/A'}<br>
                                  <strong>Telegram ID:</strong> ${data.telegram_id}`;
 
                 if (data.exams_found > 0) {
-                    successMessage += `<br><strong>📊 Exámenes encontrados:</strong> ${data.exams_found}`;
+                    successMessage += `<br><strong>  Ex menes encontrados:</strong> ${data.exams_found}`;
                 }
 
                 if (data.welcome_message_sent) {
-                    successMessage += `<br><br>💬 <strong>¡Revisa tu Telegram!</strong><br>Te hemos enviado un mensaje de bienvenida.`;
+                    successMessage += `<br><br>  <strong> Revisa tu Telegram!</strong><br>Te hemos enviado un mensaje de bienvenida.`;
                 } else {
-                    successMessage += `<br><br>⚠️ No pudimos enviar el mensaje automático a Telegram, pero la vinculación fue exitosa.`;
+                    successMessage += `<br><br>  No pudimos enviar el mensaje autom tico a Telegram, pero la vinculaci n fue exitosa.`;
                 }
 
                 showNotification(successMessage, 'success');
@@ -942,7 +942,7 @@ function linkTelegramAccount() {
                 // Refrescar el estado
                 setTimeout(() => {
                     checkTelegramStatus();
-                    loadExams(); // Recargar exámenes por si hay nuevos
+                    loadExams(); // Recargar ex menes por si hay nuevos
                 }, 2000);
             } else {
                 showNotification(data.error || 'Error vinculando cuenta', 'error');
@@ -950,13 +950,13 @@ function linkTelegramAccount() {
         })
         .catch(error => {
             console.error('Error:', error);
-            showNotification('Error de conexión. Intenta de nuevo.', 'error');
+            showNotification('Error de conexi n. Intenta de nuevo.', 'error');
         });
 }
 
-// Función para desvincular cuenta de Telegram
+// Funci n para desvincular cuenta de Telegram
 async function unlinkTelegramAccount() {
-    if (!confirm('¿Estás seguro de que deseas desvincular tu cuenta de Telegram? Los datos ya registrados se mantendrán.')) {
+    if (!confirm(' Est s seguro de que deseas desvincular tu cuenta de Telegram? Los datos ya registrados se mantendr n.')) {
         return;
     }
 
@@ -967,7 +967,7 @@ async function unlinkTelegramAccount() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                telegram_id: ''  // Enviar vacío para desvincular
+                telegram_id: ''  // Enviar vac o para desvincular
             })
         });
 
@@ -981,11 +981,11 @@ async function unlinkTelegramAccount() {
         }
     } catch (error) {
         console.error('Error desvinculando Telegram:', error);
-        showNotification('Error de conexión al desvincular Telegram', 'error');
+        showNotification('Error de conexi n al desvincular Telegram', 'error');
     }
 }
 
-// Función para cargar estadísticas del dashboard
+// Funci n para cargar estad sticas del dashboard
 async function loadDashboardStats() {
     const userId = getCurrentUserId();
     if (!userId) {
@@ -998,7 +998,7 @@ async function loadDashboardStats() {
         const data = await response.json();
 
         if (response.ok) {
-            // Actualizar estadísticas en el dashboard
+            // Actualizar estad sticas en el dashboard
             const consultationsCount = document.getElementById('consultations-count');
             const medicationsCount = document.getElementById('medications-count');
             const healthScore = document.getElementById('health-score');
@@ -1015,9 +1015,9 @@ async function loadDashboardStats() {
                 healthScore.innerHTML = `${data.health_score || 95}%`;
             }
 
-            console.log('📊 Estadísticas cargadas:', data);
+            console.log('  Estad sticas cargadas:', data);
         } else {
-            console.error('Error cargando estadísticas:', data.error);
+            console.error('Error cargando estad sticas:', data.error);
             // Mostrar valores por defecto en caso de error
             const consultationsCount = document.getElementById('consultations-count');
             const medicationsCount = document.getElementById('medications-count');
@@ -1028,7 +1028,7 @@ async function loadDashboardStats() {
             if (healthScore) healthScore.innerHTML = '95%';
         }
     } catch (error) {
-        console.error('Error cargando estadísticas:', error);
+        console.error('Error cargando estad sticas:', error);
         // Mostrar valores por defecto en caso de error
         const consultationsCount = document.getElementById('consultations-count');
         const medicationsCount = document.getElementById('medications-count');
@@ -1040,21 +1040,21 @@ async function loadDashboardStats() {
     }
 }
 
-// Cargar estadísticas cuando se carga la página
+// Cargar estad sticas cuando se carga la p gina
 document.addEventListener('DOMContentLoaded', function () {
-    // Cargar estadísticas del dashboard
+    // Cargar estad sticas del dashboard
     loadDashboardStats();
 
-    // Cargar datos iniciales de las pestañas
+    // Cargar datos iniciales de las pesta as
     loadConsultations();
 
     // Verificar estado de Telegram
     checkTelegramStatus();
 });
 
-// Agregar event listener para verificar Telegram cuando se muestre la pestaña
+// Agregar event listener para verificar Telegram cuando se muestre la pesta a
 document.addEventListener('DOMContentLoaded', function () {
-    // Verificar cuando se hace clic en la pestaña de Telegram
+    // Verificar cuando se hace clic en la pesta a de Telegram
     const telegramTab = document.getElementById('telegram-tab');
     if (telegramTab) {
         telegramTab.addEventListener('shown.bs.tab', function () {
@@ -1062,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Si ya estamos en la pestaña de Telegram al cargar la página
+    // Si ya estamos en la pesta a de Telegram al cargar la p gina
     if (window.location.hash === '#telegram') {
         setTimeout(checkTelegramStatus, 500);
     }
@@ -1073,7 +1073,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // === MODAL DE DETALLES DE EXAMEN ===
 
 function showExamModal(exam) {
-    console.log('📋 Mostrando modal para examen:', exam);
+    console.log('  Mostrando modal para examen:', exam);
 
     // Crear el modal
     const modal = document.createElement('div');
@@ -1093,7 +1093,7 @@ function showExamModal(exam) {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="exam-info">
-                                <h6><i class="fas fa-calendar me-2"></i>Información del Examen</h6>
+                                <h6><i class="fas fa-calendar me-2"></i>Informaci n del Examen</h6>
                                 <div class="info-item">
                                     <strong>Fecha:</strong> ${formatDate(exam.date)}
                                 </div>
@@ -1101,7 +1101,7 @@ function showExamModal(exam) {
                                     <strong>Laboratorio:</strong> ${exam.lab || 'No especificado'}
                                 </div>
                                 <div class="info-item">
-                                    <strong>Médico:</strong> ${exam.doctor || 'No especificado'}
+                                    <strong>M dico:</strong> ${exam.doctor || 'No especificado'}
                                 </div>
                                 <div class="info-item">
                                     <strong>Estado:</strong> ${exam.status || 'Completado'}
@@ -1140,8 +1140,8 @@ function showExamModal(exam) {
                                                    multiple>
                                             <div class="form-text">
                                                 <i class="fas fa-info-circle me-1"></i>
-                                                <strong>Múltiples archivos:</strong> Mantén presionado Ctrl (Windows) o Cmd (Mac) para seleccionar varios archivos.
-                                                <br>Formatos permitidos: PDF, PNG, JPG, JPEG, GIF, BMP, TIFF, DCM, DICOM, DOC, DOCX, TXT (máx. 16MB cada uno)
+                                                <strong>M ltiples archivos:</strong> Mant n presionado Ctrl (Windows) o Cmd (Mac) para seleccionar varios archivos.
+                                                <br>Formatos permitidos: PDF, PNG, JPG, JPEG, GIF, BMP, TIFF, DCM, DICOM, DOC, DOCX, TXT (m x. 16MB cada uno)
                                             </div>
                                         </div>
                                         <div id="selected-files-preview" class="mb-2" style="display: none;">
@@ -1338,7 +1338,7 @@ function showExamModal(exam) {
         }
     `;
 
-    // Función para limpiar el modal
+    // Funci n para limpiar el modal
     const closeModalFunction = () => {
         if (document.body.contains(modal)) {
             document.body.removeChild(modal);
@@ -1352,7 +1352,7 @@ function showExamModal(exam) {
         }
     };
 
-    // Asignar la función globalmente
+    // Asignar la funci n globalmente
     window.closeExamModal = closeModalFunction;
 
     // Manejar escape
@@ -1409,17 +1409,17 @@ function getFilePreview(fileUrl) {
             <div class="file-preview">
                 <i class="fas fa-file fa-3x text-secondary"></i>
                 <p class="mt-2">${fileName}</p>
-                <small class="text-muted">Archivo médico</small>
+                <small class="text-muted">Archivo m dico</small>
             </div>
         `;
     }
 }
 
 function getDocumentsSummary(fileUrls) {
-    console.log('📋 Generando resumen de documentos:', fileUrls);
+    console.log('  Generando resumen de documentos:', fileUrls);
 
     if (!fileUrls || fileUrls.trim() === '') {
-        console.log('📝 Sin URLs de archivos - retornando estado vacío');
+        console.log('  Sin URLs de archivos - retornando estado vac o');
         return `
             <div class="documents-summary-empty">
                 <i class="fas fa-inbox text-muted me-2"></i>
@@ -1430,11 +1430,11 @@ function getDocumentsSummary(fileUrls) {
 
     // Dividir por comas y limpiar espacios
     const urls = fileUrls.split(',').map(url => url.trim()).filter(url => url);
-    console.log('📁 URLs procesadas:', urls);
-    console.log('📊 Número de archivos:', urls.length);
+    console.log('  URLs procesadas:', urls);
+    console.log('  N mero de archivos:', urls.length);
 
     if (urls.length === 0) {
-        console.log('📝 Sin URLs válidas - retornando estado vacío');
+        console.log('  Sin URLs v lidas - retornando estado vac o');
         return `
             <div class="documents-summary-empty">
                 <i class="fas fa-inbox text-muted me-2"></i>
@@ -1549,7 +1549,7 @@ function getDocumentsSummary(fileUrls) {
         </div>
     `;
 
-    console.log('📋 Resumen de documentos generado:', {
+    console.log('  Resumen de documentos generado:', {
         totalFiles: urls.length,
         fileTypes: fileTypes,
         htmlLength: summaryHtml.length
@@ -1559,7 +1559,7 @@ function getDocumentsSummary(fileUrls) {
 }
 
 function getMultipleFilesDisplay(fileUrls) {
-    console.log('📎 Procesando archivos:', fileUrls);
+    console.log('  Procesando archivos:', fileUrls);
 
     if (!fileUrls || fileUrls.trim() === '') {
         return '<p class="text-muted"><i class="fas fa-info-circle me-2"></i>No hay archivos adjuntos</p>';
@@ -1572,7 +1572,7 @@ function getMultipleFilesDisplay(fileUrls) {
         return '<p class="text-muted"><i class="fas fa-info-circle me-2"></i>No hay archivos adjuntos</p>';
     }
 
-    console.log('📁 Archivos encontrados:', urls.length);
+    console.log('  Archivos encontrados:', urls.length);
 
     let html = `<div class="files-grid">`;
 
@@ -1611,14 +1611,14 @@ function getMultipleFilesDisplay(fileUrls) {
                         <div class="file-name fw-bold">${fileName}</div>
                         <small class="text-muted">
                             <i class="fas fa-mouse-pointer me-1"></i>
-                            Haz clic para visualizar • ${fileExt.toUpperCase()}
+                            Haz clic para visualizar   ${fileExt.toUpperCase()}
                         </small>
                     </div>
                     <div class="file-actions" onclick="event.stopPropagation();">
                         <button class="btn btn-sm btn-outline-primary me-1" onclick="previewFile('${url}', '${fileName}', '${fileExt}')" title="Vista previa">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-success me-1" onclick="openFile('${url}')" title="Abrir en nueva pestaña">
+                        <button class="btn btn-sm btn-outline-success me-1" onclick="openFile('${url}')" title="Abrir en nueva pesta a">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-secondary" onclick="downloadFile('${url}')" title="Descargar archivo">
@@ -1660,7 +1660,7 @@ function downloadFile(fileUrl) {
 }
 
 function previewFile(fileUrl, fileName, fileExt) {
-    console.log('👁️ Previsualizando archivo:', fileName, fileExt);
+    console.log('  Previsualizando archivo:', fileName, fileExt);
 
     // Crear modal de vista previa
     const modal = document.createElement('div');
@@ -1687,7 +1687,7 @@ function previewFile(fileUrl, fileName, fileExt) {
                         <i class="fas fa-times me-1"></i>Cerrar
                     </button>
                     <button class="btn btn-primary me-2" onclick="openFile('${fileUrl}')">
-                        <i class="fas fa-external-link-alt me-1"></i>Abrir en Nueva Pestaña
+                        <i class="fas fa-external-link-alt me-1"></i>Abrir en Nueva Pesta a
                     </button>
                     <button class="btn btn-success" onclick="downloadFile('${fileUrl}')">
                         <i class="fas fa-download me-1"></i>Descargar
@@ -1826,7 +1826,7 @@ function previewFile(fileUrl, fileName, fileExt) {
     };
     document.addEventListener('keydown', handleEscape);
 
-    // Función para cerrar
+    // Funci n para cerrar
     window.closeFilePreview = () => {
         document.removeEventListener('keydown', handleEscape);
         document.body.removeChild(modal);
@@ -1845,7 +1845,7 @@ function previewFile(fileUrl, fileName, fileExt) {
 function getFilePreviewContent(fileUrl, fileName, fileExt) {
     const ext = fileExt.toLowerCase();
 
-    // Imágenes
+    // Im genes
     if (['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff'].includes(ext)) {
         return `
             <div class="file-content-container">
@@ -1854,7 +1854,7 @@ function getFilePreviewContent(fileUrl, fileName, fileExt) {
                 <div class="mt-3">
                     <small class="text-muted">
                         <i class="fas fa-info-circle me-1"></i>
-                        Imagen ${ext.toUpperCase()} • Haz clic y arrastra para mover
+                        Imagen ${ext.toUpperCase()}   Haz clic y arrastra para mover
                     </small>
                 </div>
             </div>
@@ -1866,12 +1866,12 @@ function getFilePreviewContent(fileUrl, fileName, fileExt) {
         return `
             <div class="file-content-container">
                 <iframe src="${fileUrl}" class="file-preview-pdf" 
-                        onerror="this.parentElement.innerHTML='<div class=\\"file-preview-unsupported\\"><i class=\\"fas fa-file-pdf fa-3x mb-3 text-danger\\"></i><h5>Vista previa no disponible</h5><p>No se puede mostrar el PDF en el navegador. Usa el botón \\"Abrir en Nueva Pestaña\\" para verlo.</p></div>'">
+                        onerror="this.parentElement.innerHTML='<div class=\\"file-preview-unsupported\\"><i class=\\"fas fa-file-pdf fa-3x mb-3 text-danger\\"></i><h5>Vista previa no disponible</h5><p>No se puede mostrar el PDF en el navegador. Usa el bot n \\"Abrir en Nueva Pesta a\\" para verlo.</p></div>'">
                 </iframe>
                 <div class="mt-3">
                     <small class="text-muted">
                         <i class="fas fa-info-circle me-1"></i>
-                        Documento PDF • Usa los controles del visor para navegar
+                        Documento PDF   Usa los controles del visor para navegar
                     </small>
                 </div>
             </div>
@@ -1892,7 +1892,7 @@ function getFilePreviewContent(fileUrl, fileName, fileExt) {
                 <div class="mt-3">
                     <small class="text-muted">
                         <i class="fas fa-info-circle me-1"></i>
-                        Archivo de texto • ${fileName}
+                        Archivo de texto   ${fileName}
                     </small>
                 </div>
             </div>
@@ -1902,7 +1902,7 @@ function getFilePreviewContent(fileUrl, fileName, fileExt) {
                     .then(text => {
                         const container = document.getElementById('text-content-${Date.now()}');
                         if (container) {
-                            container.innerHTML = text || 'El archivo está vacío.';
+                            container.innerHTML = text || 'El archivo est  vac o.';
                         }
                     })
                     .catch(error => {
@@ -1915,18 +1915,18 @@ function getFilePreviewContent(fileUrl, fileName, fileExt) {
         `;
     }
 
-    // Archivos médicos (DICOM, DCM)
+    // Archivos m dicos (DICOM, DCM)
     if (['dcm', 'dicom'].includes(ext)) {
         return `
             <div class="file-content-container file-preview-unsupported">
                 <i class="fas fa-file-medical fa-4x mb-3 text-primary"></i>
-                <h5>Archivo Médico ${ext.toUpperCase()}</h5>
+                <h5>Archivo M dico ${ext.toUpperCase()}</h5>
                 <p>Los archivos DICOM requieren un visor especializado.</p>
-                <p class="text-muted">Usa "Abrir en Nueva Pestaña" o "Descargar" para usar un visor DICOM apropiado.</p>
+                <p class="text-muted">Usa "Abrir en Nueva Pesta a" o "Descargar" para usar un visor DICOM apropiado.</p>
                 <div class="mt-3">
                     <small class="badge bg-info">
                         <i class="fas fa-stethoscope me-1"></i>
-                        Imagen Médica
+                        Imagen M dica
                     </small>
                 </div>
             </div>
@@ -1940,7 +1940,7 @@ function getFilePreviewContent(fileUrl, fileName, fileExt) {
                 <i class="fas fa-file-word fa-4x mb-3 text-primary"></i>
                 <h5>Documento de Word</h5>
                 <p>Los documentos de Word no se pueden previsualizar directamente.</p>
-                <p class="text-muted">Usa "Abrir en Nueva Pestaña" para verlo en tu navegador o "Descargar" para abrirlo en Word.</p>
+                <p class="text-muted">Usa "Abrir en Nueva Pesta a" para verlo en tu navegador o "Descargar" para abrirlo en Word.</p>
                 <div class="mt-3">
                     <small class="badge bg-primary">
                         <i class="fas fa-file-word me-1"></i>
@@ -1957,7 +1957,7 @@ function getFilePreviewContent(fileUrl, fileName, fileExt) {
             <i class="fas fa-file fa-4x mb-3 text-secondary"></i>
             <h5>Vista previa no disponible</h5>
             <p>No se puede mostrar una vista previa para este tipo de archivo (${ext.toUpperCase()}).</p>
-            <p class="text-muted">Usa "Abrir en Nueva Pestaña" o "Descargar" para ver el archivo.</p>
+            <p class="text-muted">Usa "Abrir en Nueva Pesta a" o "Descargar" para ver el archivo.</p>
             <div class="mt-3">
                 <small class="badge bg-secondary">
                     <i class="fas fa-file me-1"></i>
@@ -2020,93 +2020,93 @@ function clearFileSelection() {
 
 async function updateExamModalFiles(examId, retryCount = 0) {
     /**
-     * Actualiza solo la sección de archivos del modal existente
+     * Actualiza solo la secci n de archivos del modal existente
      * sin cerrarlo ni crear uno nuevo
      */
     try {
         const userId = getCurrentUserId();
         if (!userId) return;
 
-        console.log(`🔄 Actualizando modal (intento ${retryCount + 1})...`);
+        console.log(`  Actualizando modal (intento ${retryCount + 1})...`);
 
         // Obtener datos actualizados del examen
         const response = await fetch(`/api/patient/${userId}/exams`);
         if (!response.ok) {
-            console.error('❌ Error en response:', response.status);
+            console.error('  Error en response:', response.status);
             return;
         }
 
         const data = await response.json();
         if (!data.success) {
-            console.error('❌ Error en data:', data);
+            console.error('  Error en data:', data);
             return;
         }
 
-        // Buscar el examen específico
+        // Buscar el examen espec fico
         const exam = data.exams.find(e => e.id === examId);
         if (!exam) {
-            console.error('❌ Examen no encontrado:', examId);
+            console.error('  Examen no encontrado:', examId);
             return;
         }
 
-        console.log('📋 Examen encontrado:', exam.exam_type);
-        console.log('📎 URLs de archivos:', exam.file_url);
+        console.log('  Examen encontrado:', exam.exam_type);
+        console.log('  URLs de archivos:', exam.file_url);
 
         // Contar archivos actuales
         const currentFileUrls = exam.file_url || '';
         const currentFileCount = currentFileUrls && currentFileUrls.trim() ?
             currentFileUrls.split(',').map(url => url.trim()).filter(url => url).length : 0;
 
-        console.log('📊 Número de archivos encontrados:', currentFileCount);
+        console.log('  N mero de archivos encontrados:', currentFileCount);
 
         // Verificar si realmente hay archivos nuevos (en caso de reintentos)
         if (retryCount > 0 && currentFileCount === 0) {
-            console.warn('⚠️ Aún no se detectan archivos, puede necesitar más tiempo...');
+            console.warn('  A n no se detectan archivos, puede necesitar m s tiempo...');
         }
 
-        // Actualizar la sección de archivos adjuntos
+        // Actualizar la secci n de archivos adjuntos
         const fileDisplaySection = document.getElementById('exam-file-display');
         if (fileDisplaySection) {
             const fileUrls = exam.file_url || '';
-            console.log('🔄 Actualizando sección de archivos adjuntos...');
+            console.log('  Actualizando secci n de archivos adjuntos...');
 
             if (fileUrls && fileUrls.trim()) {
                 fileDisplaySection.innerHTML = getMultipleFilesDisplay(fileUrls);
-                console.log('✅ Archivos adjuntos actualizados');
+                console.log('  Archivos adjuntos actualizados');
             } else {
                 fileDisplaySection.innerHTML = '<p class="text-muted mb-0">No hay archivos adjuntos</p>';
-                console.log('📝 Sin archivos adjuntos');
+                console.log('  Sin archivos adjuntos');
             }
         } else {
-            console.error('❌ No se encontró la sección exam-file-display');
+            console.error('  No se encontr  la secci n exam-file-display');
         }
 
-        // Actualizar la sección de resumen de documentos
+        // Actualizar la secci n de resumen de documentos
         const documentsSection = document.getElementById('exam-documents-summary');
         if (documentsSection) {
             const fileUrls = exam.file_url || '';
-            console.log('📁 Actualizando sección de documentos...');
-            console.log('📎 URLs para documentos:', fileUrls);
+            console.log('  Actualizando secci n de documentos...');
+            console.log('  URLs para documentos:', fileUrls);
 
             const documentsSummary = getDocumentsSummary(fileUrls);
             documentsSection.innerHTML = documentsSummary;
-            console.log('✅ Sección de documentos actualizada');
+            console.log('  Secci n de documentos actualizada');
         } else {
-            console.error('❌ No se encontró la sección exam-documents-summary');
+            console.error('  No se encontr  la secci n exam-documents-summary');
         }
 
-        // Limpiar la selección de archivos
+        // Limpiar la selecci n de archivos
         clearFileSelection();
 
         // Debug: Verificar estado final de los elementos
         const displayedCount = debugModalElements();
 
-        // Verificar que la actualización fue exitosa
+        // Verificar que la actualizaci n fue exitosa
         if (displayedCount > 0) {
-            console.log('✅ Modal actualizado con nuevos archivos');
+            console.log('  Modal actualizado con nuevos archivos');
             verifyDocumentsUpdate();
         } else if (currentFileCount > 0) {
-            console.warn('⚠️ Hay archivos pero no se muestran en la UI - posible problema de sincronización');
+            console.warn('  Hay archivos pero no se muestran en la UI - posible problema de sincronizaci n');
         }
 
     } catch (error) {
@@ -2115,63 +2115,63 @@ async function updateExamModalFiles(examId, retryCount = 0) {
         // Reintentar hasta 3 veces con delay incremental
         if (retryCount < 3) {
             const delay = (retryCount + 1) * 500; // 500ms, 1000ms, 1500ms
-            console.log(`🔄 Reintentando en ${delay}ms...`);
+            console.log(`  Reintentando en ${delay}ms...`);
             setTimeout(() => {
                 updateExamModalFiles(examId, retryCount + 1);
             }, delay);
         } else {
-            console.error('❌ Se agotaron los reintentos para actualizar el modal');
+            console.error('  Se agotaron los reintentos para actualizar el modal');
         }
     }
 }
 
 function debugModalElements() {
     /**
-     * Función de debug para verificar el estado de los elementos del modal
+     * Funci n de debug para verificar el estado de los elementos del modal
      */
-    console.log('🔍 DEBUG: Estado de elementos del modal');
+    console.log('  DEBUG: Estado de elementos del modal');
 
     const fileDisplaySection = document.getElementById('exam-file-display');
     const documentsSection = document.getElementById('exam-documents-summary');
 
     if (fileDisplaySection) {
-        console.log('📎 Sección de archivos adjuntos encontrada');
-        console.log('📏 Contenido HTML (primeros 100 chars):', fileDisplaySection.innerHTML.substring(0, 100));
+        console.log('  Secci n de archivos adjuntos encontrada');
+        console.log('  Contenido HTML (primeros 100 chars):', fileDisplaySection.innerHTML.substring(0, 100));
     } else {
-        console.error('❌ Sección exam-file-display NO encontrada');
+        console.error('  Secci n exam-file-display NO encontrada');
     }
 
     if (documentsSection) {
-        console.log('📁 Sección de documentos encontrada');
-        console.log('📏 Contenido HTML (primeros 100 chars):', documentsSection.innerHTML.substring(0, 100));
+        console.log('  Secci n de documentos encontrada');
+        console.log('  Contenido HTML (primeros 100 chars):', documentsSection.innerHTML.substring(0, 100));
 
         // Buscar badges de documentos
         const badges = documentsSection.querySelectorAll('.badge');
-        console.log('🏷️ Badges encontrados:', badges.length);
+        console.log('  Badges encontrados:', badges.length);
         badges.forEach((badge, index) => {
             console.log(`   Badge ${index + 1}: ${badge.textContent.trim()}`);
         });
 
-        // Verificar si se actualizó correctamente
+        // Verificar si se actualiz  correctamente
         const totalText = documentsSection.textContent;
         if (totalText.includes('documento total') || totalText.includes('documentos total')) {
             const match = totalText.match(/(\d+)\s+documentos?\s+total/);
             if (match) {
                 const documentCount = parseInt(match[1]);
-                console.log(`📊 Documentos mostrados en UI: ${documentCount}`);
+                console.log(`  Documentos mostrados en UI: ${documentCount}`);
                 return documentCount;
             }
         }
     } else {
-        console.error('❌ Sección exam-documents-summary NO encontrada');
+        console.error('  Secci n exam-documents-summary NO encontrada');
     }
 
-    // Verificar si el modal está visible
+    // Verificar si el modal est  visible
     const modal = document.querySelector('.modal.show');
     if (modal) {
-        console.log('👁️ Modal visible encontrado');
+        console.log('  Modal visible encontrado');
     } else {
-        console.warn('⚠️ No se encontró modal visible');
+        console.warn('  No se encontr  modal visible');
     }
 
     return 0;
@@ -2179,7 +2179,7 @@ function debugModalElements() {
 
 function verifyDocumentsUpdate(expectedCount = null) {
     /**
-     * Verifica que la sección de documentos se haya actualizado correctamente
+     * Verifica que la secci n de documentos se haya actualizado correctamente
      */
     const documentsSection = document.getElementById('exam-documents-summary');
     if (!documentsSection) return false;
@@ -2189,10 +2189,10 @@ function verifyDocumentsUpdate(expectedCount = null) {
 
     if (match) {
         const actualCount = parseInt(match[1]);
-        console.log(`✅ Verificación: ${actualCount} documentos mostrados`);
+        console.log(`  Verificaci n: ${actualCount} documentos mostrados`);
 
         if (expectedCount && actualCount >= expectedCount) {
-            showNotification(`📋 Documentos actualizados: ${actualCount} archivo${actualCount > 1 ? 's' : ''} total`, 'info');
+            showNotification(`  Documentos actualizados: ${actualCount} archivo${actualCount > 1 ? 's' : ''} total`, 'info');
             return true;
         }
         return actualCount > 0;
@@ -2222,7 +2222,7 @@ async function uploadMultipleExamFiles(examId) {
 
     for (let file of files) {
         if (file.size > maxSize) {
-            showNotification(`El archivo "${file.name}" es demasiado grande (máx. 16MB)`, 'error');
+            showNotification(`El archivo "${file.name}" es demasiado grande (m x. 16MB)`, 'error');
             return;
         }
 
@@ -2234,7 +2234,7 @@ async function uploadMultipleExamFiles(examId) {
     }
 
     try {
-        showNotification(`📤 Subiendo ${files.length} archivo${files.length > 1 ? 's' : ''}...`, 'info');
+        showNotification(`  Subiendo ${files.length} archivo${files.length > 1 ? 's' : ''}...`, 'info');
 
         let uploadedFiles = [];
         let errors = [];
@@ -2259,53 +2259,53 @@ async function uploadMultipleExamFiles(examId) {
                         name: file.name,
                         url: data.file_url
                     });
-                    console.log(`✅ Archivo subido: ${file.name} -> ${data.file_url}`);
-                    console.log(`📋 URLs actualizadas: ${data.all_file_urls}`);
+                    console.log(`  Archivo subido: ${file.name} -> ${data.file_url}`);
+                    console.log(`  URLs actualizadas: ${data.all_file_urls}`);
                 } else {
                     errors.push(`${file.name}: ${data.error || 'Error desconocido'}`);
-                    console.error(`❌ Error subiendo ${file.name}:`, data.error);
+                    console.error(`  Error subiendo ${file.name}:`, data.error);
                 }
             } catch (error) {
-                errors.push(`${file.name}: Error de conexión`);
+                errors.push(`${file.name}: Error de conexi n`);
             }
         }
 
         // Mostrar resultados
         if (uploadedFiles.length > 0) {
-            showNotification(`✅ ${uploadedFiles.length} archivo${uploadedFiles.length > 1 ? 's subidos' : ' subido'} exitosamente`, 'success');
+            showNotification(`  ${uploadedFiles.length} archivo${uploadedFiles.length > 1 ? 's subidos' : ' subido'} exitosamente`, 'success');
 
             // Actualizar inmediatamente sin delay
-            console.log('🔄 Actualizando modal inmediatamente después de subir archivos...');
+            console.log('  Actualizando modal inmediatamente despu s de subir archivos...');
             updateExamModalFiles(examId);
 
-            // Forzar actualización adicional después de un delay más largo
+            // Forzar actualizaci n adicional despu s de un delay m s largo
             setTimeout(() => {
-                console.log('🔄 Forzando segunda actualización del modal...');
+                console.log('  Forzando segunda actualizaci n del modal...');
                 updateExamModalFiles(examId);
             }, 1000);
 
-            // También recargar la lista de exámenes con un pequeño delay
+            // Tambi n recargar la lista de ex menes con un peque o delay
             setTimeout(() => {
-                console.log('🔄 Recargando lista de exámenes...');
+                console.log('  Recargando lista de ex menes...');
                 loadExams();
             }, 200);
         }
 
         if (errors.length > 0) {
-            showNotification(`⚠️ Errores en ${errors.length} archivo${errors.length > 1 ? 's' : ''}`, 'error');
+            showNotification(`  Errores en ${errors.length} archivo${errors.length > 1 ? 's' : ''}`, 'error');
             console.error('Errores de subida:', errors);
         }
 
-        // Limpiar selección
+        // Limpiar selecci n
         clearFileSelection();
 
     } catch (error) {
         console.error('Error subiendo archivos:', error);
-        showNotification('Error de conexión al subir archivos', 'error');
+        showNotification('Error de conexi n al subir archivos', 'error');
     }
 }
 
-// Mantener función original para compatibilidad
+// Mantener funci n original para compatibilidad
 async function uploadExamFile(examId) {
     const fileInput = document.getElementById('exam-file') || document.getElementById('exam-files');
     const file = fileInput.files[0];
@@ -2326,7 +2326,7 @@ async function uploadExamFile(examId) {
     formData.append('exam_id', examId);
 
     try {
-        showNotification('📤 Subiendo archivo...', 'info');
+        showNotification('  Subiendo archivo...', 'info');
 
         const response = await fetch(`/api/patient/${userId}/exams/upload`, {
             method: 'POST',
@@ -2336,7 +2336,7 @@ async function uploadExamFile(examId) {
         const data = await response.json();
 
         if (response.ok && data.success) {
-            showNotification('✅ Archivo subido exitosamente', 'success');
+            showNotification('  Archivo subido exitosamente', 'success');
 
             // Actualizar la vista previa
             const fileDisplay = document.getElementById('exam-file-display');
@@ -2359,7 +2359,7 @@ async function uploadExamFile(examId) {
             // Limpiar el input
             fileInput.value = '';
 
-            // Recargar la lista de exámenes
+            // Recargar la lista de ex menes
             setTimeout(() => {
                 loadExams();
             }, 1000);
@@ -2368,16 +2368,16 @@ async function uploadExamFile(examId) {
         }
     } catch (error) {
         console.error('Error subiendo archivo:', error);
-        showNotification('Error de conexión al subir archivo', 'error');
+        showNotification('Error de conexi n al subir archivo', 'error');
     }
 }
 
 function printExam(examId) {
-    showNotification('🖨️ Función de impresión en desarrollo', 'info');
-    // TODO: Implementar función de impresión
+    showNotification('  Funci n de impresi n en desarrollo', 'info');
+    // TODO: Implementar funci n de impresi n
 }
 
-// === SISTEMA DE DIÁLOGOS PERSONALIZADOS ===
+// === SISTEMA DE DI LOGOS PERSONALIZADOS ===
 
 function showCustomConfirm(title, message, warning) {
     // Crear el modal
@@ -2494,7 +2494,7 @@ function showCustomConfirm(title, message, warning) {
         }
     `;
 
-    // Función para limpiar el modal
+    // Funci n para limpiar el modal
     const cleanup = () => {
         if (document.body.contains(modal)) {
             document.body.removeChild(modal);

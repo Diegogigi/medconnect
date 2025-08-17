@@ -1,0 +1,83 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Completo - 2025-07-31 22:20:49</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .paso-critico {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .comando {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h1>🔍 Diagnóstico Completo del Servidor</h1>
+                <p class="text-muted">Timestamp: 2025-07-31 22:20:49</p>
+                
+                <div class="alert alert-info">
+                    <h5>📋 Análisis Realizado</h5>
+                    <p>Se ha verificado el contenido exacto que está sirviendo el servidor Flask.</p>
+                </div>
+                
+                <div class="paso-critico">
+                    <h5>🎯 PROBLEMA IDENTIFICADO:</h5>
+                    <p>El template local SÍ contiene el botón de sesión, pero el servidor NO lo está sirviendo.</p>
+                    <p><strong>Diagnóstico:</strong> Problema de renderizado o caché del servidor Flask.</p>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5>🔧 SOLUCIONES A PROBAR:</h5>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            <li><strong>Reinicia completamente tu computadora</strong></li>
+                            <li><strong>Usa un puerto diferente:</strong> <code>python app.py --port 5001</code></li>
+                            <li><strong>Verifica el código fuente de la página (F12)</strong></li>
+                            <li><strong>Busca los comentarios "TEMPLATE UPDATED" en el código fuente</strong></li>
+                            <li><strong>Verifica que no haya otros procesos de Python</strong></li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <h6>⚠️ Si el problema persiste:</h6>
+                    <ul>
+                        <li>Revisa el archivo <code>contenido_servidor_*.html</code> generado</li>
+                        <li>Compara con el archivo <code>templates/professional.html</code></li>
+                        <li>Verifica que no haya errores en la consola del navegador</li>
+                        <li>Intenta con un navegador diferente</li>
+                    </ul>
+                </div>
+                
+                <div class="alert alert-info">
+                    <h6>📋 Comandos para diagnóstico:</h6>
+                    <div class="comando"># Verificar procesos de Python:</div>
+                    <div class="comando">tasklist | findstr python</div>
+                    <div class="comando"># Verificar puerto 5000:</div>
+                    <div class="comando">netstat -ano | findstr :5000</div>
+                    <div class="comando"># Reiniciar con puerto diferente:</div>
+                    <div class="comando">python app.py --port 5001</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -4,11 +4,11 @@ document.addEventListener('DOMContentLoaded', function () {
     setupReportesNavigation();
 });
 
-// Configurar navegación a la sección de reportes
+// Configurar navegaci n a la secci n de reportes
 function setupReportesNavigation() {
     // Verificar si hay un hash en la URL que apunte a reportes
     if (window.location.hash === '#reportes') {
-        // Hacer scroll suave a la sección de reportes
+        // Hacer scroll suave a la secci n de reportes
         setTimeout(() => {
             const reportesSection = document.getElementById('reportes');
             if (reportesSection) {
@@ -17,7 +17,7 @@ function setupReportesNavigation() {
                     block: 'start'
                 });
             }
-        }, 500); // Pequeño delay para asegurar que el DOM esté listo
+        }, 500); // Peque o delay para asegurar que el DOM est  listo
     }
 }
 
@@ -48,7 +48,7 @@ function setupImageUpload() {
     }
 }
 
-// Función para subir imagen de perfil
+// Funci n para subir imagen de perfil
 async function uploadProfileImage(file) {
     const formData = new FormData();
     formData.append('profile_image', file);
@@ -71,9 +71,9 @@ async function uploadProfileImage(file) {
     }
 }
 
-// Función para editar el perfil
+// Funci n para editar el perfil
 function editarPerfil() {
-    // Crear modal de edición
+    // Crear modal de edici n
     const modal = new bootstrap.Modal(document.getElementById('editProfileModal') || createEditProfileModal());
 
     // Cargar datos actuales en el formulario
@@ -105,13 +105,13 @@ function editarPerfil() {
     modal.show();
 }
 
-// Función para agregar certificación
+// Funci n para agregar certificaci n
 function agregarCertificacion() {
     const modal = new bootstrap.Modal(document.getElementById('certificationModal') || createCertificationModal());
     modal.show();
 }
 
-// Crear modal de edición de perfil
+// Crear modal de edici n de perfil
 function createEditProfileModal() {
     const modal = document.createElement('div');
     modal.className = 'modal fade';
@@ -131,7 +131,7 @@ function createEditProfileModal() {
                                 <input type="text" class="form-control" name="especialidad" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Número de Registro</label>
+                                <label class="form-label">N mero de Registro</label>
                                 <input type="text" class="form-control" name="numero_registro" required>
                             </div>
                             <div class="col-md-6">
@@ -139,19 +139,19 @@ function createEditProfileModal() {
                                 <input type="email" class="form-control" name="email" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Teléfono</label>
+                                <label class="form-label">Tel fono</label>
                                 <input type="tel" class="form-control" name="telefono">
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Dirección de Consulta</label>
+                                <label class="form-label">Direcci n de Consulta</label>
                                 <input type="text" class="form-control" name="direccion_consulta">
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Horario de Atención</label>
+                                <label class="form-label">Horario de Atenci n</label>
                                 <input type="text" class="form-control" name="horario_atencion">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Años de Experiencia</label>
+                                <label class="form-label">A os de Experiencia</label>
                                 <input type="number" class="form-control" name="anos_experiencia">
                             </div>
                             <div class="col-md-6">
@@ -159,7 +159,7 @@ function createEditProfileModal() {
                                 <input type="text" class="form-control" name="idiomas" placeholder="Separados por coma">
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Áreas de Especialización</label>
+                                <label class="form-label"> reas de Especializaci n</label>
                                 <textarea class="form-control" name="areas_especializacion" rows="3"></textarea>
                             </div>
                         </div>
@@ -176,7 +176,7 @@ function createEditProfileModal() {
     return modal;
 }
 
-// Crear modal de certificación
+// Crear modal de certificaci n
 function createCertificationModal() {
     const modal = document.createElement('div');
     modal.className = 'modal fade';
@@ -185,21 +185,21 @@ function createCertificationModal() {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Agregar Certificación</h5>
+                    <h5 class="modal-title">Agregar Certificaci n</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="certificationForm">
                         <div class="mb-3">
-                            <label class="form-label">Título</label>
+                            <label class="form-label">T tulo</label>
                             <input type="text" class="form-control" name="titulo" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Institución</label>
+                            <label class="form-label">Instituci n</label>
                             <input type="text" class="form-control" name="institucion" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Año</label>
+                            <label class="form-label">A o</label>
                             <input type="number" class="form-control" name="ano" required>
                         </div>
                         <div class="mb-3">
@@ -219,7 +219,7 @@ function createCertificationModal() {
     return modal;
 }
 
-// Función para guardar cambios del perfil
+// Funci n para guardar cambios del perfil
 async function guardarPerfil() {
     const form = document.getElementById('editProfileForm');
     if (!form) return;
@@ -248,7 +248,7 @@ async function guardarPerfil() {
             // Cerrar el modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('editProfileModal'));
             if (modal) modal.hide();
-            // Recargar la página después de un breve retraso
+            // Recargar la p gina despu s de un breve retraso
             setTimeout(() => location.reload(), 1000);
         } else {
             throw new Error(data.error || 'Error al actualizar el perfil');
@@ -258,7 +258,7 @@ async function guardarPerfil() {
     }
 }
 
-// Función para guardar certificación
+// Funci n para guardar certificaci n
 async function guardarCertificacion() {
     const form = document.getElementById('certificationForm');
     const formData = new FormData(form);
@@ -272,23 +272,23 @@ async function guardarCertificacion() {
         const data = await response.json();
 
         if (response.ok) {
-            showNotification(data.message || 'Certificación agregada correctamente', 'success');
+            showNotification(data.message || 'Certificaci n agregada correctamente', 'success');
 
             // Cerrar el modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('certificationModal'));
             if (modal) modal.hide();
 
-            // Recargar la página después de un breve retraso
+            // Recargar la p gina despu s de un breve retraso
             setTimeout(() => location.reload(), 1000);
         } else {
-            throw new Error(data.error || 'Error al agregar la certificación');
+            throw new Error(data.error || 'Error al agregar la certificaci n');
         }
     } catch (error) {
-        showNotification('Error al agregar la certificación: ' + error.message, 'error');
+        showNotification('Error al agregar la certificaci n: ' + error.message, 'error');
     }
 }
 
-// Función para actualizar la imagen de perfil en la UI
+// Funci n para actualizar la imagen de perfil en la UI
 function updateProfileImage(imageUrl) {
     const avatar = document.querySelector('.professional-avatar');
     if (avatar) {
@@ -296,7 +296,7 @@ function updateProfileImage(imageUrl) {
     }
 }
 
-// Función para mostrar notificaciones
+// Funci n para mostrar notificaciones
 function showNotification(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : 'success'} border-0 position-fixed top-0 end-0 m-3`;
@@ -317,7 +317,7 @@ function showNotification(message, type = 'info') {
     toast.addEventListener('hidden.bs.toast', () => toast.remove());
 }
 
-// Función para editar una sección específica
+// Funci n para editar una secci n espec fica
 function editarSeccion(seccion) {
     const modalId = `edit${seccion.charAt(0).toUpperCase() + seccion.slice(1)}Modal`;
     const modal = new bootstrap.Modal(document.getElementById(modalId) || createSectionModal(seccion));
@@ -337,13 +337,13 @@ function editarSeccion(seccion) {
     modal.show();
 }
 
-// Función para agregar área de especialización
+// Funci n para agregar  rea de especializaci n
 function agregarArea() {
     const modal = new bootstrap.Modal(document.getElementById('areaModal') || createAreaModal());
     modal.show();
 }
 
-// Crear modal para editar sección
+// Crear modal para editar secci n
 function createSectionModal(seccion) {
     const modal = document.createElement('div');
     modal.className = 'modal fade';
@@ -353,7 +353,7 @@ function createSectionModal(seccion) {
     if (seccion === 'profesional') {
         fields = `
             <div class="mb-3">
-                <label class="form-label">Número de Registro</label>
+                <label class="form-label">N mero de Registro</label>
                 <input type="text" class="form-control" name="numero_registro" required>
             </div>
             <div class="mb-3">
@@ -361,7 +361,7 @@ function createSectionModal(seccion) {
                 <input type="text" class="form-control" name="especialidad" required>
             </div>
             <div class="mb-3">
-                <label class="form-label">Años de Experiencia</label>
+                <label class="form-label">A os de Experiencia</label>
                 <input type="number" class="form-control" name="anos_experiencia" required>
             </div>
             <div class="mb-3">
@@ -376,15 +376,15 @@ function createSectionModal(seccion) {
                 <input type="email" class="form-control" name="email" required>
             </div>
             <div class="mb-3">
-                <label class="form-label">Teléfono</label>
+                <label class="form-label">Tel fono</label>
                 <input type="tel" class="form-control" name="telefono" required>
             </div>
             <div class="mb-3">
-                <label class="form-label">Dirección de Consulta</label>
+                <label class="form-label">Direcci n de Consulta</label>
                 <input type="text" class="form-control" name="direccion_consulta" required>
             </div>
             <div class="mb-3">
-                <label class="form-label">Horario de Atención</label>
+                <label class="form-label">Horario de Atenci n</label>
                 <input type="text" class="form-control" name="horario_atencion" required>
             </div>
         `;
@@ -413,7 +413,7 @@ function createSectionModal(seccion) {
     return modal;
 }
 
-// Crear modal para área de especialización
+// Crear modal para  rea de especializaci n
 function createAreaModal() {
     const modal = document.createElement('div');
     modal.className = 'modal fade';
@@ -422,17 +422,17 @@ function createAreaModal() {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Agregar Área de Especialización</h5>
+                    <h5 class="modal-title">Agregar  rea de Especializaci n</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="areaForm">
                         <div class="mb-3">
-                            <label class="form-label">Nombre del Área</label>
+                            <label class="form-label">Nombre del  rea</label>
                             <input type="text" class="form-control" name="nombre" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Descripción</label>
+                            <label class="form-label">Descripci n</label>
                             <textarea class="form-control" name="descripcion" rows="3"></textarea>
                         </div>
                     </form>
@@ -448,7 +448,7 @@ function createAreaModal() {
     return modal;
 }
 
-// Función para guardar una sección
+// Funci n para guardar una secci n
 async function guardarSeccion(seccion) {
     const form = document.getElementById(`edit${seccion}Form`);
     if (!form) return;
@@ -476,7 +476,7 @@ async function guardarSeccion(seccion) {
     }
 }
 
-// Función para guardar área de especialización
+// Funci n para guardar  rea de especializaci n
 async function guardarArea() {
     const form = document.getElementById('areaForm');
     if (!form) return;
@@ -492,12 +492,12 @@ async function guardarArea() {
         const data = await response.json();
 
         if (response.ok) {
-            showNotification(data.message || 'Área agregada correctamente', 'success');
+            showNotification(data.message || ' rea agregada correctamente', 'success');
             const modal = bootstrap.Modal.getInstance(document.getElementById('areaModal'));
             if (modal) modal.hide();
             setTimeout(() => location.reload(), 1000);
         } else {
-            throw new Error(data.error || 'Error al agregar el área');
+            throw new Error(data.error || 'Error al agregar el  rea');
         }
     } catch (error) {
         showNotification(error.message, 'error');

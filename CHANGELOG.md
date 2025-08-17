@@ -5,6 +5,76 @@ Todos los cambios notables de este proyecto serán documentados en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
 y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2024-12-28
+
+### 🤖 Copilot Health - IA Clínica Asistiva
+- **Nuevo**: Módulo completo de IA clínica asistiva integrado
+- **Nuevo**: Análisis automático del motivo de consulta con detección de especialidad
+- **Nuevo**: Evaluación inteligente de antecedentes con detección de banderas rojas
+- **Nuevo**: Sugerencias de planes de tratamiento basados en evidencia científica
+- **Nuevo**: Interfaz web dedicada para profesionales en `/copilot-health`
+- **Nuevo**: 4 endpoints de API para integración con sistemas externos
+- **Nuevo**: Soporte para 8 especialidades médicas principales
+- **Nuevo**: Referencias bibliográficas con DOI y niveles de evidencia
+- **Nuevo**: Aclaración legal automática en todas las sugerencias
+- **Nuevo**: Sistema de pruebas automatizadas para validación
+
+### 🎯 Funcionalidades de Copilot Health
+- **Análisis del Motivo**: Detección automática de especialidad, categoría y urgencia
+- **Evaluación Inteligente**: Detección de banderas rojas y omisiones comunes
+- **Planes de Tratamiento**: Sugerencias con evidencia científica y contraindicaciones
+- **Análisis Completo**: Resumen integral con todas las funcionalidades
+
+### 🔧 Integración Técnica
+- **Módulo Principal**: `copilot_health.py` con clase CopilotHealth
+- **API Endpoints**: 4 endpoints REST para integración
+- **Interfaz Web**: Plantilla `copilot_health.html` con diseño moderno
+- **Navegación**: Enlace en panel de profesionales
+- **Pruebas**: Script `test_copilot_health.py` para validación
+- **Normalización Regional**: Función `_normalizar_tipo_atencion()` con diccionario de sinónimos
+- **Pruebas Regionales**: Script `test_normalizacion_regional.py` para validar variaciones
+- **Documentación Regional**: `NORMALIZACION_REGIONAL_IA.md` con casos de uso y ejemplos
+
+### 📊 Especialidades Soportadas
+- Traumatología, Cardiología, Neurología, Gastroenterología
+- Neumología, Dermatología, Endocrinología, Psiquiatría
+
+### 🌍 Normalización Regional - Nuevas Capacidades
+- **Nuevo**: Reconocimiento de sinónimos y variaciones regionales de carreras de salud
+- **Nuevo**: Sistema de normalización inteligente para diferentes contextos geográficos
+- **Nuevo**: Soporte para terminología local y familiar en cada región
+- **Nuevo**: Adaptación automática a diferentes culturas y contextos médicos
+
+#### Variaciones Regionales Soportadas
+- **Fisioterapia/Kinesiología**: fisio, fisioterapeuta, kinesio, kinesiólogo, kinesiología
+- **Fonoaudiología/Logopedia**: fono, logopeda, logopedia, terapia del habla, patología del habla
+- **Terapia Ocupacional/Ergoterapia**: t.o., to, ergoterapia, ergoterapeuta
+- **Psicología/Psicoterapia**: psico, psicólogo, psicóloga, psicoterapia, psicoterapeuta
+- **Nutrición/Dietética**: nutricionista, dietista, nutriólogo, dietólogo
+- **Medicina General/Familiar**: médico general, medicina familiar, médico de familia, medicina primaria
+- **Urgencia/Emergencia**: emergencia, urgencias, emergencias, médico de urgencia
+
+#### Beneficios de la Normalización Regional
+- **Inclusión Global**: Soporte para diferentes contextos culturales y geográficos
+- **Experiencia Familiar**: Reconocimiento de terminología local y cotidiana
+- **Precisión Mejorada**: Detección más robusta de especialidades médicas
+- **Adaptabilidad**: Sistema que se adapta a diferentes regiones automáticamente
+
+### 🔄 Integración en Formulario de Atenciones
+- **Análisis en Tiempo Real**: Al escribir el motivo de consulta, la IA analiza automáticamente
+- **Preguntas Sugeridas Integradas**: Aparecen automáticamente en el campo de evaluación
+- **Sugerencias de Tratamiento**: Botón para generar opciones de tratamiento con evidencia
+- **Análisis Completo**: Sección especial para análisis integral de toda la información
+- **Indicadores Visuales**: Badges y cards que muestran el estado de la IA
+- **Funciones JavaScript**: Integración completa con el flujo de trabajo existente
+
+### 🎨 Mejoras de UX
+- **Indicadores de IA**: Badges azules, verdes y amarillos para identificar funcionalidades de IA
+- **Spinners de Carga**: Indicadores visuales durante el análisis
+- **Cards Informativos**: Secciones organizadas para mostrar resultados de IA
+- **Botones de Acción**: Funciones para insertar sugerencias en los campos correspondientes
+- **Notificaciones**: Feedback inmediato sobre el estado de las operaciones de IA
+
 ## [2.2.0] - 2024-12-28
 
 ### 🚀 Bot de Telegram - Mejoras Avanzadas

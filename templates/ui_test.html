@@ -1,0 +1,85 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de UI Mejorada</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/clean-ai-system.css" rel="stylesheet">
+</head>
+<body style="background: #f8f9fa;">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-4">
+                <div id="sidebarContainer">
+                    <div class="panel-content">
+                        <!-- El sistema de IA limpio se insertará aquí -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Area -->
+            <div class="col-md-8">
+                <div class="copilot-chat-elegant">
+                    <!-- Mensajes del chat aparecerán aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/clean-ai-system.js"></script>
+    <script>
+        // Forzar inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inicializando sistema de IA limpio...');
+            
+            // Verificar que el sistema se inicialice
+            if (window.cleanAI) {
+                console.log('✅ Sistema de IA limpio inicializado');
+                
+                // Simular una consulta de prueba
+                setTimeout(() => {
+                    console.log('🧪 Simulando consulta de prueba...');
+                    
+                    // Simular datos de respuesta
+                    const testData = {
+                        evidence: [
+                            {
+                                titulo: "Test Paper sobre fisioterapia",
+                                autores: ["Dr. Test", "Dr. Example"],
+                                año_publicacion: "2024",
+                                doi: "10.1234/test.2024",
+                                resumen: "Este es un paper de prueba para verificar la UI.",
+                                cita_apa: "Dr. Test, & Dr. Example (2024). Test Paper sobre fisioterapia. Journal of Test, 15(3), 123-130."
+                            }
+                        ],
+                        clinical_analysis: {
+                            resumen_inteligente: "Análisis clínico de prueba basado en evidencia científica.",
+                            recomendaciones: ["Recomendación 1", "Recomendación 2"]
+                        },
+                        patient_education: {
+                            title: "📚 Información sobre fisioterapia",
+                            content: "Información educativa sobre fisioterapia para dolor de hombro.",
+                            url: "https://medlineplus.gov/spanish/search.html?query=fisioterapia",
+                            show_panel: true,
+                            source: "MedlinePlus.gov"
+                        },
+                        education_available: true
+                    };
+                    
+                    // Mostrar resultados
+                    window.cleanAI.displayResults(testData);
+                    
+                }, 1000);
+                
+            } else {
+                console.error('❌ Sistema de IA limpio no se inicializó');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro - MedConnect</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <style>
         .register-container {
-            max-width: 700px;
-            margin: 50px auto;
-            padding: 30px;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 25px;
             background: white;
             border-radius: 15px;
             box-shadow: 0 8px 32px rgba(93, 62, 143, 0.15);
@@ -17,27 +18,28 @@
 
         .register-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
 
         .register-header h1 {
             color: rgb(96,75,217);
-            font-size: 2.2em;
-            margin-bottom: 10px;
+            font-size: 2em;
+            margin-bottom: 8px;
         }
 
         .register-header p {
             color: #666;
-            font-size: 1.1em;
+            font-size: 1em;
+            margin-bottom: 0;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .form-row {
             display: flex;
-            gap: 15px;
+            gap: 12px;
         }
 
         .form-row .form-group {
@@ -46,18 +48,18 @@
 
         label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 600;
             color: #333;
-            font-size: 1.1em;
+            font-size: 1em;
         }
 
         input, select, textarea {
             width: 100%;
-            padding: 15px;
+            padding: 12px;
             border: 2px solid #ddd;
             border-radius: 8px;
-            font-size: 1.1em;
+            font-size: 1em;
             transition: border-color 0.3s;
             box-sizing: border-box;
         }
@@ -70,18 +72,18 @@
 
         textarea {
             resize: vertical;
-            min-height: 80px;
+            min-height: 70px;
         }
 
         .user-type-selector {
             display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 12px;
+            margin-bottom: 15px;
         }
 
         .user-type-option {
             flex: 1;
-            padding: 20px;
+            padding: 15px;
             border: 2px solid #ddd;
             border-radius: 12px;
             text-align: center;
@@ -102,13 +104,13 @@
         }
 
         .user-type-option h3 {
-            margin: 0 0 8px 0;
-            font-size: 1.3em;
+            margin: 0 0 5px 0;
+            font-size: 1.2em;
         }
 
         .user-type-option p {
             margin: 0;
-            font-size: 0.95em;
+            font-size: 0.9em;
             opacity: 0.8;
         }
 
@@ -117,8 +119,8 @@
             background: #f8f6ff;
             border: 2px solid #e8e0ff;
             border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
+            padding: 15px;
+            margin: 15px 0;
         }
 
         .professional-fields.show {
@@ -140,24 +142,24 @@
         .section-title {
             color: rgb(96,75,217);
             font-weight: 600;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
             border-bottom: 2px solid #e8e0ff;
-            font-size: 1.2em;
+            font-size: 1.1em;
         }
 
         .register-btn {
             width: 100%;
-            padding: 18px;
+            padding: 15px;
             background: linear-gradient(135deg, rgb(96,75,217) 0%, rgb(96,75,217) 100%);
             color: white;
             border: none;
             border-radius: 12px;
-            font-size: 1.3em;
+            font-size: 1.2em;
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 20px;
+            margin-top: 15px;
         }
 
         .register-btn:hover {
@@ -173,8 +175,8 @@
 
         .login-link {
             text-align: center;
-            margin-top: 25px;
-            padding-top: 20px;
+            margin-top: 20px;
+            padding-top: 15px;
             border-top: 1px solid #eee;
         }
 
@@ -182,7 +184,7 @@
             color: rgb(96,75,217);
             text-decoration: none;
             font-weight: 600;
-            font-size: 1.1em;
+            font-size: 1em;
         }
 
         .login-link a:hover {
@@ -190,10 +192,10 @@
         }
 
         .alert {
-            padding: 15px;
+            padding: 12px;
             border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 1.1em;
+            margin-bottom: 15px;
+            font-size: 1em;
         }
 
         .alert-success {
@@ -209,8 +211,8 @@
         }
 
         .password-strength {
-            margin-top: 5px;
-            font-size: 0.9em;
+            margin-top: 4px;
+            font-size: 0.85em;
             color: #666;
         }
 
@@ -223,9 +225,38 @@
             color: #dc3545;
         }
 
+        /* Optimización para campos específicos */
+        .form-section {
+            margin-bottom: 20px;
+        }
+
+        .form-section-title {
+            color: rgb(96,75,217);
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 12px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e8e0ff;
+        }
+
+        /* Mejor distribución de campos profesionales */
+        .professional-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .professional-grid .form-group {
+            margin-bottom: 12px;
+        }
+
+        .professional-grid .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
         @media (max-width: 768px) {
             .register-container {
-                margin: 20px;
+                margin: 15px;
                 padding: 20px;
             }
 
@@ -237,14 +268,18 @@
             .user-type-selector {
                 flex-direction: column;
             }
+
+            .professional-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="register-container">
         <div class="register-header">
-            <a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit; display: block; text-align: center; margin-bottom: 20px;">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo" style="width: 60px; height: 60px; margin-bottom: 10px; cursor: pointer;">
+            <a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit; display: block; text-align: center; margin-bottom: 15px;">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo" style="width: 50px; height: 50px; margin-bottom: 8px; cursor: pointer;">
             </a>
             <h1>🏥 Crear Cuenta</h1>
             <p>Únete a MedConnect y gestiona tu salud de manera fácil y segura</p>
@@ -274,76 +309,79 @@
             </div>
 
             <!-- Información Personal -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="nombre" class="required-field">Nombre</label>
-                    <input type="text" id="nombre" name="nombre" required 
-                           placeholder="Ej: María">
+            <div class="form-section">
+                <div class="form-section-title">Información Personal</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nombre" class="required-field">Nombre</label>
+                        <input type="text" id="nombre" name="nombre" required 
+                               placeholder="Ej: María">
+                    </div>
+                    <div class="form-group">
+                        <label for="apellido" class="required-field">Apellido</label>
+                        <input type="text" id="apellido" name="apellido" required 
+                               placeholder="Ej: González">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="apellido" class="required-field">Apellido</label>
-                    <input type="text" id="apellido" name="apellido" required 
-                           placeholder="Ej: González">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="email" class="required-field">Email</label>
+                        <input type="email" id="email" name="email" required 
+                               placeholder="ejemplo@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="telefono">Teléfono</label>
+                        <input type="tel" id="telefono" name="telefono" 
+                               placeholder="+56912345678">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fecha_nacimiento">Fecha de Nacimiento</label>
+                        <input type="date" id="fecha_nacimiento" name="fecha_nacimiento">
+                    </div>
+                    <div class="form-group">
+                        <label for="genero">Género</label>
+                        <select id="genero" name="genero">
+                            <option value="">Seleccionar...</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Femenino">Femenino</option>
+                            <option value="Otro">Otro</option>
+                            <option value="Prefiero no decir">Prefiero no decir</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="direccion">Dirección</label>
+                        <input type="text" id="direccion" name="direccion" 
+                               placeholder="Calle y número">
+                    </div>
+                    <div class="form-group">
+                        <label for="ciudad">Ciudad</label>
+                        <input type="text" id="ciudad" name="ciudad" 
+                               placeholder="Santiago">
+                    </div>
                 </div>
             </div>
 
-            <!-- Email y Teléfono -->
-            <div class="form-row">
+            <!-- Seguridad -->
+            <div class="form-section">
+                <div class="form-section-title">Seguridad</div>
                 <div class="form-group">
-                    <label for="email" class="required-field">Email</label>
-                    <input type="email" id="email" name="email" required 
-                           placeholder="ejemplo@email.com">
+                    <label for="password" class="required-field">Contraseña</label>
+                    <input type="password" id="password" name="password" required 
+                           placeholder="Mínimo 6 caracteres">
+                    <div id="passwordStrength" class="password-strength"></div>
                 </div>
-                <div class="form-group">
-                    <label for="telefono">Teléfono</label>
-                    <input type="tel" id="telefono" name="telefono" 
-                           placeholder="+56912345678">
-                </div>
-            </div>
 
-            <!-- Contraseña -->
-            <div class="form-group">
-                <label for="password" class="required-field">Contraseña</label>
-                <input type="password" id="password" name="password" required 
-                       placeholder="Mínimo 6 caracteres">
-                <div id="passwordStrength" class="password-strength"></div>
-            </div>
-
-            <div class="form-group">
-                <label for="confirm_password" class="required-field">Confirmar Contraseña</label>
-                <input type="password" id="confirm_password" name="confirm_password" required 
-                       placeholder="Repite tu contraseña">
-            </div>
-
-            <!-- Información Adicional -->
-            <div class="form-row">
                 <div class="form-group">
-                    <label for="fecha_nacimiento">Fecha de Nacimiento</label>
-                    <input type="date" id="fecha_nacimiento" name="fecha_nacimiento">
-                </div>
-                <div class="form-group">
-                    <label for="genero">Género</label>
-                    <select id="genero" name="genero">
-                        <option value="">Seleccionar...</option>
-                        <option value="Masculino">Masculino</option>
-                        <option value="Femenino">Femenino</option>
-                        <option value="Otro">Otro</option>
-                        <option value="Prefiero no decir">Prefiero no decir</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Dirección -->
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="direccion">Dirección</label>
-                    <input type="text" id="direccion" name="direccion" 
-                           placeholder="Calle y número">
-                </div>
-                <div class="form-group">
-                    <label for="ciudad">Ciudad</label>
-                    <input type="text" id="ciudad" name="ciudad" 
-                           placeholder="Santiago">
+                    <label for="confirm_password" class="required-field">Confirmar Contraseña</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required 
+                           placeholder="Repite tu contraseña">
                 </div>
             </div>
 
@@ -354,8 +392,8 @@
                     Información Profesional
                 </h3>
                 
-                <!-- Profesión y Especialidad -->
-                <div class="form-row">
+                <div class="professional-grid">
+                    <!-- Profesión y Especialidad -->
                     <div class="form-group">
                         <label for="profesion" class="required-field">Profesión</label>
                         <select id="profesion" name="profesion">
@@ -379,12 +417,10 @@
                         <input type="text" id="especialidad" name="especialidad" 
                                placeholder="Ej: Cardiología, Pediatría, etc.">
                     </div>
-                </div>
 
-                <!-- Número de Registro y Años de Experiencia -->
-                <div class="form-row">
+                    <!-- Número de Registro y Años de Experiencia -->
                     <div class="form-group">
-                        <label for="numero_registro" class="required-field">Número de Registro Profesional</label>
+                        <label for="numero_registro" class="required-field">Número de Registro</label>
                         <input type="text" id="numero_registro" name="numero_registro" 
                                placeholder="Ej: 12345">
                     </div>
@@ -393,10 +429,8 @@
                         <input type="number" id="anos_experiencia" name="anos_experiencia" 
                                min="0" max="50" placeholder="0">
                     </div>
-                </div>
 
-                <!-- Institución y Título -->
-                <div class="form-row">
+                    <!-- Institución y Título -->
                     <div class="form-group">
                         <label for="institucion" class="required-field">Institución de Formación</label>
                         <input type="text" id="institucion" name="institucion" 
@@ -407,10 +441,8 @@
                         <input type="text" id="titulo" name="titulo" 
                                placeholder="Ej: Médico Cirujano">
                     </div>
-                </div>
 
-                <!-- Año de Egreso y Idiomas -->
-                <div class="form-row">
+                    <!-- Año de Egreso y Idiomas -->
                     <div class="form-group">
                         <label for="ano_egreso">Año de Egreso</label>
                         <input type="number" id="ano_egreso" name="ano_egreso" 
@@ -421,10 +453,8 @@
                         <input type="text" id="idiomas" name="idiomas" 
                                placeholder="Ej: Español, Inglés, Francés">
                     </div>
-                </div>
 
-                <!-- Dirección de Consulta y Horario -->
-                <div class="form-row">
+                    <!-- Dirección de Consulta y Horario -->
                     <div class="form-group">
                         <label for="direccion_consulta">Dirección de Consulta</label>
                         <input type="text" id="direccion_consulta" name="direccion_consulta" 
@@ -435,20 +465,20 @@
                         <input type="text" id="horario_atencion" name="horario_atencion" 
                                placeholder="Ej: Lunes a Viernes 9:00-18:00">
                     </div>
-                </div>
 
-                <!-- Áreas de Especialización -->
-                <div class="form-group">
-                    <label for="areas_especializacion">Áreas de Especialización</label>
-                    <textarea id="areas_especializacion" name="areas_especializacion" 
-                              placeholder="Describe tus áreas de especialización, técnicas que manejas, etc."></textarea>
-                </div>
+                    <!-- Áreas de Especialización -->
+                    <div class="form-group full-width">
+                        <label for="areas_especializacion">Áreas de Especialización</label>
+                        <textarea id="areas_especializacion" name="areas_especializacion" 
+                                  placeholder="Describe tus áreas de especialización, técnicas que manejas, etc."></textarea>
+                    </div>
 
-                <!-- Certificaciones -->
-                <div class="form-group">
-                    <label for="certificaciones">Certificaciones Adicionales</label>
-                    <textarea id="certificaciones" name="certificaciones" 
-                              placeholder="Lista de certificaciones, cursos, diplomados, etc."></textarea>
+                    <!-- Certificaciones -->
+                    <div class="form-group full-width">
+                        <label for="certificaciones">Certificaciones Adicionales</label>
+                        <textarea id="certificaciones" name="certificaciones" 
+                                  placeholder="Lista de certificaciones, cursos, diplomados, etc."></textarea>
+                    </div>
                 </div>
             </div>
 

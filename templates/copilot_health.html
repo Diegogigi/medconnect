@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copilot Health - IA Clínica Asistiva | MedConnect</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/professional-styles.css') }}" rel="stylesheet">
+    
+    <style>
+
+        
+        .ai-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .ai-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .ai-icon {
+            font-size: 3rem;
+            color: #667eea;
+        }
+        
+        .analysis-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .suggestion-item {
+            background: white;
+            border-left: 4px solid #667eea;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+        }
+        
+        .red-flag {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+        
+        .treatment-plan {
+            background: #e8f5e8;
+            border: 1px solid #28a745;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .evidence-badge {
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        
+        .loading-spinner {
+            display: none;
+        }
+        
+        .copilot-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .copilot-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .legal-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+
+    <div class="container">
+        <!-- Funcionalidades Principales -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card ai-card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-search ai-icon mb-3"></i>
+                        <h5 class="card-title">Análisis del Motivo</h5>
+                        <p class="card-text">Detecta automáticamente la especialidad y categoría del motivo de consulta</p>
+                        <button class="btn copilot-btn" onclick="showMotivoAnalysis()">
+                            <i class="fas fa-play me-2"></i>
+                            Analizar Motivo
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card ai-card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clipboard-check ai-icon mb-3"></i>
+                        <h5 class="card-title">Evaluación Inteligente</h5>
+                        <p class="card-text">Detecta banderas rojas y sugiere campos adicionales relevantes</p>
+                        <button class="btn copilot-btn" onclick="showEvaluation()">
+                            <i class="fas fa-play me-2"></i>
+                            Evaluar Antecedentes
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card ai-card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-stethoscope ai-icon mb-3"></i>
+                        <h5 class="card-title">Planes de Tratamiento</h5>
+                        <p class="card-text">Sugiere planes basados en evidencia científica con referencias</p>
+                        <button class="btn copilot-btn" onclick="showTreatmentSuggestions()">
+                            <i class="fas fa-play me-2"></i>
+                            Sugerir Tratamiento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Análisis del Motivo de Consulta -->
+        <div id="motivoAnalysis" class="analysis-section" style="display: none;">
+            <h3><i class="fas fa-search me-2"></i>Análisis del Motivo de Consulta</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="motivoConsulta" class="form-label">Motivo de Consulta</label>
+                        <textarea class="form-control" id="motivoConsulta" rows="4" 
+                                placeholder="Describe el motivo de consulta del paciente..."></textarea>
+                    </div>
+                    <button class="btn copilot-btn" onclick="analyzeMotivo()">
+                        <i class="fas fa-robot me-2"></i>
+                        Analizar con IA
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <div id="motivoResults" style="display: none;">
+                        <h5>Resultados del Análisis</h5>
+                        <div id="motivoAnalysisContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evaluación de Antecedentes -->
+        <div id="evaluationSection" class="analysis-section" style="display: none;">
+            <h3><i class="fas fa-clipboard-check me-2"></i>Evaluación de Antecedentes</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="antecedentes" class="form-label">Antecedentes del Paciente</label>
+                        <textarea class="form-control" id="antecedentes" rows="4" 
+                                placeholder="Ingresa los antecedentes del paciente..."></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="especialidad" class="form-label">Especialidad</label>
+                                <select class="form-select" id="especialidad">
+                                    <option value="medicina_general">Medicina General</option>
+                                    <option value="traumatologia">Traumatología</option>
+                                    <option value="cardiologia">Cardiología</option>
+                                    <option value="neurologia">Neurología</option>
+                                    <option value="gastroenterologia">Gastroenterología</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edad" class="form-label">Edad del Paciente</label>
+                                <input type="number" class="form-control" id="edad" value="30">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn copilot-btn" onclick="evaluateAntecedentes()">
+                        <i class="fas fa-robot me-2"></i>
+                        Evaluar con IA
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <div id="evaluationResults" style="display: none;">
+                        <h5>Resultados de la Evaluación</h5>
+                        <div id="evaluationContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sugerencias de Tratamiento -->
+        <div id="treatmentSection" class="analysis-section" style="display: none;">
+            <h3><i class="fas fa-stethoscope me-2"></i>Sugerencias de Tratamiento</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="diagnostico" class="form-label">Diagnóstico</label>
+                        <textarea class="form-control" id="diagnostico" rows="4" 
+                                placeholder="Ingresa el diagnóstico del paciente..."></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="especialidadTratamiento" class="form-label">Especialidad</label>
+                                <select class="form-select" id="especialidadTratamiento">
+                                    <option value="medicina_general">Medicina General</option>
+                                    <option value="traumatologia">Traumatología</option>
+                                    <option value="cardiologia">Cardiología</option>
+                                    <option value="neurologia">Neurología</option>
+                                    <option value="gastroenterologia">Gastroenterología</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edadTratamiento" class="form-label">Edad del Paciente</label>
+                                <input type="number" class="form-control" id="edadTratamiento" value="30">
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn copilot-btn" onclick="suggestTreatment()">
+                        <i class="fas fa-robot me-2"></i>
+                        Sugerir Tratamiento
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <div id="treatmentResults" style="display: none;">
+                        <h5>Planes de Tratamiento Sugeridos</h5>
+                        <div id="treatmentContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Análisis Completo -->
+        <div id="completeAnalysis" class="analysis-section" style="display: none;">
+            <h3><i class="fas fa-brain me-2"></i>Análisis Completo de IA</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="motivoCompleto" class="form-label">Motivo de Consulta</label>
+                        <textarea class="form-control" id="motivoCompleto" rows="3" 
+                                placeholder="Motivo de consulta..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="antecedentesCompleto" class="form-label">Antecedentes</label>
+                        <textarea class="form-control" id="antecedentesCompleto" rows="3" 
+                                placeholder="Antecedentes del paciente..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="diagnosticoCompleto" class="form-label">Diagnóstico</label>
+                        <textarea class="form-control" id="diagnosticoCompleto" rows="3" 
+                                placeholder="Diagnóstico..."></textarea>
+                    </div>
+                    <button class="btn copilot-btn" onclick="completeAnalysis()">
+                        <i class="fas fa-robot me-2"></i>
+                        Análisis Completo
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <div id="completeResults" style="display: none;">
+                        <h5>Resumen Completo de IA</h5>
+                        <div id="completeContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aclaración Legal -->
+        <div class="legal-notice">
+            <h6><i class="fas fa-exclamation-triangle me-2"></i>Aclaración Legal</h6>
+            <p class="mb-0">
+                Estas sugerencias son generadas por inteligencia artificial con base en evidencia científica actualizada. 
+                La decisión final recae en el juicio clínico del profesional tratante. 
+                Copilot Health es una herramienta de asistencia y no reemplaza la evaluación médica profesional.
+            </p>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Funciones para mostrar/ocultar secciones
+        function showMotivoAnalysis() {
+            hideAllSections();
+            document.getElementById('motivoAnalysis').style.display = 'block';
+        }
+        
+        function showEvaluation() {
+            hideAllSections();
+            document.getElementById('evaluationSection').style.display = 'block';
+        }
+        
+        function showTreatmentSuggestions() {
+            hideAllSections();
+            document.getElementById('treatmentSection').style.display = 'block';
+        }
+        
+        function showCompleteAnalysis() {
+            hideAllSections();
+            document.getElementById('completeAnalysis').style.display = 'block';
+        }
+        
+        function hideAllSections() {
+            const sections = ['motivoAnalysis', 'evaluationSection', 'treatmentSection', 'completeAnalysis'];
+            sections.forEach(section => {
+                document.getElementById(section).style.display = 'none';
+            });
+        }
+        
+        // Función para analizar motivo de consulta
+        async function analyzeMotivo() {
+            const motivo = document.getElementById('motivoConsulta').value;
+            if (!motivo.trim()) {
+                alert('Por favor ingresa un motivo de consulta');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/copilot/analyze-motivo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        motivo_consulta: motivo
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayMotivoResults(data.analisis);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al analizar el motivo de consulta');
+            }
+        }
+        
+        function displayMotivoResults(analisis) {
+            const content = document.getElementById('motivoAnalysisContent');
+            content.innerHTML = `
+                <div class="suggestion-item">
+                    <strong>Especialidad Detectada:</strong> ${analisis.especialidad_detectada.replace('_', ' ').toUpperCase()}
+                </div>
+                <div class="suggestion-item">
+                    <strong>Categoría:</strong> ${analisis.categoria.toUpperCase()}
+                </div>
+                <div class="suggestion-item">
+                    <strong>Urgencia:</strong> ${analisis.urgencia}
+                </div>
+                <div class="suggestion-item">
+                    <strong>Síntomas Principales:</strong> ${analisis.sintomas_principales.join(', ')}
+                </div>
+                <div class="suggestion-item">
+                    <strong>Preguntas Sugeridas:</strong>
+                    <ul class="mt-2">
+                        ${analisis.preguntas_sugeridas.map(pregunta => `<li>${pregunta}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            document.getElementById('motivoResults').style.display = 'block';
+        }
+        
+        // Función para evaluar antecedentes
+        async function evaluateAntecedentes() {
+            const antecedentes = document.getElementById('antecedentes').value;
+            const especialidad = document.getElementById('especialidad').value;
+            const edad = document.getElementById('edad').value;
+            
+            if (!antecedentes.trim()) {
+                alert('Por favor ingresa los antecedentes del paciente');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/copilot/evaluate-antecedentes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        antecedentes: antecedentes,
+                        especialidad: especialidad,
+                        edad: parseInt(edad)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayEvaluationResults(data.evaluacion);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al evaluar antecedentes');
+            }
+        }
+        
+        function displayEvaluationResults(evaluacion) {
+            const content = document.getElementById('evaluationContent');
+            let html = '';
+            
+            if (evaluacion.banderas_rojas.length > 0) {
+                html += '<div class="suggestion-item red-flag"><strong>🚨 Banderas Rojas Detectadas:</strong><ul>';
+                evaluacion.banderas_rojas.forEach(bandera => {
+                    html += `<li>${bandera}</li>`;
+                });
+                html += '</ul></div>';
+            }
+            
+            if (evaluacion.campos_adicionales.length > 0) {
+                html += '<div class="suggestion-item"><strong>📋 Campos Adicionales Sugeridos:</strong><ul>';
+                evaluacion.campos_adicionales.forEach(campo => {
+                    html += `<li>${campo}</li>`;
+                });
+                html += '</ul></div>';
+            }
+            
+            if (evaluacion.omisiones_detectadas.length > 0) {
+                html += '<div class="suggestion-item"><strong>⚠️ Omisiones Detectadas:</strong><ul>';
+                evaluacion.omisiones_detectadas.forEach(omision => {
+                    html += `<li>${omision}</li>`;
+                });
+                html += '</ul></div>';
+            }
+            
+            if (evaluacion.recomendaciones.length > 0) {
+                html += '<div class="suggestion-item"><strong>💡 Recomendaciones:</strong><ul>';
+                evaluacion.recomendaciones.forEach(recomendacion => {
+                    html += `<li>${recomendacion}</li>`;
+                });
+                html += '</ul></div>';
+            }
+            
+            content.innerHTML = html;
+            document.getElementById('evaluationResults').style.display = 'block';
+        }
+        
+        // Función para sugerir tratamiento
+        async function suggestTreatment() {
+            const diagnostico = document.getElementById('diagnostico').value;
+            const especialidad = document.getElementById('especialidadTratamiento').value;
+            const edad = document.getElementById('edadTratamiento').value;
+            
+            if (!diagnostico.trim()) {
+                alert('Por favor ingresa el diagnóstico del paciente');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/copilot/suggest-treatment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        diagnostico: diagnostico,
+                        especialidad: especialidad,
+                        edad: parseInt(edad)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayTreatmentResults(data.planes_tratamiento);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al sugerir tratamiento');
+            }
+        }
+        
+        function displayTreatmentResults(planes) {
+            const content = document.getElementById('treatmentContent');
+            let html = '';
+            
+            planes.forEach((plan, index) => {
+                html += `
+                    <div class="treatment-plan">
+                        <h6><strong>Opción ${index + 1}: ${plan.titulo}</strong></h6>
+                        <p><strong>Descripción:</strong> ${plan.descripcion}</p>
+                        <p><strong>Evidencia:</strong> ${plan.evidencia_cientifica}</p>
+                        <p><strong>DOI:</strong> ${plan.doi_referencia}</p>
+                        <p><strong>Nivel de Evidencia:</strong> <span class="evidence-badge">${plan.nivel_evidencia}</span></p>
+                        ${plan.contraindicaciones.length > 0 ? 
+                            `<p><strong>Contraindicaciones:</strong> ${plan.contraindicaciones.join(', ')}</p>` : ''}
+                    </div>
+                `;
+            });
+            
+            content.innerHTML = html;
+            document.getElementById('treatmentResults').style.display = 'block';
+        }
+        
+        // Función para análisis completo
+        async function completeAnalysis() {
+            const motivo = document.getElementById('motivoCompleto').value;
+            const antecedentes = document.getElementById('antecedentesCompleto').value;
+            const diagnostico = document.getElementById('diagnosticoCompleto').value;
+            
+            if (!motivo.trim()) {
+                alert('Por favor ingresa el motivo de consulta');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/copilot/complete-analysis', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        motivo_consulta: motivo,
+                        antecedentes: antecedentes,
+                        diagnostico: diagnostico
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayCompleteResults(data.resumen_completo);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al realizar análisis completo');
+            }
+        }
+        
+        function displayCompleteResults(resumen) {
+            const content = document.getElementById('completeContent');
+            content.innerHTML = `<div class="alert alert-info">${resumen.replace(/\n/g, '<br>')}</div>`;
+            document.getElementById('completeResults').style.display = 'block';
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,152 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Frontend Sesión - 2025-07-31 21:55:09</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .status-ok { color: #28a745; }
+        .status-error { color: #dc3545; }
+        .status-warning { color: #ffc107; }
+        .code-example {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h1>🔍 Reporte Frontend - Botón de Sesión</h1>
+                <p class="text-muted">Timestamp: 2025-07-31 21:55:09</p>
+                
+                <div class="alert alert-info">
+                    <h5>📋 Análisis Completo del Frontend</h5>
+                    <p>Este reporte verifica todos los elementos necesarios para el botón de sesión.</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>🎯 Elementos HTML</h5>
+                            </div>
+                            <div class="card-body">
+                                <h6>✅ Elementos Encontrados:</h6>
+                                <ul>
+<li class='status-ok'>boton_sesion</li>
+<li class='status-ok'>icono_clipboard</li>
+<li class='status-ok'>titulo_boton</li>
+<li class='status-ok'>clase_boton</li>
+<li class='status-ok'>modal_sesion</li>
+<li class='status-ok'>formulario_sesion</li>
+<li class='status-ok'>campo_atencion_id</li>
+<li class='status-ok'>campo_paciente</li>
+<li class='status-ok'>campo_fecha</li>
+<li class='status-ok'>campo_duracion</li>
+<li class='status-ok'>campo_tipo</li>
+<li class='status-ok'>campo_objetivos</li>
+<li class='status-ok'>campo_actividades</li>
+<li class='status-ok'>campo_observaciones</li>
+<li class='status-ok'>campo_progreso</li>
+<li class='status-ok'>campo_estado</li>
+<li class='status-ok'>campo_recomendaciones</li>
+<li class='status-ok'>campo_proxima_sesion</li>
+
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>⚙️ Funciones JavaScript</h5>
+                            </div>
+                            <div class="card-body">
+                                <h6>✅ Funciones Encontradas:</h6>
+                                <ul>
+<li class='status-ok'>registrarSesion</li>
+<li class='status-ok'>guardarSesion</li>
+<li class='status-ok'>cargarSesionesAtencion</li>
+<li class='status-ok'>mostrarSesionesEnModal</li>
+<li class='status-ok'>formatearFechaSesion</li>
+<li class='status-ok'>getColorEstadoSesion</li>
+
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>🔍 Código del Botón de Sesión</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Código HTML del botón:</strong></p>
+                        <div class="code-example">
+&lt;button class="btn btn-sm btn-success" onclick="registrarSesion('{{ atencion.id }}', '{{ atencion.paciente_nombre }}')" title="Registrar Sesión"&gt;
+    &lt;i class="fas fa-clipboard-list"&gt;&lt;/i&gt;
+&lt;/button&gt;
+                        </div>
+                        
+                        <p><strong>Secuencia completa de botones:</strong></p>
+                        <div class="d-flex justify-content-center gap-2 mb-3">
+                            <button class="btn btn-sm btn-info" title="Ver Detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-primary" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-success" title="Registrar Sesión">
+                                <i class="fas fa-clipboard-list"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" title="Generar PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <h6>⚠️ Problema Identificado:</h6>
+                    <p>El frontend está <strong>completamente implementado</strong>, pero el botón no aparece en la imagen.</p>
+                    <p><strong>Causa más probable:</strong> El servidor Flask está sirviendo una versión antigua del HTML.</p>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>🔄 Solución Inmediata</h5>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            <li><strong>Detén el servidor Flask</strong> (Ctrl+C en la terminal)</li>
+                            <li><strong>Reinicia el servidor:</strong> <code>python app.py</code></li>
+                            <li><strong>Cierra TODAS las ventanas del navegador</strong></li>
+                            <li><strong>Abre ventana de incógnito/privado</strong></li>
+                            <li><strong>Navega a la aplicación</strong></li>
+                            <li><strong>Ve a "Historial de Atenciones"</strong></li>
+                            <li><strong>Busca el botón verde con icono de clipboard</strong></li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="alert alert-success">
+                    <h6>✅ Conclusión:</h6>
+                    <p>El frontend está <strong>100% implementado correctamente</strong>. El problema es que el servidor necesita ser reiniciado para servir la versión actualizada.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

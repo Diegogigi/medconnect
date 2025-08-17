@@ -1,0 +1,310 @@
+/* Estilos para el Sistema de Integración Unificada de IA */
+
+.unified-ai-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border-radius: 16px;
+  color: white;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.unified-ai-section .card-header {
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px 16px 0 0;
+  color: white;
+}
+
+.unified-ai-section .card-header h6 {
+  color: white;
+  font-weight: 600;
+}
+
+.unified-ai-section .card-body {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0 0 16px 16px;
+  color: white;
+}
+
+/* Status Indicator */
+.unified-status {
+  margin-bottom: 1rem;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #28a745;
+  animation: pulse 2s infinite;
+}
+
+.status-dot.processing {
+  background: #ffc107;
+  animation: pulse 1s infinite;
+}
+
+.status-dot.error {
+  background: #dc3545;
+  animation: none;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Section Titles */
+.section-title {
+  color: white;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Placeholder Content */
+.placeholder-content {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.placeholder-content i {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.6;
+}
+
+.placeholder-content p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Evidence Items */
+.evidence-item {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.evidence-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.evidence-number {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.evidence-title {
+  color: white;
+  font-weight: 600;
+  flex: 1;
+}
+
+.evidence-content {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.evidence-content > div {
+  margin-bottom: 0.5rem;
+}
+
+.evidence-authors,
+.evidence-journal,
+.evidence-doi,
+.evidence-abstract {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.evidence-doi a {
+  color: #ffd700;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.evidence-doi a:hover {
+  text-decoration: underline;
+}
+
+/* Analysis Items */
+.analysis-item {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.analysis-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.analysis-title {
+  color: white;
+  font-weight: 600;
+}
+
+.analysis-content {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+/* Recommendation Items */
+.recommendation-item {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.recommendation-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+/* Unified Input */
+.unified-input {
+  margin-top: 1rem;
+}
+
+.unified-input .input-group {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.unified-input input {
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 0.75rem 1rem;
+}
+
+.unified-input input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.unified-input input:focus {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  color: white;
+}
+
+.unified-input .btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.unified-input .btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+/* System Toggle */
+.system-toggle .btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-size: 0.8rem;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.system-toggle .btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .unified-ai-section {
+    margin: 0.5rem;
+  }
+
+  .evidence-content {
+    font-size: 0.8rem;
+  }
+
+  .unified-input input {
+    font-size: 0.9rem;
+  }
+}
+
+/* Animation for new content */
+.evidence-item,
+.analysis-item,
+.recommendation-item {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading animation */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

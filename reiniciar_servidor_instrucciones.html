@@ -1,0 +1,94 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reiniciar Servidor - 2025-07-31 21:19:09</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .paso-critico {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .comando {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h1>🔄 Reiniciar Servidor Flask</h1>
+                <p class="text-muted">Timestamp: 2025-07-31 21:19:09</p>
+                
+                <div class="alert alert-warning">
+                    <h5>⚠️ PROBLEMA IDENTIFICADO</h5>
+                    <p>El servidor Flask está sirviendo una versión antigua del HTML que NO incluye el botón de sesión.</p>
+                </div>
+                
+                <div class="paso-critico">
+                    <h5>🎯 SOLUCIÓN INMEDIATA:</h5>
+                    <ol>
+                        <li><strong>En la terminal donde está corriendo Flask:</strong></li>
+                        <li><strong>Presiona Ctrl + C</strong> para detener el servidor</li>
+                        <li><strong>Espera 3 segundos</strong></li>
+                        <li><strong>Ejecuta:</strong> <code>python app.py</code></li>
+                        <li><strong>Cierra TODAS las ventanas del navegador</strong></li>
+                        <li><strong>Abre ventana de incógnito/privado</strong></li>
+                        <li><strong>Navega a la aplicación</strong></li>
+                        <li><strong>Ve a "Historial de Atenciones"</strong></li>
+                        <li><strong>Busca el botón verde con icono de clipboard</strong></li>
+                    </ol>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5>🔍 Verificación del Botón</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Secuencia correcta de botones (4 botones):</strong></p>
+                        <div class="d-flex justify-content-center gap-2 mb-3">
+                            <button class="btn btn-sm btn-info" title="Ver Detalle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-primary" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-success" title="Registrar Sesión">
+                                <i class="fas fa-clipboard-list"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" title="Generar PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </button>
+                        </div>
+                        <p class="text-muted"><strong>El botón verde con clipboard es el de "Sesión"</strong></p>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <h6>📋 Comandos específicos:</h6>
+                    <div class="comando"># 1. Detener servidor (Ctrl+C)</div>
+                    <div class="comando"># 2. Reiniciar servidor:</div>
+                    <div class="comando">python app.py</div>
+                    <div class="comando"># 3. Abrir navegador en modo incógnito</div>
+                </div>
+                
+                <div class="alert alert-success">
+                    <h6>✅ Verificación HTML:</h6>
+                    <p>El archivo HTML SÍ contiene el botón de sesión. El problema es que el servidor está sirviendo una versión antigua.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

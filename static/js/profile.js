@@ -1,6 +1,6 @@
 // ==========================================================================
 // MEDCONNECT - PROFILE EDIT FUNCTIONALITY
-// JavaScript para la edición de perfil de usuario
+// JavaScript para la edici n de perfil de usuario
 // ==========================================================================
 
 // Variables globales
@@ -9,18 +9,18 @@ let isEditingMedical = false;
 let originalPersonalData = {};
 let originalMedicalData = {};
 
-// Inicialización cuando el DOM está listo
+// Inicializaci n cuando el DOM est  listo
 document.addEventListener('DOMContentLoaded', function () {
     initializeProfileEdit();
     attachEventListeners();
 });
 
-// Función de inicialización
+// Funci n de inicializaci n
 function initializeProfileEdit() {
     // Capturar datos originales para poder cancelar cambios
     captureOriginalData();
 
-    // Configurar tooltips si están disponibles
+    // Configurar tooltips si est n disponibles
     if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -31,7 +31,7 @@ function initializeProfileEdit() {
 
 // Capturar datos originales
 function captureOriginalData() {
-    // Información personal
+    // Informaci n personal
     const infoValues = document.querySelectorAll('.info-value');
     if (infoValues.length >= 6) {
         const fullName = infoValues[0]?.textContent?.trim() || '';
@@ -48,7 +48,7 @@ function captureOriginalData() {
             ciudad: ''
         };
 
-        // Dirección (último elemento)
+        // Direcci n ( ltimo elemento)
         const direccionElement = document.querySelector('.info-item:last-child .info-value');
         if (direccionElement) {
             const direccionText = direccionElement.textContent?.trim() || '';
@@ -68,7 +68,7 @@ function attachEventListeners() {
     });
 }
 
-// Alternar edición de información personal
+// Alternar edici n de informaci n personal
 function togglePersonalEdit() {
     if (isEditingPersonal) {
         cancelPersonalEdit();
@@ -77,29 +77,29 @@ function togglePersonalEdit() {
     }
 }
 
-// Iniciar edición de información personal
+// Iniciar edici n de informaci n personal
 function startPersonalEdit() {
     isEditingPersonal = true;
 
     const personalSection = document.querySelector('.profile-section .profile-section-body');
     if (!personalSection) return;
 
-    // Crear formulario de edición
+    // Crear formulario de edici n
     const editForm = createPersonalEditForm();
 
     // Reemplazar contenido con formulario
     personalSection.innerHTML = editForm;
 
-    // Actualizar botón
+    // Actualizar bot n
     updateEditButton('personal', true);
 
     // Adjuntar eventos del formulario
     attachPersonalFormEvents();
 
-    showNotification('Modo de edición activado', 'info');
+    showNotification('Modo de edici n activado', 'info');
 }
 
-// Crear formulario de edición personal
+// Crear formulario de edici n personal
 function createPersonalEditForm() {
     return `
         <form id="personalEditForm" class="needs-validation" novalidate>
@@ -122,7 +122,7 @@ function createPersonalEditForm() {
                            value="${originalPersonalData.fecha_nacimiento}">
                 </div>
                 <div class="info-item">
-                    <label for="genero" class="info-label">Género</label>
+                    <label for="genero" class="info-label">G nero</label>
                     <select class="form-control" id="genero" name="genero">
                         <option value="">Seleccionar...</option>
                         <option value="Masculino" ${originalPersonalData.genero === 'Masculino' ? 'selected' : ''}>Masculino</option>
@@ -131,7 +131,7 @@ function createPersonalEditForm() {
                     </select>
                 </div>
                 <div class="info-item">
-                    <label for="telefono" class="info-label">Teléfono</label>
+                    <label for="telefono" class="info-label">Tel fono</label>
                     <input type="tel" class="form-control" id="telefono" name="telefono" 
                            value="${originalPersonalData.telefono}" 
                            placeholder="Ej: 56979712175">
@@ -140,11 +140,11 @@ function createPersonalEditForm() {
                     <label for="email" class="info-label">Email</label>
                     <input type="email" class="form-control" id="email" name="email" 
                            value="${originalPersonalData.email}" required>
-                    <div class="invalid-feedback">Email válido es requerido</div>
+                    <div class="invalid-feedback">Email v lido es requerido</div>
                 </div>
             </div>
             <div class="info-item mt-3">
-                <label for="direccion" class="info-label">Dirección</label>
+                <label for="direccion" class="info-label">Direcci n</label>
                 <input type="text" class="form-control mb-2" id="direccion" name="direccion" 
                        value="${originalPersonalData.direccion}" 
                        placeholder="Ej: Av. Libertad 1234">
@@ -173,7 +173,7 @@ function attachPersonalFormEvents() {
     }
 }
 
-// Manejar envío del formulario personal
+// Manejar env o del formulario personal
 async function handlePersonalFormSubmit(event) {
     event.preventDefault();
 
@@ -211,42 +211,42 @@ async function handlePersonalFormSubmit(event) {
         const result = await response.json();
 
         if (response.ok && result.success) {
-            showNotification('✅ Información personal actualizada exitosamente', 'success');
+            showNotification('  Informaci n personal actualizada exitosamente', 'success');
 
             // Actualizar datos originales
             originalPersonalData = { ...data };
 
-            // Salir del modo edición
+            // Salir del modo edici n
             cancelPersonalEdit();
 
-            // Recargar la página para mostrar los cambios
+            // Recargar la p gina para mostrar los cambios
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
         } else {
-            throw new Error(result.error || 'Error actualizando información');
+            throw new Error(result.error || 'Error actualizando informaci n');
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification(`❌ ${error.message}`, 'error');
+        showNotification(`  ${error.message}`, 'error');
 
-        // Restaurar botón
+        // Restaurar bot n
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     }
 }
 
-// Cancelar edición personal
+// Cancelar edici n personal
 function cancelPersonalEdit() {
     isEditingPersonal = false;
 
     // Restaurar contenido original
     restorePersonalContent();
 
-    // Actualizar botón
+    // Actualizar bot n
     updateEditButton('personal', false);
 
-    showNotification('Edición cancelada', 'info');
+    showNotification('Edici n cancelada', 'info');
 }
 
 // Restaurar contenido personal original
@@ -271,11 +271,11 @@ function restorePersonalContent() {
                 <p class="info-value">${originalPersonalData.fecha_nacimiento || 'No especificada'}</p>
             </div>
             <div class="info-item">
-                <div class="info-label">Género</div>
+                <div class="info-label">G nero</div>
                 <p class="info-value">${originalPersonalData.genero || 'No especificado'}</p>
             </div>
             <div class="info-item">
-                <div class="info-label">Teléfono</div>
+                <div class="info-label">Tel fono</div>
                 <p class="info-value">
                     <i class="fas fa-phone me-2 text-success"></i>
                     ${originalPersonalData.telefono || 'No especificado'}
@@ -290,7 +290,7 @@ function restorePersonalContent() {
             </div>
         </div>
         <div class="info-item mt-3">
-            <div class="info-label">Dirección completa</div>
+            <div class="info-label">Direcci n completa</div>
             <p class="info-value">
                 <i class="fas fa-map-marker-alt me-2 text-primary"></i>
                 ${originalPersonalData.direccion ? `${originalPersonalData.direccion}${originalPersonalData.ciudad ? ', ' + originalPersonalData.ciudad : ''}` : 'No especificada'}
@@ -299,7 +299,7 @@ function restorePersonalContent() {
     `;
 }
 
-// Actualizar botón de edición
+// Actualizar bot n de edici n
 function updateEditButton(type, isEditing) {
     let button;
 
@@ -343,15 +343,15 @@ async function handleNotificationChange(event) {
         const result = await response.json();
 
         if (response.ok && result.success) {
-            showNotification(`✅ ${settingName} ${checkbox.checked ? 'activado' : 'desactivado'}`, 'success');
+            showNotification(`  ${settingName} ${checkbox.checked ? 'activado' : 'desactivado'}`, 'success');
         } else {
             // Revertir cambio si hay error
             checkbox.checked = !checkbox.checked;
-            throw new Error(result.error || 'Error actualizando configuración');
+            throw new Error(result.error || 'Error actualizando configuraci n');
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification(`❌ ${error.message}`, 'error');
+        showNotification(`  ${error.message}`, 'error');
     }
 }
 
@@ -380,7 +380,7 @@ function showNotification(message, type = 'info') {
 
     document.body.appendChild(notification);
 
-    // Auto-remover después de 5 segundos
+    // Auto-remover despu s de 5 segundos
     setTimeout(() => {
         if (notification.parentNode) {
             notification.remove();
@@ -388,7 +388,7 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-// Convertir tipo de notificación a clase de Bootstrap
+// Convertir tipo de notificaci n a clase de Bootstrap
 function getBootstrapAlertClass(type) {
     const mapping = {
         'success': 'success',
@@ -408,13 +408,13 @@ function shareProfile() {
     if (navigator.share) {
         navigator.share({
             title: 'Mi Perfil MedConnect',
-            text: 'Revisa mi perfil médico en MedConnect',
+            text: 'Revisa mi perfil m dico en MedConnect',
             url: window.location.href
         });
     } else {
         // Fallback: copiar URL al portapapeles
         navigator.clipboard.writeText(window.location.href).then(() => {
-            showNotification('✅ Enlace del perfil copiado al portapapeles', 'success');
+            showNotification('  Enlace del perfil copiado al portapapeles', 'success');
         });
     }
 }
@@ -427,7 +427,7 @@ function editPersonalInfo() {
 // TELEGRAM LINKING FUNCTIONALITY
 // ==========================================================================
 
-// Generar código de vinculación de Telegram
+// Generar c digo de vinculaci n de Telegram
 async function generateTelegramCode() {
     try {
         const response = await fetch('/api/user/generate-telegram-code', {
@@ -440,35 +440,35 @@ async function generateTelegramCode() {
         const data = await response.json();
 
         if (data.success) {
-            // Mostrar código generado
+            // Mostrar c digo generado
             document.getElementById('linkingCode').textContent = data.code;
             document.getElementById('codeSection').style.display = 'block';
 
-            showNotification(`Código generado: ${data.code}. Expira en 15 minutos.`, 'success');
+            showNotification(`C digo generado: ${data.code}. Expira en 15 minutos.`, 'success');
 
             // Auto-copiar al portapapeles
             await copyToClipboard(data.code);
 
         } else {
-            showNotification('Error generando código: ' + data.error, 'error');
+            showNotification('Error generando c digo: ' + data.error, 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification('Error de conexión al generar código', 'error');
+        showNotification('Error de conexi n al generar c digo', 'error');
     }
 }
 
-// Copiar código al portapapeles
+// Copiar c digo al portapapeles
 async function copyCode() {
     const code = document.getElementById('linkingCode').textContent;
     await copyToClipboard(code);
 }
 
-// Función auxiliar para copiar al portapapeles
+// Funci n auxiliar para copiar al portapapeles
 async function copyToClipboard(text) {
     try {
         await navigator.clipboard.writeText(text);
-        showNotification('Código copiado al portapapeles', 'success');
+        showNotification('C digo copiado al portapapeles', 'success');
     } catch (err) {
         // Fallback para navegadores que no soportan clipboard API
         const textArea = document.createElement('textarea');
@@ -477,13 +477,13 @@ async function copyToClipboard(text) {
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
-        showNotification('Código copiado al portapapeles', 'success');
+        showNotification('C digo copiado al portapapeles', 'success');
     }
 }
 
 // Desvincular cuenta de Telegram
 async function unlinkTelegram() {
-    if (!confirm('¿Estás seguro de que quieres desvincular tu cuenta de Telegram?')) {
+    if (!confirm(' Est s seguro de que quieres desvincular tu cuenta de Telegram?')) {
         return;
     }
 
@@ -499,7 +499,7 @@ async function unlinkTelegram() {
 
         if (data.success) {
             showNotification('Cuenta de Telegram desvinculada exitosamente', 'success');
-            // Recargar la página para mostrar el estado actualizado
+            // Recargar la p gina para mostrar el estado actualizado
             setTimeout(() => {
                 location.reload();
             }, 1500);
@@ -508,6 +508,6 @@ async function unlinkTelegram() {
         }
     } catch (error) {
         console.error('Error:', error);
-        showNotification('Error de conexión al desvincular cuenta', 'error');
+        showNotification('Error de conexi n al desvincular cuenta', 'error');
     }
 } 

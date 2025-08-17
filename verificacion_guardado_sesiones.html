@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guardado de Sesiones - MedConnect</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            max-width: 1000px;
+            margin: 0 auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .status-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+        .timestamp {
+            text-align: center;
+            margin-top: 30px;
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+        .test-data {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💾 Guardado de Sesiones en Base de Datos</h1>
+        
+        <div class="section">
+            <h3>📊 Estructura de la Base de Datos</h3>
+            <div class="status-item">
+                <strong>Hoja:</strong> Sesiones
+            </div>
+            <div class="status-item">
+                <strong>Columnas:</strong> 14 columnas configuradas
+            </div>
+            <div class="status-item">
+                <strong>Tipos de datos:</strong> String, DateTime, Integer, Text
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>🔧 Funciones de Guardado</h3>
+            <div class="status-item">✅ guardar_sesion_sheets() - Guarda nueva sesión</div>
+            <div class="status-item">✅ get_sesiones_atencion() - Obtiene sesiones por atención</div>
+            <div class="status-item">✅ get_sesion_by_id() - Obtiene sesión específica</div>
+            <div class="status-item">✅ eliminar_sesion_sheets() - Elimina sesión</div>
+        </div>
+        
+        <div class="section">
+            <h3>🌐 Endpoints API</h3>
+            <div class="status-item">✅ POST /api/guardar-sesion - Crear sesión</div>
+            <div class="status-item">✅ GET /api/get-sesiones/&lt;atencion_id&gt; - Listar sesiones</div>
+            <div class="status-item">✅ GET /api/get-sesion/&lt;sesion_id&gt; - Obtener sesión</div>
+            <div class="status-item">✅ DELETE /api/eliminar-sesion/&lt;sesion_id&gt; - Eliminar sesión</div>
+        </div>
+        
+        <div class="section">
+            <h3>✅ Validaciones Implementadas</h3>
+            <div class="status-item">✅ Campos requeridos validados</div>
+            <div class="status-item">✅ Límite de 1-15 sesiones por atención</div>
+            <div class="status-item">✅ Formato de fecha válido</div>
+            <div class="status-item">✅ Duración numérica</div>
+            <div class="status-item">✅ Estado válido (Pendiente, En Progreso, Completada)</div>
+            <div class="status-item">✅ Progreso válido (0-100%)</div>
+        </div>
+        
+        <div class="section">
+            <h3>🧪 Datos de Prueba</h3>
+            <div class="test-data">
+                <strong>ID:</strong> 45165b1a-edfa-413e-a249-5b40403354d8<br>
+                <strong>Atención ID:</strong> test_atencion_001<br>
+                <strong>Fecha:</strong> 2025-07-31T23:25:10.977301<br>
+                <strong>Duración:</strong> 60 minutos<br>
+                <strong>Tipo:</strong> Evaluación<br>
+                <strong>Estado:</strong> Completada<br>
+                <strong>Progreso:</strong> 75%
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>📝 Instrucciones de Uso</h3>
+            <div class="status-item">
+                1. <strong>Crear sesión:</strong> Usar el botón "Registrar Sesión" en el historial
+            </div>
+            <div class="status-item">
+                2. <strong>Ver sesiones:</strong> Usar el botón "Ver Sesiones" en cada atención
+            </div>
+            <div class="status-item">
+                3. <strong>Eliminar sesión:</strong> Usar el botón de eliminar en la lista de sesiones
+            </div>
+            <div class="status-item">
+                4. <strong>Límite:</strong> Máximo 15 sesiones por atención
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3>🔍 Verificación de Funcionamiento</h3>
+            <div class="status-item">
+                ✅ Las sesiones se guardan en Google Sheets (hoja "Sesiones")
+            </div>
+            <div class="status-item">
+                ✅ Se valida el límite de sesiones antes de guardar
+            </div>
+            <div class="status-item">
+                ✅ Se genera ID único para cada sesión
+            </div>
+            <div class="status-item">
+                ✅ Se registra fecha de creación automáticamente
+            </div>
+            <div class="status-item">
+                ✅ Se asocia con el profesional que la crea
+            </div>
+        </div>
+        
+        <div class="timestamp">
+            Verificación completada: 2025-07-31 23:25:10<br>
+            El guardado de sesiones está completamente implementado y funcional
+        </div>
+    </div>
+</body>
+</html>
+    

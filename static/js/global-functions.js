@@ -1,13 +1,13 @@
 // Funciones globales para el dashboard profesional
 // Este archivo debe cargarse antes que professional.js
 
-// Función para mostrar modal de agregar paciente
+// Funci n para mostrar modal de agregar paciente
 window.showAddPatientModal = function () {
-    console.log('➕ Abriendo modal para agregar paciente');
+    console.log('  Abriendo modal para agregar paciente');
 
     const modal = document.getElementById('addPatientModal');
     if (!modal) {
-        console.error('❌ Modal addPatientModal no encontrado');
+        console.error('  Modal addPatientModal no encontrado');
         return;
     }
 
@@ -17,7 +17,7 @@ window.showAddPatientModal = function () {
         form.reset();
     }
 
-    // Cambiar el título del modal
+    // Cambiar el t tulo del modal
     const modalLabel = document.getElementById('addPatientModalLabel');
     if (modalLabel) {
         modalLabel.textContent = 'Agregar Nuevo Paciente';
@@ -28,44 +28,81 @@ window.showAddPatientModal = function () {
     bootstrapModal.show();
 };
 
-// Función para ver historial del paciente
+// Funci n para ver historial del paciente
 window.viewPatientHistory = function (pacienteId) {
-    console.log(`📄 Viendo historial del paciente: ${pacienteId}`);
+    console.log(`  Viendo historial del paciente: ${pacienteId}`);
 
+    // Verificar si la función verHistorialPaciente está disponible
     if (typeof verHistorialPaciente === 'function') {
-        verHistorialPaciente(pacienteId);
-    } else {
-        console.error('❌ Función verHistorialPaciente no está disponible');
-        // Fallback: mostrar modal básico
-        const modal = document.getElementById('patientHistoryModal');
-        if (modal) {
-            const bootstrapModal = new bootstrap.Modal(modal);
-            bootstrapModal.show();
+        console.log('  Función verHistorialPaciente encontrada, ejecutando...');
+        try {
+            verHistorialPaciente(pacienteId);
+        } catch (error) {
+            console.error('  Error ejecutando verHistorialPaciente:', error);
+            if (typeof showNotification === 'function') {
+                showNotification('Error de conexión al obtener historial', 'error');
+            }
         }
+    } else {
+        console.error('  Función verHistorialPaciente no está disponible');
+        console.log('  Funciones disponibles en window:', Object.keys(window).filter(key => key.includes('Historial') || key.includes('Paciente')));
+
+        // Fallback: intentar hacer la petición directamente
+        console.log('  Intentando petición directa...');
+        fetch(`/api/professional/patients/${pacienteId}`, {
+            method: 'GET',
+            credentials: 'include'
+        })
+            .then(response => {
+                console.log('  Respuesta directa:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('  Datos recibidos directamente:', data);
+                if (data.success) {
+                    // Mostrar modal con los datos
+                    const modal = document.getElementById('patientHistoryModal');
+                    if (modal) {
+                        const bootstrapModal = new bootstrap.Modal(modal);
+                        bootstrapModal.show();
+                    }
+                } else {
+                    throw new Error(data.message || 'Error al obtener historial');
+                }
+            })
+            .catch(error => {
+                console.error('  Error en petición directa:', error);
+                if (typeof showNotification === 'function') {
+                    showNotification('Error de conexión al obtener historial', 'error');
+                }
+            });
     }
 };
 
-// Función para editar paciente
+// Funci n para editar paciente
 window.editPatient = function (pacienteId) {
-    console.log(`✏️ Editando paciente: ${pacienteId}`);
+    console.log(`  Editando paciente: ${pacienteId}`);
 
     if (typeof editarPaciente === 'function') {
         editarPaciente(pacienteId);
     } else {
-        console.error('❌ Función editarPaciente no está disponible');
+        console.error('  Funci n editarPaciente no est  disponible');
         // Fallback: mostrar modal de agregar paciente
         showAddPatientModal();
     }
 };
 
-// Función para nueva consulta
+// Funci n para nueva consulta
 window.newConsultation = function (pacienteId) {
-    console.log(`🆕 Nueva consulta para paciente: ${pacienteId}`);
+    console.log(`  Nueva consulta para paciente: ${pacienteId}`);
 
     // Buscar el paciente en la lista local
     const paciente = window.pacientesList ? window.pacientesList.find(p => p.paciente_id === pacienteId) : null;
     if (!paciente) {
-        console.error('❌ Paciente no encontrado en la lista local');
+        console.error('  Paciente no encontrado en la lista local');
         if (typeof showNotification === 'function') {
             showNotification('Paciente no encontrado', 'error');
         }
@@ -91,20 +128,20 @@ window.newConsultation = function (pacienteId) {
         const bootstrapModal = new bootstrap.Modal(scheduleModal);
         bootstrapModal.show();
     } else {
-        console.error('❌ Modal de programar cita no encontrado');
+        console.error('  Modal de programar cita no encontrado');
         if (typeof showNotification === 'function') {
             showNotification('Error: Modal de programar cita no encontrado', 'error');
         }
     }
 };
 
-// Función para guardar paciente
+// Funci n para guardar paciente
 window.savePatient = function () {
-    console.log('💾 Guardando paciente...');
+    console.log('  Guardando paciente...');
 
     const form = document.getElementById('addPatientForm');
     if (!form) {
-        console.error('❌ Formulario no encontrado');
+        console.error('  Formulario no encontrado');
         return;
     }
 
@@ -121,7 +158,7 @@ window.savePatient = function () {
         antecedentes_medicos: document.getElementById('patientMedicalHistory').value.trim()
     };
 
-    console.log('📝 Datos del paciente:', pacienteData);
+    console.log('  Datos del paciente:', pacienteData);
 
     // Validar campos requeridos
     if (!pacienteData.nombre_completo) {
@@ -138,7 +175,7 @@ window.savePatient = function () {
         return;
     }
 
-    // Verificar si es edición o nuevo paciente
+    // Verificar si es edici n o nuevo paciente
     const pacienteId = form.getAttribute('data-editing-id');
     const isEditing = pacienteId && pacienteId !== '';
 
@@ -158,7 +195,7 @@ window.savePatient = function () {
     })
         .then(response => response.json())
         .then(data => {
-            console.log('📥 Respuesta del servidor:', data);
+            console.log('  Respuesta del servidor:', data);
 
             if (data.success) {
                 if (typeof showNotification === 'function') {
@@ -190,20 +227,20 @@ window.savePatient = function () {
             }
         })
         .catch(error => {
-            console.error('❌ Error:', error);
+            console.error('  Error:', error);
             if (typeof showNotification === 'function') {
-                showNotification('Error de conexión al guardar paciente', 'error');
+                showNotification('Error de conexi n al guardar paciente', 'error');
             }
         });
 };
 
-// Función para guardar cita
+// Funci n para guardar cita
 window.saveAppointment = function () {
-    console.log('📅 Guardando nueva cita...');
+    console.log('  Guardando nueva cita...');
 
     const form = document.getElementById('scheduleForm');
     if (!form) {
-        console.error('❌ Formulario de cita no encontrado');
+        console.error('  Formulario de cita no encontrado');
         if (typeof showNotification === 'function') {
             showNotification('Error: Formulario no encontrado', 'error');
         }
@@ -219,7 +256,7 @@ window.saveAppointment = function () {
         notas: document.getElementById('appointmentNotes').value
     };
 
-    console.log('📝 Datos de la cita:', appointmentData);
+    console.log('  Datos de la cita:', appointmentData);
 
     // Validar campos requeridos
     if (!appointmentData.paciente_id) {
@@ -245,23 +282,24 @@ window.saveAppointment = function () {
 
     if (!appointmentData.tipo_atencion) {
         if (typeof showNotification === 'function') {
-            showNotification('Debe seleccionar un tipo de atención', 'error');
+            showNotification('Debe seleccionar un tipo de atenci n', 'error');
         }
         return;
     }
 
     // Enviar datos al servidor
-    fetch('/api/professional/appointments', {
+    fetch('/api/professional/schedule', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
         },
+        credentials: 'include',
         body: JSON.stringify(appointmentData)
     })
         .then(response => response.json())
         .then(data => {
-            console.log('📥 Respuesta del servidor:', data);
+            console.log('  Respuesta del servidor:', data);
 
             if (data.success) {
                 if (typeof showNotification === 'function') {
@@ -277,11 +315,11 @@ window.saveAppointment = function () {
                 // Limpiar formulario
                 form.reset();
 
-                // Recargar agenda si está visible
+                // Recargar agenda si est  visible
                 const scheduleTab = document.querySelector('button[data-bs-target="#schedule"]');
                 if (scheduleTab && scheduleTab.classList.contains('active')) {
-                    // Aquí podrías recargar la agenda
-                    console.log('🔄 Recargando agenda...');
+                    // Aqu  podr as recargar la agenda
+                    console.log('  Recargando agenda...');
                 }
 
             } else {
@@ -291,9 +329,9 @@ window.saveAppointment = function () {
             }
         })
         .catch(error => {
-            console.error('❌ Error:', error);
+            console.error('  Error:', error);
             if (typeof showNotification === 'function') {
-                showNotification('Error de conexión al agendar la cita', 'error');
+                showNotification('Error de conexi n al agendar la cita', 'error');
             }
         });
 };
@@ -301,11 +339,11 @@ window.saveAppointment = function () {
 // Variable global para almacenar la lista de pacientes
 window.pacientesList = [];
 
-// Función de notificación básica si no existe
+// Funci n de notificaci n b sica si no existe
 if (typeof window.showNotification === 'undefined') {
     window.showNotification = function (message, type = 'info') {
         console.log(`[${type.toUpperCase()}] ${message}`);
-        // Crear un toast básico si Bootstrap está disponible
+        // Crear un toast b sico si Bootstrap est  disponible
         if (typeof bootstrap !== 'undefined') {
             const toastContainer = document.querySelector('.toast-container');
             if (toastContainer) {
@@ -326,4 +364,5 @@ if (typeof window.showNotification === 'undefined') {
     };
 }
 
-console.log('✅ Funciones globales cargadas correctamente'); 
+console.log('  Funciones globales cargadas correctamente');
+// Última actualización: 2025-08-01 13:06:22

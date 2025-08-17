@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificación Botón Sesión</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h1>🔍 Verificación del Botón de Sesión</h1>
+                <p class="text-muted">Verificando que el botón esté presente en el HTML</p>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Tabla de Atenciones (Simulada)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Paciente</th>
+                                        <th>Tipo</th>
+                                        <th>Diagnóstico</th>
+                                        <th>Estado</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>2025-07-31 10:00</td>
+                                        <td>Paula Rojas</td>
+                                        <td><span class="badge bg-primary">fonoaudiologia</span></td>
+                                        <td>Dificultades para tragar</td>
+                                        <td><span class="badge bg-success">Completada</span></td>
+                                        <td>
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <button class="btn btn-sm btn-info" title="Ver Detalle">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-primary" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-success" title="Registrar Sesión">
+                                                    <i class="fas fa-clipboard-list"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-secondary" title="Generar PDF">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-4">
+                    <h6>✅ Botón de Sesión Debería Aparecer</h6>
+                    <p>El botón verde con icono de clipboard debería estar visible entre "Editar" y "Generar PDF".</p>
+                    <ul>
+                        <li>Color: Verde (btn-success)</li>
+                        <li>Icono: clipboard-list</li>
+                        <li>Tooltip: "Registrar Sesión"</li>
+                    </ul>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <h6>🔄 Si No Se Ve el Botón:</h6>
+                    <ol>
+                        <li>Presiona Ctrl + F5 para recarga forzada</li>
+                        <li>Limpia el caché del navegador</li>
+                        <li>Verifica que estés en la pestaña "Historial de Atenciones"</li>
+                        <li>Comprueba que haya atenciones en la tabla</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

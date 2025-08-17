@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedConnect - Gestión Médica Familiar | www.medconnect.cl</title>
+    <meta name="description" content="Sistema integral de gestión médica familiar con bot de Telegram. Gestiona citas, medicamentos y salud familiar desde www.medconnect.cl">
+    <meta name="keywords" content="medconnect, gestión médica, salud familiar, bot telegram, citas médicas, medicamentos">
+    <meta name="author" content="MedConnect">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.medconnect.cl/">
+    <meta property="og:title" content="MedConnect - Gestión Médica Familiar">
+    <meta property="og:description" content="Sistema integral de gestión médica familiar con bot de Telegram">
+    <meta property="og:image" content="https://www.medconnect.cl/static/images/logo.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://www.medconnect.cl/">
+    <meta property="twitter:title" content="MedConnect - Gestión Médica Familiar">
+    <meta property="twitter:description" content="Sistema integral de gestión médica familiar con bot de Telegram">
+    <meta property="twitter:image" content="https://www.medconnect.cl/static/images/logo.png">
+    
+    <link rel="canonical" href="https://www.medconnect.cl/">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Reset y Variables */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            /* Paleta de colores moderna y médica con toques morados */
+            --color-primary: #0066CC;        /* Azul médico profesional */
+            --color-secondary: #6366F1;      /* Morado/índigo médico sutil */
+            --color-tertiary: #8B5CF6;       /* Morado más vibrante para acentos */
+            --color-accent: #FF6B35;         /* Naranja cálido para CTAs */
+            --color-medical-green: #00A651;  /* Verde médico/salud */
+            --color-dark: #1A1A1A;           /* Negro suave */
+            --color-gray: #6B7280;           /* Gris neutro */
+            --color-light-gray: #F3F4F6;    /* Gris muy claro */
+            --color-white: #FFFFFF;          /* Blanco puro */
+            --color-success: #10B981;
+            --color-warning: #F59E0B;
+            --color-error: #EF4444;
+            
+            /* Gradientes con morado */
+            --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            --gradient-secondary: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-tertiary) 100%);
+            --gradient-accent: linear-gradient(135deg, var(--color-tertiary) 0%, var(--color-secondary) 100%);
+            
+            /* Sombras */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-purple: 0 10px 25px -5px rgba(139, 92, 246, 0.2);
+            
+            /* Transiciones */
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--color-dark);
+            background-color: var(--color-white);
+            overflow-x: hidden;
+            font-size: 16px;
+        }
+        
+        /* Header moderno y limpio */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            z-index: 1000;
+            transition: var(--transition);
+        }
+        
+        .header.scrolled {
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 80px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        
+        .logo:hover {
+            transform: translateY(-1px);
+        }
+        
+        .logo img {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+        }
+        
+                 .logo-text {
+             font-size: 24px;
+             font-weight: 800;
+             background: var(--gradient-primary);
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+             background-clip: text;
+             letter-spacing: -0.5px;
+         }
+        
+        .nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .nav-link {
+            color: var(--color-gray);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: var(--transition);
+            position: relative;
+        }
+        
+                 .nav-link:hover {
+             color: var(--color-secondary);
+         }
+         
+         .nav-link::after {
+             content: '';
+             position: absolute;
+             bottom: -8px;
+             left: 0;
+             width: 0;
+             height: 2px;
+             background: var(--gradient-primary);
+             transition: var(--transition);
+         }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background: var(--color-primary);
+            color: var(--color-white);
+            padding: 12px 24px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary:hover {
+            background: #0052A3;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-primary);
+            padding: 12px 24px;
+            border: 2px solid var(--color-primary);
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-secondary:hover {
+            background: var(--color-primary);
+            color: var(--color-white);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-accent {
+            background: var(--color-accent);
+            color: var(--color-white);
+            padding: 16px 32px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+                 .btn-accent:hover {
+             background: linear-gradient(135deg, #E5562A 0%, var(--color-tertiary) 100%);
+             transform: translateY(-2px);
+             box-shadow: var(--shadow-purple);
+         }
+        
+        /* Hero Section - Moderno y espacioso */
+        .hero {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(243, 244, 246, 0.5) 100%);
+            padding: 140px 0 100px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+        
+        .hero-content h1 {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            color: var(--color-dark);
+            letter-spacing: -1px;
+        }
+        
+                 .hero-highlight {
+             background: var(--gradient-primary);
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+             background-clip: text;
+         }
+        
+        .hero-subtitle {
+            font-size: 20px;
+            color: var(--color-gray);
+            margin-bottom: 32px;
+            font-weight: 400;
+            line-height: 1.6;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 48px;
+        }
+        
+        .hero-stats {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+                 .stat-number {
+             font-size: 2rem;
+             font-weight: 800;
+             background: var(--gradient-primary);
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+             background-clip: text;
+             display: block;
+         }
+        
+        .stat-label {
+            font-size: 14px;
+            color: var(--color-gray);
+            font-weight: 500;
+        }
+        
+        .hero-image {
+            position: relative;
+        }
+        
+        .hero-image img {
+            width: 100%;
+            height: auto;
+            border-radius: 20px;
+            box-shadow: var(--shadow-xl);
+            transition: var(--transition);
+        }
+        
+        .hero-image:hover img {
+            transform: scale(1.02);
+        }
+        
+        /* Features Section - Grid moderno */
+        .features {
+            padding: 120px 0;
+            background: var(--color-white);
+        }
+        
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+        
+        .section-title {
+            font-size: clamp(2rem, 4vw, 2.5rem);
+            font-weight: 800;
+            color: var(--color-dark);
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+        
+        .section-subtitle {
+            font-size: 18px;
+            color: var(--color-gray);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+        }
+        
+        .feature-card {
+            background: var(--color-white);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        
+                 .feature-card::before {
+             content: '';
+             position: absolute;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 4px;
+             background: var(--gradient-accent);
+             transform: scaleX(0);
+             transition: var(--transition);
+         }
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+                 .feature-icon {
+             width: 64px;
+             height: 64px;
+             background: var(--gradient-primary);
+             border-radius: 16px;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             margin-bottom: 24px;
+             font-size: 24px;
+             color: var(--color-white);
+             box-shadow: var(--shadow-purple);
+             transition: var(--transition);
+         }
+         
+         .feature-card:hover .feature-icon {
+             background: var(--gradient-secondary);
+             transform: scale(1.1);
+         }
+        
+        .feature-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-dark);
+            margin-bottom: 12px;
+        }
+        
+        .feature-description {
+            color: var(--color-gray);
+            line-height: 1.6;
+        }
+        
+                 /* CTA Section - Llamativo pero elegante */
+         .cta {
+             background: var(--gradient-primary);
+             color: var(--color-white);
+             padding: 100px 0;
+             text-align: center;
+             position: relative;
+             overflow: hidden;
+         }
+        
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.1;
+        }
+        
+        .cta-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .cta-title {
+            font-size: clamp(2rem, 4vw, 2.5rem);
+            font-weight: 800;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        
+        .cta-subtitle {
+            font-size: 18px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        .btn-cta {
+            background: var(--color-white);
+            color: var(--color-primary);
+            padding: 18px 36px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 16px;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-xl);
+            background: #f8f9fa;
+        }
+        
+        /* Footer - Minimalista */
+        .footer {
+            background: var(--color-white);
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            padding: 60px 0 30px;
+        }
+        
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            text-align: center;
+        }
+        
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .footer-logo img {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+        }
+        
+                 .footer-brand {
+             font-size: 24px;
+             font-weight: 800;
+             background: var(--gradient-primary);
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+             background-clip: text;
+         }
+        
+        .footer-text {
+            color: var(--color-gray);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .footer-link {
+            color: var(--color-gray);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+                 .footer-link:hover {
+             color: var(--color-secondary);
+         }
+        
+        .footer-copyright {
+            color: var(--color-gray);
+            font-size: 12px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        
+        /* Mobile Menu */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--color-dark);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: var(--transition);
+        }
+        
+        .mobile-menu-toggle:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .mobile-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: var(--shadow-lg);
+            padding: 20px;
+            transform: translateY(-10px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .mobile-menu.active {
+            display: block;
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .mobile-menu .nav-link {
+            display: block;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .mobile-menu .nav-link:last-child {
+            border-bottom: none;
+        }
+        
+        .mobile-menu .btn-primary {
+            margin-top: 15px;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .hero-container {
+                gap: 60px;
+            }
+            
+            .features-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 30px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+            
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            .header {
+                position: relative;
+            }
+            
+            .nav-container {
+                position: relative;
+            }
+            
+            .hero {
+                padding: 120px 0 80px;
+                text-align: center;
+            }
+            
+            .hero-container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+            
+            .hero-stats {
+                justify-content: center;
+            }
+            
+            .features {
+                padding: 80px 0;
+            }
+            
+            .cta {
+                padding: 80px 0;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .feature-card {
+                padding: 30px;
+            }
+        }
+        
+        /* Animaciones */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .animate-fade-up {
+            animation: fadeInUp 0.8s ease-out;
+        }
+        
+        .animate-fade-left {
+            animation: fadeInLeft 0.8s ease-out;
+        }
+        
+        .animate-fade-right {
+            animation: fadeInRight 0.8s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <img src="/static/images/logo.png" alt="MedConnect Logo">
+                <span class="logo-text">MedConnect</span>
+            </a>
+            
+            <nav class="nav-menu">
+                <a href="#inicio" class="nav-link">Inicio</a>
+                <a href="#servicios" class="nav-link">Servicios</a>
+                <a href="#contacto" class="nav-link">Contacto</a>
+                <a href="/login" class="btn-primary">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Iniciar Sesión
+                </a>
+            </nav>
+            
+            <button class="mobile-menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Mobile Menu -->
+            <div class="mobile-menu">
+                <a href="#inicio" class="nav-link">Inicio</a>
+                <a href="#servicios" class="nav-link">Servicios</a>
+                <a href="#contacto" class="nav-link">Contacto</a>
+                <a href="/login" class="btn-primary">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Iniciar Sesión
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="inicio" class="hero">
+        <div class="hero-container">
+            <div class="hero-content animate-fade-left">
+                <h1>
+                    Gestión médica <span class="hero-highlight">inteligente</span> para familias y profesionales
+                </h1>
+                <p class="hero-subtitle">
+                    Revoluciona el cuidado de la salud familiar y la gestión profesional con nuestra plataforma integral. 
+                    Bot de Telegram como asistente inteligente, recordatorios automáticos y gestión centralizada de pacientes.
+                </p>
+                
+                <div class="hero-buttons">
+                    <a href="/register" class="btn-accent">
+                        <i class="fas fa-rocket"></i>
+                        Comenzar Gratis
+                    </a>
+                    <a href="/login" class="btn-secondary">
+                        <i class="fas fa-play"></i>
+                        Ver Demo
+                    </a>
+                </div>
+                
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">1,200+</span>
+                        <span class="stat-label">Usuarios registrados</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">15,000+</span>
+                        <span class="stat-label">Citas gestionadas</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">98%</span>
+                        <span class="stat-label">Satisfacción</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hero-image animate-fade-right">
+                <img src="/static/images/Imagen2.png" alt="MedConnect Platform Interface">
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="servicios" class="features">
+        <div class="features-container">
+            <div class="section-header">
+                <h2 class="section-title">Todo lo que necesitas en una sola plataforma</h2>
+                <p class="section-subtitle">
+                    Funcionalidades diseñadas para simplificar la gestión médica familiar y profesional,
+                    mejorando el cuidado de la salud y la administración de consultas médicas.
+                </p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3 class="feature-title">Bot de Telegram Inteligente</h3>
+                    <p class="feature-description">
+                        Asistente de IA que ayuda a profesionales a gestionar citas, recordatorios 
+                        y consultas médicas. Para familias, facilita el seguimiento de la salud 
+                        directamente desde Telegram.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="feature-title">Gestión de Pacientes y Familia</h3>
+                    <p class="feature-description">
+                        Para profesionales: Administra tu cartera de pacientes con historiales completos, 
+                        citas y seguimientos. Para familias: Gestiona la información médica de todos 
+                        los miembros en un solo lugar.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <h3 class="feature-title">Recordatorios Inteligentes</h3>
+                    <p class="feature-description">
+                        Para profesionales: Recordatorios automáticos de citas, seguimientos y 
+                        tareas administrativas. Para familias: Notificaciones de medicamentos, 
+                        citas y controles médicos personalizados.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Seguridad y Privacidad</h3>
+                    <p class="feature-description">
+                        Protección de datos médicos con estándares internacionales. 
+                        Encriptación de extremo a extremo y cumplimiento HIPAA.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Acceso Multiplataforma</h3>
+                    <p class="feature-description">
+                        Gestiona tu información desde web, móvil o Telegram. 
+                        Sincronización en tiempo real en todos tus dispositivos.
+                    </p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="feature-title">Reportes y Análisis</h3>
+                    <p class="feature-description">
+                        Para profesionales: Reportes de consultas, estadísticas de pacientes y 
+                        análisis de rendimiento. Para familias: Insights sobre la salud familiar, 
+                        tendencias y recomendaciones preventivas.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="cta-container">
+            <h2 class="cta-title">
+                ¿Listo para transformar la gestión médica?
+            </h2>
+            <p class="cta-subtitle">
+                Únete a miles de familias y profesionales que ya confían en MedConnect para 
+                gestionar la salud de manera inteligente, segura y eficiente.
+            </p>
+            <a href="/register" class="btn-cta">
+                <i class="fas fa-user-plus"></i>
+                Comenzar Ahora - Es Gratis
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer id="contacto" class="footer">
+        <div class="footer-container">
+                    <div class="footer-logo">
+            <a href="/" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 10px;">
+                <img src="/static/images/logo.png" alt="MedConnect Logo">
+                <span class="footer-brand">MedConnect</span>
+            </a>
+        </div>
+            
+            <p class="footer-text">
+                Transformando la gestión médica familiar y profesional con tecnología de vanguardia
+            </p>
+            
+            <div class="footer-links">
+                <a href="#inicio" class="footer-link">Inicio</a>
+                <a href="#servicios" class="footer-link">Servicios</a>
+                <a href="#" class="footer-link">Privacidad</a>
+                <a href="#" class="footer-link">Términos</a>
+                <a href="#contacto" class="footer-link">Contacto</a>
+            </div>
+            
+            <div class="footer-copyright">
+                <p>&copy; 2025 MedConnect. Todos los derechos reservados. | www.medconnect.cl</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling para enlaces internos
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    const headerHeight = document.querySelector('.header').offsetHeight;
+                    const targetPosition = target.offsetTop - headerHeight;
+                    
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // Intersection Observer para animaciones
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observar elementos para animaciones
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+            observer.observe(card);
+        });
+
+        // Mobile menu toggle
+        const mobileToggle = document.querySelector('.mobile-menu-toggle');
+        const mobileMenu = document.querySelector('.mobile-menu');
+        const header = document.querySelector('.header');
+        
+        if (mobileToggle && mobileMenu) {
+            mobileToggle.addEventListener('click', () => {
+                const isActive = mobileMenu.classList.contains('active');
+                
+                if (isActive) {
+                    // Cerrar menú
+                    mobileMenu.classList.remove('active');
+                    mobileToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                } else {
+                    // Abrir menú
+                    mobileMenu.classList.add('active');
+                    mobileToggle.innerHTML = '<i class="fas fa-times"></i>';
+                }
+            });
+            
+            // Cerrar menú al hacer clic en un enlace
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.remove('active');
+                    mobileToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                });
+            });
+            
+            // Cerrar menú al hacer scroll
+            window.addEventListener('scroll', () => {
+                if (mobileMenu.classList.contains('active')) {
+                    mobileMenu.classList.remove('active');
+                    mobileToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
