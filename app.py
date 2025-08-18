@@ -22000,6 +22000,11 @@ def copilot_chat():
                     last_error = e
                     logger.warning(f"⚠️ Modelo {model} falló: {e}")
                     continue
+            # Verificar si algún modelo funcionó
+            if completion is None:
+                logger.error("❌ Todos los modelos fallaron")
+                raise Exception("Todos los modelos de OpenRouter fallaron")
+
             logger.info("✅ Request enviado exitosamente")
 
             reply = ""
@@ -22009,10 +22014,10 @@ def copilot_chat():
             except Exception as e:
                 logger.error(f"❌ Error extrayendo respuesta: {e}")
                 logger.error(f"❌ Completion object: {completion}")
-                reply = "No pude generar una respuesta en este momento."
+                raise Exception(f"Error extrayendo respuesta: {e}")
 
             if not reply:
-                reply = "No pude generar una respuesta en este momento."
+                raise Exception("Respuesta vacía de OpenRouter")
 
             logger.info(f"✅ Respuesta de OpenRouter generada exitosamente")
             return jsonify({"success": True, "reply": reply})
@@ -22022,15 +22027,21 @@ def copilot_chat():
 
             logger.error(f"❌ Error en OpenRouter: {e}")
             logger.error(f"❌ Traceback completo: {traceback.format_exc()}")
+
+            # Verificar si se probaron modelos
+            if "last_error" in locals():
+                logger.error(f"❌ Último error específico: {last_error}")
+
             # Respuesta de respaldo si OpenRouter falla
             reply = f"""1. He recibido tu consulta sobre: "{user_message[:50]}..."
 
 2. ❌ ERROR DE CONEXIÓN:
-   No se pudo conectar con OpenRouter.
+   No se pudo conectar con OpenRouter después de probar múltiples modelos.
    Posibles causas:
-   - API key incorrecta
+   - API key incorrecta o expirada
    - Problema de red
    - Servicio temporalmente no disponible
+   - Límite de uso alcanzado
 
 3. Como asistente de respaldo, te puedo ayudar con:
    - Análisis básico de síntomas
