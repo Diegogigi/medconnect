@@ -632,9 +632,14 @@ def api_login_required(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Log completo para debugging
+        logger.info(f"🔍 Verificando sesión para endpoint: {request.endpoint}")
+        logger.info(f"📊 Session data: {dict(session)}")
+        logger.info(f"📋 Headers: {dict(request.headers)}")
+        logger.info(f"🍪 Cookies: {dict(request.cookies)}")
+
         # Verificar si hay sesión activa
         if "user_id" not in session:
-            # Log para debugging
             logger.warning(f"❌ Sesión no encontrada. Session data: {dict(session)}")
             logger.warning(f"❌ Headers: {dict(request.headers)}")
             return jsonify({"error": {"message": "User not found.", "code": 401}}), 401
@@ -21811,12 +21816,21 @@ def planificacion_completa():
 @app.route("/api/test-session", methods=["GET"])
 def test_session():
     """Ruta de prueba para verificar el estado de la sesión"""
+    logger.info(f"🔍 Test session endpoint llamado")
+    logger.info(f"📊 Session data: {dict(session)}")
+    logger.info(f"📋 Headers: {dict(request.headers)}")
+    logger.info(f"🍪 Cookies: {dict(request.cookies)}")
+
     return jsonify(
         {
             "session_data": dict(session),
             "has_user_id": "user_id" in session,
             "user_id": session.get("user_id"),
             "headers": dict(request.headers),
+            "cookies": dict(request.cookies),
+            "endpoint": request.endpoint,
+            "method": request.method,
+            "url": request.url,
         }
     )
 

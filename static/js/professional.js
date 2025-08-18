@@ -5800,6 +5800,15 @@ function mostrarTerminosDisponibles(terminosDisponibles, condicion, especialidad
     console.log('Edad:', edad);
 }
 
+// Función faltante para evitar errores
+function realizarBusquedaPersonalizada(terminos, condicion, especialidad, edad) {
+    console.log('⚠️ realizarBusquedaPersonalizada - Función temporal');
+    console.log('Términos:', terminos);
+    console.log('Condición:', condicion);
+    console.log('Especialidad:', especialidad);
+    console.log('Edad:', edad);
+}
+
 // Exponer funciones adicionales globalmente
 window.insertarSugerenciaTratamiento = insertarSugerenciaTratamiento;
 window.insertarSugerenciasTratamiento = insertarSugerenciasTratamiento;
