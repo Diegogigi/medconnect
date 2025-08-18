@@ -21923,6 +21923,7 @@ def copilot_chat():
 
         # Lógica original del chat con OpenRouter
         try:
+            logger.info("🔧 Iniciando OpenRouter...")
             from openai import OpenAI
             import os
 
@@ -21930,8 +21931,12 @@ def copilot_chat():
                 os.getenv("OPENROUTER_API_KEY")
                 or "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"
             )
-            client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+            logger.info(f"🔑 API Key configurada: {api_key[:20]}...")
 
+            client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+            logger.info("✅ Cliente OpenAI creado")
+
+            logger.info("📤 Enviando request a OpenRouter...")
             completion = client.chat.completions.create(
                 model="deepseek/deepseek-r1:free",
                 messages=[
@@ -21951,12 +21956,15 @@ def copilot_chat():
                     },
                 ],
             )
+            logger.info("✅ Request enviado exitosamente")
 
             reply = ""
             try:
                 reply = completion.choices[0].message.content.strip()
+                logger.info(f"📝 Respuesta extraída: {reply[:100]}...")
             except Exception as e:
                 logger.error(f"❌ Error extrayendo respuesta: {e}")
+                logger.error(f"❌ Completion object: {completion}")
                 reply = "No pude generar una respuesta en este momento."
 
             if not reply:
@@ -21966,7 +21974,10 @@ def copilot_chat():
             return jsonify({"success": True, "reply": reply})
 
         except Exception as e:
+            import traceback
+
             logger.error(f"❌ Error en OpenRouter: {e}")
+            logger.error(f"❌ Traceback completo: {traceback.format_exc()}")
             # Respuesta de respaldo si OpenRouter falla
             reply = f"""1. He recibido tu consulta sobre: "{user_message[:50]}..."
 
