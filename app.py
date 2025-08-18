@@ -633,27 +633,20 @@ def api_login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         try:
-            # Log completo para debugging
+            # Log básico para debugging
             logger.info(f"🔍 Verificando sesión para endpoint: {request.endpoint}")
-            logger.info(f"📊 Session data: {dict(session)}")
-            logger.info(f"📋 Headers: {dict(request.headers)}")
-            logger.info(f"🍪 Cookies: {dict(request.cookies)}")
 
-            # Verificar si hay sesión activa
-            if "user_id" not in session:
-                logger.warning(
-                    f"❌ Sesión no encontrada. Session data: {dict(session)}"
-                )
-                logger.warning(f"❌ Headers: {dict(request.headers)}")
+            # Verificar si hay sesión activa de forma simple
+            user_id = session.get("user_id")
+            if not user_id:
+                logger.warning(f"❌ Sesión no encontrada. user_id: {user_id}")
                 return (
                     jsonify({"error": {"message": "User not found.", "code": 401}}),
                     401,
                 )
 
             # Log para debugging
-            logger.info(
-                f"✅ Sesión válida encontrada para user_id: {session.get('user_id')}"
-            )
+            logger.info(f"✅ Sesión válida encontrada para user_id: {user_id}")
             return f(*args, **kwargs)
 
         except Exception as e:
@@ -21856,6 +21849,43 @@ def test_session():
             "url": request.url,
         }
     )
+
+
+# ========= Chat Copilot Health (OpenRouter) - VERSIÓN DE PRUEBA =========
+@app.route("/api/copilot/chat-test", methods=["POST"])
+def copilot_chat_test():
+    """Versión de prueba sin decorador para debugging"""
+    try:
+        logger.info("🔍 Chat test endpoint llamado")
+        logger.info(f"📊 Session data: {dict(session)}")
+        logger.info(f"📋 Headers: {dict(request.headers)}")
+
+        # Verificar sesión manualmente
+        user_id = session.get("user_id")
+        if not user_id:
+            logger.warning(f"❌ Sesión no encontrada en test. user_id: {user_id}")
+            return jsonify({"error": {"message": "User not found.", "code": 401}}), 401
+
+        logger.info(f"✅ Sesión válida en test para user_id: {user_id}")
+
+        # Simular respuesta exitosa
+        return jsonify(
+            {
+                "success": True,
+                "reply": "Esta es una respuesta de prueba. La sesión está funcionando correctamente.",
+                "user_id": user_id,
+            }
+        )
+
+    except Exception as e:
+        import traceback
+
+        logger.error(f"❌ Error en copilot_chat_test: {e}")
+        logger.error(f"❌ Traceback: {traceback.format_exc()}")
+        return (
+            jsonify({"error": {"message": f"Test error: {str(e)}", "code": 500}}),
+            500,
+        )
 
 
 # ========= Chat Copilot Health (OpenRouter) =========
