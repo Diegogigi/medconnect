@@ -8982,47 +8982,73 @@ function mostrarProgresoSidebar(progreso, mensaje) {
 
 // Función para mostrar/ocultar la sidebar estilo Cursor
 function toggleSidebar() {
-    const sidebarContainer = document.getElementById('sidebarContainer');
-    const toggleIcon = document.getElementById('sidebarToggleIcon');
-    const toggleButton = document.getElementById('sidebarToggle');
-    const mainContent = document.querySelector('.col-lg-8.col-xl-9');
+    try {
+        const sidebarContainer = document.getElementById('sidebarContainer');
+        const toggleIcon = document.getElementById('sidebarToggleIcon');
+        const toggleButton = document.getElementById('sidebarToggle');
+        const mainContent = document.querySelector('.col-lg-8.col-xl-9');
 
-    if (sidebarContainer.classList.contains('show')) {
-        // Ocultar panel
-        sidebarContainer.classList.remove('show');
-        toggleIcon.className = 'fas fa-columns'; /* Icono de layout para panel oculto */
-        toggleButton.title = 'Mostrar panel Copilot Health';
-
-        // Restaurar tamaño del formulario
-        if (mainContent) {
-            mainContent.classList.add('sidebar-hidden');
-            mainContent.style.width = '100%';
-            mainContent.style.maxWidth = '100%';
-            mainContent.style.flex = '1';
-
-            // Forzar reajuste de elementos
-            setTimeout(() => {
-                forceLayoutUpdate();
-            }, 50);
+        // Verificar que los elementos existan antes de usarlos
+        if (!sidebarContainer) {
+            console.warn('⚠️ sidebarContainer no encontrado');
+            return;
         }
-    } else {
-        // Mostrar panel
-        sidebarContainer.classList.add('show');
-        toggleIcon.className = 'fas fa-window-minimize'; /* Icono de minimizar ventana para panel visible */
-        toggleButton.title = 'Ocultar panel Copilot Health';
 
-        // Ajustar tamaño del formulario
-        if (mainContent) {
-            mainContent.classList.remove('sidebar-hidden');
-            mainContent.style.width = 'calc(100% - 400px)';
-            mainContent.style.maxWidth = 'calc(100% - 400px)';
-            mainContent.style.flex = '1';
+        if (sidebarContainer.classList.contains('show')) {
+            // Ocultar panel
+            sidebarContainer.classList.remove('show');
 
-            // Forzar reajuste de elementos
-            setTimeout(() => {
-                forceLayoutUpdate();
-            }, 50);
+            if (toggleIcon) {
+                toggleIcon.className = 'fas fa-columns'; /* Icono de layout para panel oculto */
+            }
+
+            if (toggleButton) {
+                toggleButton.title = 'Mostrar panel Tena Copilot';
+            }
+
+            // Restaurar tamaño del formulario
+            if (mainContent) {
+                mainContent.classList.add('sidebar-hidden');
+                mainContent.style.width = '100%';
+                mainContent.style.maxWidth = '100%';
+                mainContent.style.flex = '1';
+
+                // Forzar reajuste de elementos
+                setTimeout(() => {
+                    if (typeof forceLayoutUpdate === 'function') {
+                        forceLayoutUpdate();
+                    }
+                }, 50);
+            }
+        } else {
+            // Mostrar panel
+            sidebarContainer.classList.add('show');
+
+            if (toggleIcon) {
+                toggleIcon.className = 'fas fa-window-minimize'; /* Icono de minimizar ventana para panel visible */
+            }
+
+            if (toggleButton) {
+                toggleButton.title = 'Ocultar panel Tena Copilot';
+            }
+
+            // Ajustar tamaño del formulario
+            if (mainContent) {
+                mainContent.classList.remove('sidebar-hidden');
+                mainContent.style.width = 'calc(100% - 400px)';
+                mainContent.style.maxWidth = 'calc(100% - 400px)';
+                mainContent.style.flex = '1';
+
+                // Forzar reajuste de elementos
+                setTimeout(() => {
+                    if (typeof forceLayoutUpdate === 'function') {
+                        forceLayoutUpdate();
+                    }
+                }, 50);
+            }
         }
+    } catch (error) {
+        console.error('❌ Error en toggleSidebar:', error);
     }
 }
 
