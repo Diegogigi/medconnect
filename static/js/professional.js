@@ -5791,6 +5791,15 @@ function hayPreguntasInsertadas() {
     return motivoConsulta.value.includes('PREGUNTAS SUGERIDAS POR IA:');
 }
 
+// Función faltante para evitar errores
+function mostrarTerminosDisponibles(terminosDisponibles, condicion, especialidad, edad) {
+    console.log('⚠️ mostrarTerminosDisponibles - Función temporal');
+    console.log('Términos disponibles:', terminosDisponibles);
+    console.log('Condición:', condicion);
+    console.log('Especialidad:', especialidad);
+    console.log('Edad:', edad);
+}
+
 // Exponer funciones adicionales globalmente
 window.insertarSugerenciaTratamiento = insertarSugerenciaTratamiento;
 window.insertarSugerenciasTratamiento = insertarSugerenciasTratamiento;

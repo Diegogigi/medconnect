@@ -68,11 +68,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Esperar un poco para que la página se cargue completamente
     setTimeout(async () => {
-        const sessionOk = await testSession();
-        if (sessionOk) {
-            await testCopilotAPI();
+        try {
+            const sessionOk = await testSession();
+            if (sessionOk) {
+                await testCopilotAPI();
+            }
+        } catch (error) {
+            console.error('❌ Error en pruebas de sesión:', error);
         }
-    }, 1000);
+    }, 2000);
+});
+
+// También ejecutar cuando la ventana se carga completamente
+window.addEventListener('load', async () => {
+    console.log('🌐 Ventana cargada completamente, probando sesión...');
+
+    setTimeout(async () => {
+        try {
+            const sessionOk = await testSession();
+            if (sessionOk) {
+                await testCopilotAPI();
+            }
+        } catch (error) {
+            console.error('❌ Error en pruebas de sesión (load):', error);
+        }
+    }, 3000);
 });
 
 // Hacer las funciones disponibles globalmente
