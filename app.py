@@ -21921,53 +21921,23 @@ def copilot_chat():
         logger.info(f"📝 Mensaje recibido: {user_message[:100]}...")
         logger.info(f"📋 Contexto: {context}")
 
-        # Lógica original del chat con OpenRouter
-        try:
-            from openai import OpenAI
-            import os
+        # VERSIÓN TEMPORAL: Respuesta simple sin OpenRouter
+        logger.info("🔧 Usando respuesta temporal (OpenRouter deshabilitado)")
 
-            api_key = (
-                os.getenv("OPENROUTER_API_KEY")
-                or "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"
-            )
-            client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+        # Simular respuesta de IA
+        reply = f"""1. He recibido tu mensaje: "{user_message[:50]}..."
 
-            completion = client.chat.completions.create(
-                model="deepseek/deepseek-r1:free",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Eres Tena Copilot, un asistente de IA que ayuda a profesionales de salud con análisis clínico y recomendaciones claras y seguras. "
-                            "Responde SIEMPRE en español y exclusivamente en formato de lista numerada simple y natural: "
-                            "usa números (1., 2., 3.) para puntos principales, subpuntos con guiones (-) cuando aplique, y texto claro sin Markdown complejo. "
-                            "Evita texto corrido largo; prefiere secciones compactas y bullets. No incluyas explicaciones fuera del contenido clínico ni bloques de código."
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Contexto clínico (formulario): {context}",
-                    },
-                    {"role": "user", "content": user_message},
-                ],
-            )
+2. Como asistente temporal, te puedo ayudar con:
+   - Análisis básico de síntomas
+   - Sugerencias de preguntas clínicas
+   - Orientación general
 
-            reply = ""
-            try:
-                reply = completion.choices[0].message.content.strip()
-            except Exception as e:
-                logger.error(f"❌ Error extrayendo respuesta: {e}")
-                reply = "No pude generar una respuesta en este momento."
+3. Para análisis más avanzado, necesitamos activar la IA completa.
 
-            if not reply:
-                reply = "No pude generar una respuesta en este momento."
+¿En qué puedo ayudarte específicamente?"""
 
-            logger.info(f"✅ Respuesta generada exitosamente")
-            return jsonify({"success": True, "reply": reply})
-
-        except Exception as e:
-            logger.error(f"❌ Error en OpenRouter: {e}")
-            return jsonify({"success": False, "message": f"Error en IA: {str(e)}"}), 500
+        logger.info(f"✅ Respuesta temporal generada exitosamente")
+        return jsonify({"success": True, "reply": reply})
 
     except Exception as e:
         import traceback
