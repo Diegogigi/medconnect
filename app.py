@@ -632,8 +632,17 @@ def api_login_required(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Verificar si hay sesión activa
         if "user_id" not in session:
+            # Log para debugging
+            logger.warning(f"❌ Sesión no encontrada. Session data: {dict(session)}")
+            logger.warning(f"❌ Headers: {dict(request.headers)}")
             return jsonify({"error": {"message": "User not found.", "code": 401}}), 401
+
+        # Log para debugging
+        logger.info(
+            f"✅ Sesión válida encontrada para user_id: {session.get('user_id')}"
+        )
         return f(*args, **kwargs)
 
     return decorated_function
@@ -17141,6 +17150,15 @@ if app.config["PREFERRED_URL_SCHEME"] == "https":
     app.config["SESSION_COOKIE_SECURE"] = True
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+else:
+    # Configuración para desarrollo y Railway
+    app.config["SESSION_COOKIE_SECURE"] = False
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+# Configuración adicional para Railway
+app.config["SESSION_COOKIE_DOMAIN"] = None  # Permitir cualquier dominio
+app.config["SESSION_COOKIE_PATH"] = "/"
 
 
 # Funciones auxiliares para las vistas de agenda
@@ -21787,6 +21805,20 @@ def planificacion_completa():
             ),
             500,
         )
+
+
+# ========= Ruta de prueba de sesión =========
+@app.route("/api/test-session", methods=["GET"])
+def test_session():
+    """Ruta de prueba para verificar el estado de la sesión"""
+    return jsonify(
+        {
+            "session_data": dict(session),
+            "has_user_id": "user_id" in session,
+            "user_id": session.get("user_id"),
+            "headers": dict(request.headers),
+        }
+    )
 
 
 # ========= Chat Copilot Health (OpenRouter) =========
