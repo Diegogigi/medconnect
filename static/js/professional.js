@@ -6182,6 +6182,9 @@ function extraerDiagnosticoDePreguntas(motivoConsulta) {
 // Exponer funci n globalmente
 window.extraerDiagnosticoDePreguntas = extraerDiagnosticoDePreguntas;
 
+// Código comentado temporalmente para evitar errores
+// TODO: Mover este código dentro de una función apropiada
+/*
 // Mostrar otros términos disponibles
 const otrasCategorias = ['terminos_basicos', 'terminos_especialidad', 'terminos_edad', 'terminos_combinados'];
 
@@ -6253,6 +6256,7 @@ setTimeout(() => {
         console.warn(' No se encontraron checkboxes en el HTML renderizado');
     }
 }, 100);
+*/
 
 // ========================================
 // FUNCIONES DE LA SIDEBAR DERECHA

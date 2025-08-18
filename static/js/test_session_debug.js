@@ -48,12 +48,16 @@ async function testCopilotAPI() {
 
         const data = await response.json();
         console.log('📊 Respuesta de Copilot:', data);
+        console.log('📋 Status de respuesta:', response.status);
+        console.log('📋 Headers de respuesta:', Object.fromEntries(response.headers.entries()));
 
         if (response.ok) {
             console.log('✅ API de Copilot funciona correctamente');
             return true;
         } else {
             console.log('❌ Error en API de Copilot:', data);
+            console.log('❌ Status HTTP:', response.status);
+            console.log('❌ Status Text:', response.statusText);
             return false;
         }
     } catch (error) {
