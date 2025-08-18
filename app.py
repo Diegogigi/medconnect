@@ -632,23 +632,46 @@ def api_login_required(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Log completo para debugging
-        logger.info(f"🔍 Verificando sesión para endpoint: {request.endpoint}")
-        logger.info(f"📊 Session data: {dict(session)}")
-        logger.info(f"📋 Headers: {dict(request.headers)}")
-        logger.info(f"🍪 Cookies: {dict(request.cookies)}")
+        try:
+            # Log completo para debugging
+            logger.info(f"🔍 Verificando sesión para endpoint: {request.endpoint}")
+            logger.info(f"📊 Session data: {dict(session)}")
+            logger.info(f"📋 Headers: {dict(request.headers)}")
+            logger.info(f"🍪 Cookies: {dict(request.cookies)}")
 
-        # Verificar si hay sesión activa
-        if "user_id" not in session:
-            logger.warning(f"❌ Sesión no encontrada. Session data: {dict(session)}")
-            logger.warning(f"❌ Headers: {dict(request.headers)}")
-            return jsonify({"error": {"message": "User not found.", "code": 401}}), 401
+            # Verificar si hay sesión activa
+            if "user_id" not in session:
+                logger.warning(
+                    f"❌ Sesión no encontrada. Session data: {dict(session)}"
+                )
+                logger.warning(f"❌ Headers: {dict(request.headers)}")
+                return (
+                    jsonify({"error": {"message": "User not found.", "code": 401}}),
+                    401,
+                )
 
-        # Log para debugging
-        logger.info(
-            f"✅ Sesión válida encontrada para user_id: {session.get('user_id')}"
-        )
-        return f(*args, **kwargs)
+            # Log para debugging
+            logger.info(
+                f"✅ Sesión válida encontrada para user_id: {session.get('user_id')}"
+            )
+            return f(*args, **kwargs)
+
+        except Exception as e:
+            import traceback
+
+            logger.error(f"❌ Error en decorador api_login_required: {e}")
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
+            return (
+                jsonify(
+                    {
+                        "error": {
+                            "message": f"Internal server error: {str(e)}",
+                            "code": 500,
+                        }
+                    }
+                ),
+                500,
+            )
 
     return decorated_function
 
