@@ -8982,6 +8982,12 @@ function mostrarProgresoSidebar(progreso, mensaje) {
 
 // Función para mostrar/ocultar la sidebar estilo Cursor
 function toggleSidebar() {
+    // Esperar a que el DOM esté completamente cargado
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', toggleSidebar);
+        return;
+    }
+
     try {
         const sidebarContainer = document.getElementById('sidebarContainer');
         const toggleIcon = document.getElementById('sidebarToggleIcon');
@@ -8990,7 +8996,9 @@ function toggleSidebar() {
 
         // Verificar que los elementos existan antes de usarlos
         if (!sidebarContainer) {
-            console.warn('⚠️ sidebarContainer no encontrado');
+            console.warn('⚠️ sidebarContainer no encontrado, intentando crear...');
+            // Intentar crear el sidebar si no existe
+            crearSidebarSiNoExiste();
             return;
         }
 
@@ -9049,6 +9057,76 @@ function toggleSidebar() {
         }
     } catch (error) {
         console.error('❌ Error en toggleSidebar:', error);
+    }
+}
+
+// Función para crear el sidebar si no existe
+function crearSidebarSiNoExiste() {
+    try {
+        console.log('🔧 Creando sidebar si no existe...');
+
+        // Verificar si ya existe
+        let sidebarContainer = document.getElementById('sidebarContainer');
+        if (sidebarContainer) {
+            console.log('✅ sidebarContainer ya existe');
+            return sidebarContainer;
+        }
+
+        // Crear el sidebar
+        const sidebarHTML = `
+            <div class="sidebar-container" id="sidebarContainer">
+                <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
+                <div class="sidebar-controls">
+                    <button class="control-btn" id="manualAnalyzeBtn" title="Análisis Manual">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="control-btn" id="refreshAnalysisBtn" title="Actualizar Análisis">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="panel-content p-3">
+                    <div class="ai-status-panel">
+                        <div class="ai-status-indicator">
+                            <div class="status-dot ready" id="aiStatusDot"></div>
+                            <span id="aiStatusText">Tena Copilot lista para análisis</span>
+                        </div>
+                    </div>
+                    <div class="copilot-chat-elegant" id="copilotChatElegant">
+                        <div class="chat-messages-elegant" id="chatMessagesElegant">
+                            <div class="messages-container" id="messagesContainer">
+                                <div class="message-elegant system-message" id="welcomeMessage">
+                                    <div class="message-bubble">
+                                        <div class="message-text">
+                                            <p>¡Hola! Soy Tena, tu asistente IA. ¿En qué puedo ayudarte?</p>
+                                        </div>
+                                    </div>
+                                    <div class="message-time">Ahora</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="auto-mode-indicator">
+                            <div class="auto-mode-content">
+                                <span class="auto-mode-text" id="tenaCopilotStatus">Tena Copilot</span>
+                            </div>
+                            <div class="mt-1" style="width: 100%;">
+                                <input type="text" id="copilotQuickInput" placeholder="Escribe tu mensaje aquí..." onkeydown="if(event.key==='Enter'){ if(this.value.trim()){ agregarMensajeElegant(this.value,'user'); enviarMensajeCopilot(this.value); this.value='';}}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Insertar el sidebar en el DOM
+        const mainElement = document.querySelector('main') || document.body;
+        mainElement.insertAdjacentHTML('beforeend', sidebarHTML);
+
+        console.log('✅ sidebarContainer creado exitosamente');
+        return document.getElementById('sidebarContainer');
+
+    } catch (error) {
+        console.error('❌ Error creando sidebar:', error);
+        return null;
     }
 }
 
