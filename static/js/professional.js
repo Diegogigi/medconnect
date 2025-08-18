@@ -5159,6 +5159,7 @@ async function analizarMotivoEnTiempoReal() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({
                     motivo_consulta: motivoConsulta,
                     tipo_atencion: tipoAtencion,
@@ -5305,6 +5306,7 @@ async function evaluarAntecedentesIA(antecedentes, especialidad, edad) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'same-origin',
             body: JSON.stringify({
                 antecedentes: antecedentes,
                 especialidad: especialidad,
@@ -5335,6 +5337,7 @@ async function sugerirTratamientoIA(diagnostico, especialidad, edad) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'same-origin',
             body: JSON.stringify({
                 diagnostico: diagnostico,
                 especialidad: especialidad,
@@ -5365,6 +5368,7 @@ async function analisisCompletoIA(motivo, antecedentes, diagnostico) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'same-origin',
             body: JSON.stringify({
                 motivo_consulta: motivo,
                 antecedentes: antecedentes,
@@ -7236,6 +7240,7 @@ async function enviarMensajeCopilot(message) {
         const resp = await fetch('/api/copilot/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
             body: JSON.stringify({ message, context })
         });
         const data = await resp.json();
@@ -7270,6 +7275,7 @@ function inicializarSincronizacionFormularioCopilot() {
                 const resp = await fetch('/api/copilot/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
                     body: JSON.stringify({ message: 'Actualizar contexto clínico del caso.', context: ctx })
                 });
                 await resp.json();
