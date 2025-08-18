@@ -21921,16 +21921,37 @@ def copilot_chat():
         logger.info(f"📝 Mensaje recibido: {user_message[:100]}...")
         logger.info(f"📋 Contexto: {context}")
 
+        # Verificar si OpenRouter está configurado
+        import os
+
+        api_key = os.getenv("OPENROUTER_API_KEY")
+
+        if not api_key:
+            logger.warning("⚠️ OPENROUTER_API_KEY no configurada en Railway")
+            # Respuesta informativa sobre la configuración
+            reply = f"""1. He recibido tu consulta sobre: "{user_message[:50]}..."
+
+2. ⚠️ CONFIGURACIÓN REQUERIDA:
+   La API key de OpenRouter no está configurada en Railway.
+   Para activar la IA completa, necesitas:
+   - Ir a Railway Dashboard
+   - Seleccionar tu proyecto
+   - Ir a Variables de Entorno
+   - Agregar: OPENROUTER_API_KEY = tu_api_key_aqui
+
+3. Mientras tanto, puedo ayudarte con:
+   - Análisis básico de síntomas
+   - Sugerencias de preguntas clínicas
+   - Orientación general
+
+¿Necesitas ayuda con la configuración o prefieres que te ayude con tu consulta de otra manera?"""
+            return jsonify({"success": True, "reply": reply})
+
         # Lógica original del chat con OpenRouter
         try:
             logger.info("🔧 Iniciando OpenRouter...")
             from openai import OpenAI
-            import os
 
-            api_key = (
-                os.getenv("OPENROUTER_API_KEY")
-                or "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"
-            )
             logger.info(f"🔑 API Key configurada: {api_key[:20]}...")
 
             client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
@@ -21981,12 +22002,17 @@ def copilot_chat():
             # Respuesta de respaldo si OpenRouter falla
             reply = f"""1. He recibido tu consulta sobre: "{user_message[:50]}..."
 
-2. Como asistente de respaldo, te puedo ayudar con:
+2. ❌ ERROR DE CONEXIÓN:
+   No se pudo conectar con OpenRouter.
+   Posibles causas:
+   - API key incorrecta
+   - Problema de red
+   - Servicio temporalmente no disponible
+
+3. Como asistente de respaldo, te puedo ayudar con:
    - Análisis básico de síntomas
    - Sugerencias de preguntas clínicas
    - Orientación general
-
-3. Para análisis más avanzado, necesitamos resolver la conexión con la IA.
 
 ¿En qué puedo ayudarte específicamente?"""
             return jsonify({"success": True, "reply": reply})
