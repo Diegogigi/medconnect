@@ -626,6 +626,19 @@ def login_required(f):
     return decorated_function
 
 
+# Decorador para APIs que requieren autenticaci n
+def api_login_required(f):
+    """Decorador para APIs que requieren login - devuelve JSON en lugar de redirect"""
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            return jsonify({"error": {"message": "User not found.", "code": 401}}), 401
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 # Rutas de autenticaci n
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -21092,7 +21105,7 @@ def upload_archivos():
 
 
 @app.route("/api/copilot/search-enhanced", methods=["POST"])
-@login_required
+@api_login_required
 def search_enhanced():
     """Búsqueda mejorada de papers científicos con PubMed y Europe PMC"""
     try:
@@ -21190,7 +21203,7 @@ def search_enhanced():
 
 
 @app.route("/api/copilot/generate-search-terms", methods=["POST"])
-@login_required
+@api_login_required
 def generate_search_terms():
     """Genera términos optimizados para búsqueda en PubMed"""
     try:
@@ -21245,7 +21258,7 @@ def generate_search_terms():
 
 
 @app.route("/api/copilot/search-with-key-terms", methods=["POST"])
-@login_required
+@api_login_required
 def search_with_key_terms():
     """Búsqueda directa con palabras clave específicas"""
     try:
@@ -21299,7 +21312,7 @@ def search_with_key_terms():
 
 
 @app.route("/copilot-health")
-@login_required
+@api_login_required
 def copilot_health_page():
     """Página principal del Copilot Health Assistant con papers científicos"""
     try:
@@ -21329,7 +21342,7 @@ def copilot_health_page():
 
 
 @app.route("/api/copilot/identify-keywords", methods=["POST"])
-@login_required
+@api_login_required
 def identify_keywords():
     """Identifica palabras clave en el motivo de consulta"""
     try:
@@ -21429,7 +21442,7 @@ def identify_keywords():
 
 
 @app.route("/api/copilot/evaluate-antecedents", methods=["POST"])
-@login_required
+@api_login_required
 def evaluate_antecedents():
     """Evalúa antecedentes considerando edad y especialidad"""
     try:
@@ -21483,7 +21496,7 @@ def evaluate_antecedents():
 
 
 @app.route("/api/copilot/suggest-treatment", methods=["POST"])
-@login_required
+@api_login_required
 def suggest_treatment():
     """Sugiere tratamiento basado en diagnóstico y edad con papers científicos"""
     try:
@@ -21550,7 +21563,7 @@ def suggest_treatment():
 
 
 @app.route("/api/copilot/complete-analysis", methods=["POST"])
-@login_required
+@api_login_required
 def complete_analysis():
     """Realiza un análisis completo de IA clínica asistiva"""
     try:
@@ -21610,7 +21623,7 @@ def complete_analysis():
 
 
 @app.route("/api/copilot/generate-personalized-questions", methods=["POST"])
-@login_required
+@api_login_required
 def generate_personalized_questions():
     """Genera preguntas personalizadas según edad, tipo de atención y motivo"""
     try:
@@ -21701,7 +21714,7 @@ def generate_personalized_questions():
 
 
 @app.route("/api/copilot/planificacion-completa", methods=["POST"])
-@login_required
+@api_login_required
 def planificacion_completa():
     """Genera una planificación completa de tratamiento basada en múltiples fuentes"""
     try:
@@ -21778,7 +21791,7 @@ def planificacion_completa():
 
 # ========= Chat Copilot Health (OpenRouter) =========
 @app.route("/api/copilot/chat", methods=["POST"])
-@login_required
+@api_login_required
 def copilot_chat():
     """Chat de Copilot Health mediante OpenRouter (deepseek/deepseek-r1:free)"""
     try:
@@ -21839,7 +21852,7 @@ def copilot_chat():
 
 # ========= Orquestador Copilot Health (IA + Evidencia) =========
 @app.route("/api/copilot/orchestrate", methods=["POST"])
-@login_required
+@api_login_required
 def copilot_orchestrate():
     """Orquesta IA amplia (OpenRouter) con APIs científicas (PubMed/Europe PMC) usando el contexto del formulario."""
     try:
@@ -21967,7 +21980,7 @@ def copilot_orchestrate():
 
 
 @app.route("/api/copilot/analyze-enhanced", methods=["POST"])
-@login_required
+@api_login_required
 def analyze_enhanced():
     """Análisis unificado usando el sistema mejorado.
     Integra todos los sistemas: NLP, Búsqueda Científica, y Copilot.
