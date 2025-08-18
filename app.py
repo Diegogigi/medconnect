@@ -21958,25 +21958,48 @@ def copilot_chat():
             logger.info("✅ Cliente OpenAI creado")
 
             logger.info("📤 Enviando request a OpenRouter...")
-            completion = client.chat.completions.create(
-                model="deepseek/deepseek-r1:free",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Eres Tena Copilot, un asistente de IA especializado en salud que ayuda a profesionales médicos. "
-                            "Responde SIEMPRE en español y exclusivamente en formato de lista numerada simple y natural: "
-                            "usa números (1., 2., 3.) para puntos principales, subpuntos con guiones (-) cuando aplique, y texto claro sin Markdown complejo. "
-                            "Para evaluaciones kinésicas, incluye: evaluación subjetiva, evaluación objetiva, pruebas específicas, diagnóstico diferencial, y plan de tratamiento. "
-                            "Sé específico, profesional y útil. No incluyas explicaciones fuera del contenido clínico."
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Contexto clínico: {context}. Pregunta: {user_message}",
-                    },
-                ],
-            )
+
+            # Intentar con diferentes modelos
+            models_to_try = [
+                "deepseek/deepseek-r1:free",
+                "openai/gpt-3.5-turbo",
+                "anthropic/claude-3-haiku",
+                "meta-llama/llama-3.1-8b-instruct",
+            ]
+
+            completion = None
+            last_error = None
+
+            for model in models_to_try:
+                try:
+                    logger.info(f"🔧 Intentando modelo: {model}")
+                    completion = client.chat.completions.create(
+                        model=model,
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": (
+                                    "Eres Tena Copilot, un asistente de IA especializado en salud que ayuda a profesionales médicos. "
+                                    "Responde SIEMPRE en español y exclusivamente en formato de lista numerada simple y natural: "
+                                    "usa números (1., 2., 3.) para puntos principales, subpuntos con guiones (-) cuando aplique, y texto claro sin Markdown complejo. "
+                                    "Para evaluaciones kinésicas, incluye: evaluación subjetiva, evaluación objetiva, pruebas específicas, diagnóstico diferencial, y plan de tratamiento. "
+                                    "Sé específico, profesional y útil. No incluyas explicaciones fuera del contenido clínico."
+                                ),
+                            },
+                            {
+                                "role": "user",
+                                "content": f"Contexto clínico: {context}. Pregunta: {user_message}",
+                            },
+                        ],
+                        max_tokens=1000,
+                        temperature=0.7,
+                    )
+                    logger.info(f"✅ Modelo {model} funcionó")
+                    break
+                except Exception as e:
+                    last_error = e
+                    logger.warning(f"⚠️ Modelo {model} falló: {e}")
+                    continue
             logger.info("✅ Request enviado exitosamente")
 
             reply = ""
