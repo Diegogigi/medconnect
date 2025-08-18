@@ -21890,18 +21890,35 @@ def copilot_chat_test():
 
 # ========= Chat Copilot Health (OpenRouter) =========
 @app.route("/api/copilot/chat", methods=["POST"])
-@api_login_required
 def copilot_chat():
-    """Chat de Copilot Health mediante OpenRouter (deepseek/deepseek-r1:free)"""
+    """Chat de Tena Copilot mediante OpenRouter (deepseek/deepseek-r1:free)"""
     try:
-        from openai import OpenAI
-        import os
+        logger.info("🔍 Chat principal endpoint llamado")
 
+        # Verificar sesión manualmente (como en la versión que funciona)
+        user_id = session.get("user_id")
+        if not user_id:
+            logger.warning(
+                f"❌ Sesión no encontrada en chat principal. user_id: {user_id}"
+            )
+            return jsonify({"error": {"message": "User not found.", "code": 401}}), 401
+
+        logger.info(f"✅ Sesión válida en chat principal para user_id: {user_id}")
+
+        # Obtener datos del request
         data = request.get_json(force=True) or {}
         user_message = data.get("message", "").strip()
         context = data.get("context") or {}
+
         if not user_message:
             return jsonify({"success": False, "message": "Mensaje vacío"}), 400
+
+        logger.info(f"📝 Mensaje recibido: {user_message[:100]}...")
+        logger.info(f"📋 Contexto: {context}")
+
+        # Lógica original del chat con OpenRouter
+        from openai import OpenAI
+        import os
 
         api_key = (
             os.getenv("OPENROUTER_API_KEY")
@@ -21915,9 +21932,9 @@ def copilot_chat():
                 {
                     "role": "system",
                     "content": (
-                        "Eres Copilot Health, un asistente de IA que ayuda a profesionales de salud con análisis clínico y recomendaciones claras y seguras. "
-                        "Responde SIEMPRE en español y exclusivamente en Markdown bien estructurado: "
-                        "usa encabezados (##, ###) para secciones, listas con viñetas y numeradas, separadores (---) cuando aplique, negritas para subtítulos, y tablas cuando aporte claridad. "
+                        "Eres Tena Copilot, un asistente de IA que ayuda a profesionales de salud con análisis clínico y recomendaciones claras y seguras. "
+                        "Responde SIEMPRE en español y exclusivamente en formato de lista numerada simple y natural: "
+                        "usa números (1., 2., 3.) para puntos principales, subpuntos con guiones (-) cuando aplique, y texto claro sin Markdown complejo. "
                         "Evita texto corrido largo; prefiere secciones compactas y bullets. No incluyas explicaciones fuera del contenido clínico ni bloques de código."
                     ),
                 },
@@ -21943,9 +21960,15 @@ def copilot_chat():
                 reply = ""
         if not reply:
             reply = "No pude generar una respuesta en este momento."
+
+        logger.info(f"✅ Respuesta generada exitosamente")
         return jsonify({"success": True, "reply": reply})
+
     except Exception as e:
+        import traceback
+
         logger.error(f"❌ Error en copilot_chat: {e}")
+        logger.error(f"❌ Traceback: {traceback.format_exc()}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 
