@@ -753,7 +753,7 @@ CHUNK {i+1} [ID: {chunk.anchors[0]}]:
             # Configurar cliente OpenAI
             api_key = (
                 os.getenv("OPENROUTER_API_KEY")
-                or "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"
+                os.getenv("OPENROUTER_API_KEY")
             )
             client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
 

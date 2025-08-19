@@ -199,7 +199,7 @@ class UnifiedCopilotAssistant:
 
             self.openrouter_api_key = (
                 os.getenv("OPENROUTER_API_KEY")
-                or "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"
+                os.getenv("OPENROUTER_API_KEY")
             )
 
             self.openrouter_client = OpenAI(

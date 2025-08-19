@@ -22118,7 +22118,7 @@ def copilot_orchestrate():
         # 2) IA amplia (OpenRouter)
         api_key = (
             os.getenv("OPENROUTER_API_KEY")
-            or "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"
+            os.getenv("OPENROUTER_API_KEY")
         )
         client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
 
@@ -22497,3 +22497,69 @@ def generate_ai_insights():
         return jsonify({"success": True, "insights": insights})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ========= Endpoints Faltantes =========
+
+@app.route("/api/copilot/analyze-motivo", methods=["POST"])
+@api_login_required
+def analyze_motivo():
+    """Endpoint temporal para compatibilidad"""
+    try:
+        data = request.get_json(force=True) or {}
+        
+        # Redirigir a endpoint existente
+        if "/api/copilot/analyze-motivo" == "/api/copilot/analyze-motivo":
+            return redirect("/api/copilot/analyze-enhanced")
+        elif "/api/copilot/analyze-motivo" == "/api/copilot/generate-evaluation-questions":
+            return redirect("/api/copilot/generate-personalized-questions")
+        elif "/api/copilot/analyze-motivo" == "/api/copilot/search-with-terms":
+            return redirect("/api/copilot/search-with-key-terms")
+        else:
+            return jsonify({"success": False, "message": "Endpoint no implementado"}), 404
+            
+    except Exception as e:
+        logger.error(f"❌ Error en analyze_motivo: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/copilot/generate-evaluation-questions", methods=["POST"])
+@api_login_required
+def generate_evaluation_questions():
+    """Endpoint temporal para compatibilidad"""
+    try:
+        data = request.get_json(force=True) or {}
+        
+        # Redirigir a endpoint existente
+        if "/api/copilot/generate-evaluation-questions" == "/api/copilot/analyze-motivo":
+            return redirect("/api/copilot/analyze-enhanced")
+        elif "/api/copilot/generate-evaluation-questions" == "/api/copilot/generate-evaluation-questions":
+            return redirect("/api/copilot/generate-personalized-questions")
+        elif "/api/copilot/generate-evaluation-questions" == "/api/copilot/search-with-terms":
+            return redirect("/api/copilot/search-with-key-terms")
+        else:
+            return jsonify({"success": False, "message": "Endpoint no implementado"}), 404
+            
+    except Exception as e:
+        logger.error(f"❌ Error en generate_evaluation_questions: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route("/api/copilot/search-with-terms", methods=["POST"])
+@api_login_required
+def search_with_terms():
+    """Endpoint temporal para compatibilidad"""
+    try:
+        data = request.get_json(force=True) or {}
+        
+        # Redirigir a endpoint existente
+        if "/api/copilot/search-with-terms" == "/api/copilot/analyze-motivo":
+            return redirect("/api/copilot/analyze-enhanced")
+        elif "/api/copilot/search-with-terms" == "/api/copilot/generate-evaluation-questions":
+            return redirect("/api/copilot/generate-personalized-questions")
+        elif "/api/copilot/search-with-terms" == "/api/copilot/search-with-terms":
+            return redirect("/api/copilot/search-with-key-terms")
+        else:
+            return jsonify({"success": False, "message": "Endpoint no implementado"}), 404
+            
+    except Exception as e:
+        logger.error(f"❌ Error en search_with_terms: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500

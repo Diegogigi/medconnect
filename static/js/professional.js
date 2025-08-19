@@ -1,8 +1,8 @@
-// Archivo principal del dashboard profesional
-// Las funciones globales est n definidas en global-functions.js
+(// Archivo principal del dashboard profesional
+    // Las funciones globales est n definidas en global-functions.js
 
-// Variables globales para la agenda
-let currentDate = new Date();
+    // Variables globales para la agenda
+    let currentDate = new Date();
 let agendaData = {};
 let pacientesDropdownList = [];
 let currentView = 'diaria'; // diaria, semanal, mensual
@@ -6339,6 +6339,26 @@ let copilotChatMessages = [];
 let sidebarChatMessages = [];
 let sidebarChatActive = false;
 
+
+// Función para crear sidebarContainer si no existe
+function ensureSidebarContainer() {
+    let sidebarContainer = document.getElementById('sidebarContainer');
+    if (!sidebarContainer) {
+        sidebarContainer = document.createElement('div');
+        sidebarContainer.id = 'sidebarContainer';
+        sidebarContainer.className = 'sidebar-container';
+        sidebarContainer.style.cssText = 'position: fixed; right: 0; top: 0; width: 350px; height: 100vh; background: white; border-left: 1px solid #ddd; z-index: 1000; overflow-y: auto; transform: translateX(100%); transition: transform 0.3s ease;';
+        document.body.appendChild(sidebarContainer);
+        console.log('✅ sidebarContainer creado dinámicamente');
+    }
+    return sidebarContainer;
+}
+
+// Reemplazar todas las referencias a sidebarContainer
+function getSidebarContainer() {
+    return ensureSidebarContainer();
+}
+
 function inicializarCopilotChat() {
     // Crear contenedor de chat si no existe
     if (!copilotChatContainer) {
@@ -7199,8 +7219,8 @@ function eliminarMarkdown(texto) {
     resultado = resultado.replace(/__(.*?)__/g, '$1');
     resultado = resultado.replace(/_(.*?)_/g, '$1');
 
-    // Eliminar enlaces Markdown
-    resultado = resultado.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    // Eliminar enlaces Markdown (comentado temporalmente)
+    // resultado = resultado.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 
     // Eliminar listas con guiones y asteriscos
     resultado = resultado.replace(/^[\s]*[-*+]\s+/gm, '');
@@ -7639,7 +7659,7 @@ async function realizarAnalisisElegant(motivoConsulta, tipoAtencion, edad, antec
 // Función para generar preguntas personalizadas
 async function generarPreguntasPersonalizadas(motivoConsulta, tipoAtencion, edad, antecedentes) {
     try {
-        const response = await fetch('/api/copilot/generate-evaluation-questions', {
+        const response = await fetch('/api/copilot/generate-personalized-questions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -7667,7 +7687,7 @@ async function generarPreguntasPersonalizadas(motivoConsulta, tipoAtencion, edad
 // Función para analizar motivo de consulta mejorado
 async function analizarMotivoConsultaMejorado(motivoConsulta) {
     try {
-        const response = await fetch('/api/copilot/analyze-motivo', {
+        const response = await fetch('/api/copilot/analyze-enhanced', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -8384,7 +8404,7 @@ async function realizarBusquedaDesdeSidebar() {
     console.log('Datos:', { motivoConsulta, especialidad, edad, terminosSeleccionados });
 
     try {
-        const response = await fetch('/api/copilot/search-with-terms', {
+        const response = await fetch('/api/copilot/search-with-key-terms', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -8423,7 +8443,7 @@ async function realizarBusquedaAutomaticaDesdeSidebar() {
     console.log('🔍 Realizando búsqueda automática desde sidebar...');
 
     try {
-        const response = await fetch('/api/copilot/search-with-terms', {
+        const response = await fetch('/api/copilot/search-with-key-terms', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -8721,7 +8741,7 @@ function integrarSidebarConFuncionesExistentes() {
         actualizarEstadoSidebar('Realizando búsqueda...');
 
         try {
-            const response = await fetch('/api/copilot/search-with-terms', {
+            const response = await fetch('/api/copilot/search-with-key-terms', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -9711,7 +9731,7 @@ async function analizarMotivoAutomatico(motivoConsulta) {
     try {
         agregarMensajeElegant('Analizando motivo de consulta automáticamente...', 'auto');
 
-        const response = await fetch('/api/copilot/analyze-motivo', {
+        const response = await fetch('/api/copilot/analyze-enhanced', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ motivo_consulta: motivoConsulta })
@@ -9736,7 +9756,7 @@ async function generarPreguntasAutomaticas(datos) {
     try {
         agregarMensajeElegant('Generando preguntas personalizadas automáticamente...', 'auto');
 
-        const response = await fetch('/api/copilot/generate-evaluation-questions', {
+        const response = await fetch('/api/copilot/generate-personalized-questions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -9789,7 +9809,7 @@ async function buscarEvidenciaAutomatica(motivoConsulta) {
 
         console.log('🔍 Términos específicos filtrados:', terminosEspecificos);
 
-        const response = await fetch('/api/copilot/search-with-terms', {
+        const response = await fetch('/api/copilot/search-with-key-terms', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
