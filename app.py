@@ -22118,7 +22118,7 @@ def copilot_orchestrate():
         # 2) IA amplia (OpenRouter)
         api_key = (
             os.getenv("OPENROUTER_API_KEY")
-            or "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"
+            or "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"
         )
         client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
 
