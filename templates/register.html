@@ -3,628 +3,417 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro - MedConnect</title>
+    <title>MedConnect - Crear Cuenta</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
-        .register-container {
-            max-width: 800px;
-            margin: 30px auto;
-            padding: 25px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Colores iguales al login */
+            --color-primary: #0066cc;
+            --color-secondary: #6366f1;
+            --color-tertiary: #8b5cf6;
+            --color-accent: #a855f7;
+            --color-white: #ffffff;
+            --color-gray: #6b7280;
+            --color-light-gray: #f8fafc;
+            --color-success: #10b981;
+            --color-error: #ef4444;
+            
+            --gradient-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --gradient-button: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-tertiary) 100%);
+        }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: var(--gradient-bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .register-wrapper {
+            display: flex;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(93, 62, 143, 0.15);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 1200px;
+            width: 100%;
+            min-height: 700px;
+        }
+
+        .register-left {
+            flex: 1;
+            background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-tertiary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .welcome-container {
+            text-align: center;
+            color: white;
+            z-index: 2;
+        }
+
+        .welcome-icon {
+            font-size: 100px;
+            margin-bottom: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .welcome-text h2 {
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .welcome-text p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            line-height: 1.6;
+            max-width: 320px;
+        }
+
+        .register-right {
+            flex: 1.2;
+            padding: 40px 50px;
+            overflow-y: auto;
         }
 
         .register-header {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
 
         .register-header h1 {
-            color: rgb(96,75,217);
-            font-size: 2em;
+            color: var(--color-primary);
+            font-size: 2.2em;
+            font-weight: 700;
             margin-bottom: 8px;
         }
 
         .register-header p {
-            color: #666;
+            color: var(--color-gray);
             font-size: 1em;
-            margin-bottom: 0;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
         }
 
         .form-row {
             display: flex;
-            gap: 12px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
-        .form-row .form-group {
+        .form-group {
             flex: 1;
+            margin-bottom: 20px;
         }
 
-        label {
+        .form-group label {
             display: block;
             margin-bottom: 6px;
             font-weight: 600;
-            color: #333;
-            font-size: 1em;
+            color: var(--color-primary);
+            font-size: 14px;
         }
 
-        input, select, textarea {
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-gray);
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group select {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-            box-sizing: border-box;
+            padding: 12px 12px 12px 40px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #fafafa;
         }
 
-        input:focus, select:focus, textarea:focus {
+        .form-group input:focus, .form-group select:focus {
             outline: none;
-            border-color: rgb(96,75,217);
-            box-shadow: 0 0 0 3px rgba(96, 75, 217, 0.1);
+            border-color: var(--color-secondary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
 
-        textarea {
-            resize: vertical;
-            min-height: 70px;
+        .btn-register {
+            background: var(--gradient-button);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: var(--color-error);
+            border: 2px solid #fecaca;
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            color: var(--color-success);
+            border: 2px solid #bbf7d0;
         }
 
         .user-type-selector {
             display: flex;
-            gap: 12px;
-            margin-bottom: 15px;
+            gap: 10px;
+            margin-bottom: 25px;
         }
 
         .user-type-option {
             flex: 1;
             padding: 15px;
-            border: 2px solid #ddd;
+            border: 2px solid #e5e7eb;
             border-radius: 12px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s;
-            background: white;
+            transition: all 0.3s ease;
+            background: #fafafa;
         }
 
         .user-type-option:hover {
-            border-color: rgb(96,75,217);
-            background: #f8f6ff;
+            border-color: var(--color-secondary);
+            background: white;
         }
 
         .user-type-option.selected {
-            border-color: rgb(96,75,217);
-            background: rgb(96,75,217);
-            color: white;
+            border-color: var(--color-secondary);
+            background: rgba(99, 102, 241, 0.1);
         }
 
-        .user-type-option h3 {
-            margin: 0 0 5px 0;
-            font-size: 1.2em;
+        .user-type-option i {
+            font-size: 24px;
+            color: var(--color-secondary);
+            margin-bottom: 8px;
         }
 
-        .user-type-option p {
-            margin: 0;
-            font-size: 0.9em;
-            opacity: 0.8;
-        }
-
-        .professional-fields {
-            display: none;
-            background: #f8f6ff;
-            border: 2px solid #e8e0ff;
-            border-radius: 12px;
-            padding: 15px;
-            margin: 15px 0;
-        }
-
-        .professional-fields.show {
-            display: block;
-            animation: slideDown 0.3s ease-out;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .section-title {
-            color: rgb(96,75,217);
-            font-weight: 600;
-            margin-bottom: 12px;
-            padding-bottom: 6px;
-            border-bottom: 2px solid #e8e0ff;
-            font-size: 1.1em;
-        }
-
-        .register-btn {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, rgb(96,75,217) 0%, rgb(96,75,217) 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1.2em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 15px;
-        }
-
-        .register-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(96, 75, 217, 0.3);
-        }
-
-        .register-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .login-link {
+        .links {
             text-align: center;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #eee;
+            margin-top: 25px;
         }
 
-        .login-link a {
-            color: rgb(96,75,217);
+        .links a {
+            color: var(--color-secondary);
             text-decoration: none;
-            font-weight: 600;
-            font-size: 1em;
+            font-weight: 500;
+            margin: 0 15px;
+            font-size: 14px;
         }
 
-        .login-link a:hover {
+        .links a:hover {
             text-decoration: underline;
         }
 
-        .alert {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 1em;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .password-strength {
-            margin-top: 4px;
-            font-size: 0.85em;
-            color: #666;
-        }
-
-        .strength-weak { color: #dc3545; }
-        .strength-medium { color: #ffc107; }
-        .strength-strong { color: #28a745; }
-
-        .required-field::after {
-            content: " *";
-            color: #dc3545;
-        }
-
-        /* Optimización para campos específicos */
-        .form-section {
-            margin-bottom: 20px;
-        }
-
-        .form-section-title {
-            color: rgb(96,75,217);
-            font-weight: 600;
-            font-size: 1.1em;
-            margin-bottom: 12px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #e8e0ff;
-        }
-
-        /* Mejor distribución de campos profesionales */
-        .professional-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .professional-grid .form-group {
-            margin-bottom: 12px;
-        }
-
-        .professional-grid .form-group.full-width {
-            grid-column: 1 / -1;
-        }
-
+        /* Responsive */
         @media (max-width: 768px) {
-            .register-container {
-                margin: 15px;
-                padding: 20px;
+            .register-wrapper {
+                flex-direction: column;
+                margin: 10px;
             }
-
+            
+            .register-left {
+                min-height: 200px;
+            }
+            
+            .welcome-icon {
+                font-size: 70px;
+            }
+            
+            .welcome-text h2 {
+                font-size: 1.8em;
+            }
+            
+            .register-right {
+                padding: 30px 25px;
+            }
+            
             .form-row {
                 flex-direction: column;
                 gap: 0;
-            }
-
-            .user-type-selector {
-                flex-direction: column;
-            }
-
-            .professional-grid {
-                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <div class="register-container">
-        <div class="register-header">
-            <a href="{{ url_for('index') }}" style="text-decoration: none; color: inherit; display: block; text-align: center; margin-bottom: 15px;">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MedConnect Logo" style="width: 50px; height: 50px; margin-bottom: 8px; cursor: pointer;">
-            </a>
-            <h1>🏥 Crear Cuenta</h1>
-            <p>Únete a MedConnect y gestiona tu salud de manera fácil y segura</p>
+    <div class="register-wrapper">
+        <!-- Panel izquierdo con bienvenida -->
+        <div class="register-left">
+            <div class="welcome-container">
+                <div class="welcome-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="welcome-text">
+                    <h2>¡Únete!</h2>
+                    <h3>Crear Cuenta</h3>
+                    <p>Regístrate en MedConnect y accede a una plataforma integral de gestión médica familiar con IA inteligente.</p>
+                </div>
+            </div>
         </div>
 
-        {% if message %}
-            <div class="alert {{ 'alert-success' if success else 'alert-error' }}">
+        <!-- Panel derecho con formulario -->
+        <div class="register-right">
+            <div class="register-header">
+                <h1><i class="fas fa-heartbeat"></i> MedConnect</h1>
+                <p>Crear nueva cuenta</p>
+            </div>
+
+            {% if message %}
+            <div class="alert alert-{{ 'success' if success else 'error' }}">
+                <i class="fas fa-{{ 'check-circle' if success else 'exclamation-triangle' }}"></i>
                 {{ message }}
             </div>
-        {% endif %}
+            {% endif %}
 
-        <form id="registerForm" method="POST">
-            <!-- Tipo de Usuario -->
-            <div class="form-group">
-                <label>Tipo de Usuario</label>
-                <div class="user-type-selector">
-                    <div class="user-type-option" data-type="paciente">
-                        <h3>👤 Paciente</h3>
-                        <p>Gestiona tu historial médico</p>
+            <form method="POST" action="/register">
+                <!-- Selector de tipo de usuario -->
+                <div class="form-group">
+                    <label>Tipo de Usuario</label>
+                    <div class="user-type-selector">
+                        <div class="user-type-option selected" onclick="selectUserType('paciente', this)">
+                            <i class="fas fa-user"></i>
+                            <div><strong>Paciente</strong></div>
+                            <div style="font-size: 12px; color: var(--color-gray);">Gestiona tu salud</div>
+                        </div>
+                        <div class="user-type-option" onclick="selectUserType('profesional', this)">
+                            <i class="fas fa-user-md"></i>
+                            <div><strong>Profesional</strong></div>
+                            <div style="font-size: 12px; color: var(--color-gray);">Atiende pacientes</div>
+                        </div>
                     </div>
-                    <div class="user-type-option" data-type="profesional">
-                        <h3>👨‍⚕️ Profesional</h3>
-                        <p>Atiende a tus pacientes</p>
-                    </div>
-                </div>
-                <input type="hidden" name="tipo_usuario" id="tipo_usuario" required>
-            </div>
-
-            <!-- Información Personal -->
-            <div class="form-section">
-                <div class="form-section-title">Información Personal</div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="nombre" class="required-field">Nombre</label>
-                        <input type="text" id="nombre" name="nombre" required 
-                               placeholder="Ej: María">
-                    </div>
-                    <div class="form-group">
-                        <label for="apellido" class="required-field">Apellido</label>
-                        <input type="text" id="apellido" name="apellido" required 
-                               placeholder="Ej: González">
-                    </div>
+                    <input type="hidden" id="tipo_usuario" name="tipo_usuario" value="paciente">
                 </div>
 
+                <!-- Datos personales -->
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="email" class="required-field">Email</label>
-                        <input type="email" id="email" name="email" required 
-                               placeholder="ejemplo@email.com">
+                        <label for="nombre">Nombre</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="nombre" name="nombre" required placeholder="Tu nombre" />
+                        </div>
                     </div>
+                    <div class="form-group">
+                        <label for="apellido">Apellido</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="apellido" name="apellido" required placeholder="Tu apellido" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" name="email" required placeholder="tu@email.com" />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Contraseña</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="password" name="password" required placeholder="Mínimo 6 caracteres" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirmar</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="confirm_password" name="confirm_password" required placeholder="Repetir contraseña" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
                     <div class="form-group">
                         <label for="telefono">Teléfono</label>
-                        <input type="tel" id="telefono" name="telefono" 
-                               placeholder="+56912345678">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="fecha_nacimiento">Fecha de Nacimiento</label>
-                        <input type="date" id="fecha_nacimiento" name="fecha_nacimiento">
-                    </div>
-                    <div class="form-group">
-                        <label for="genero">Género</label>
-                        <select id="genero" name="genero">
-                            <option value="">Seleccionar...</option>
-                            <option value="Masculino">Masculino</option>
-                            <option value="Femenino">Femenino</option>
-                            <option value="Otro">Otro</option>
-                            <option value="Prefiero no decir">Prefiero no decir</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="direccion">Dirección</label>
-                        <input type="text" id="direccion" name="direccion" 
-                               placeholder="Calle y número">
+                        <div class="input-wrapper">
+                            <i class="fas fa-phone"></i>
+                            <input type="tel" id="telefono" name="telefono" placeholder="+56 9 1234 5678" />
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="ciudad">Ciudad</label>
-                        <input type="text" id="ciudad" name="ciudad" 
-                               placeholder="Santiago">
+                        <div class="input-wrapper">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <input type="text" id="ciudad" name="ciudad" placeholder="Tu ciudad" />
+                        </div>
                     </div>
                 </div>
+
+                <button type="submit" class="btn-register">
+                    <i class="fas fa-user-plus"></i> Crear Cuenta
+                </button>
+            </form>
+
+            <div class="links">
+                <a href="/login"><i class="fas fa-sign-in-alt"></i> Ya tengo cuenta</a>
+                <a href="/"><i class="fas fa-home"></i> Volver al inicio</a>
             </div>
-
-            <!-- Seguridad -->
-            <div class="form-section">
-                <div class="form-section-title">Seguridad</div>
-                <div class="form-group">
-                    <label for="password" class="required-field">Contraseña</label>
-                    <input type="password" id="password" name="password" required 
-                           placeholder="Mínimo 6 caracteres">
-                    <div id="passwordStrength" class="password-strength"></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="confirm_password" class="required-field">Confirmar Contraseña</label>
-                    <input type="password" id="confirm_password" name="confirm_password" required 
-                           placeholder="Repite tu contraseña">
-                </div>
-            </div>
-
-            <!-- Campos específicos para profesionales -->
-            <div id="professionalFields" class="professional-fields">
-                <h3 class="section-title">
-                    <i class="fas fa-user-md me-2"></i>
-                    Información Profesional
-                </h3>
-                
-                <div class="professional-grid">
-                    <!-- Profesión y Especialidad -->
-                    <div class="form-group">
-                        <label for="profesion" class="required-field">Profesión</label>
-                        <select id="profesion" name="profesion">
-                            <option value="">Seleccionar profesión...</option>
-                            <option value="Medicina General">Medicina General</option>
-                            <option value="Fisioterapia">Fisioterapia</option>
-                            <option value="Terapia Ocupacional">Terapia Ocupacional</option>
-                            <option value="Enfermería">Enfermería</option>
-                            <option value="Psicología">Psicología</option>
-                            <option value="Nutrición">Nutrición</option>
-                            <option value="Kinesiología">Kinesiología</option>
-                            <option value="Fonoaudiología">Fonoaudiología</option>
-                            <option value="Odontología">Odontología</option>
-                            <option value="Farmacia">Farmacia</option>
-                            <option value="Tecnología Médica">Tecnología Médica</option>
-                            <option value="Otro">Otro</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="especialidad">Especialidad</label>
-                        <input type="text" id="especialidad" name="especialidad" 
-                               placeholder="Ej: Cardiología, Pediatría, etc.">
-                    </div>
-
-                    <!-- Número de Registro y Años de Experiencia -->
-                    <div class="form-group">
-                        <label for="numero_registro" class="required-field">Número de Registro</label>
-                        <input type="text" id="numero_registro" name="numero_registro" 
-                               placeholder="Ej: 12345">
-                    </div>
-                    <div class="form-group">
-                        <label for="anos_experiencia">Años de Experiencia</label>
-                        <input type="number" id="anos_experiencia" name="anos_experiencia" 
-                               min="0" max="50" placeholder="0">
-                    </div>
-
-                    <!-- Institución y Título -->
-                    <div class="form-group">
-                        <label for="institucion" class="required-field">Institución de Formación</label>
-                        <input type="text" id="institucion" name="institucion" 
-                               placeholder="Ej: Universidad de Chile">
-                    </div>
-                    <div class="form-group">
-                        <label for="titulo" class="required-field">Título Profesional</label>
-                        <input type="text" id="titulo" name="titulo" 
-                               placeholder="Ej: Médico Cirujano">
-                    </div>
-
-                    <!-- Año de Egreso y Idiomas -->
-                    <div class="form-group">
-                        <label for="ano_egreso">Año de Egreso</label>
-                        <input type="number" id="ano_egreso" name="ano_egreso" 
-                               min="1950" max="2030" placeholder="2020">
-                    </div>
-                    <div class="form-group">
-                        <label for="idiomas">Idiomas</label>
-                        <input type="text" id="idiomas" name="idiomas" 
-                               placeholder="Ej: Español, Inglés, Francés">
-                    </div>
-
-                    <!-- Dirección de Consulta y Horario -->
-                    <div class="form-group">
-                        <label for="direccion_consulta">Dirección de Consulta</label>
-                        <input type="text" id="direccion_consulta" name="direccion_consulta" 
-                               placeholder="Dirección donde atiende">
-                    </div>
-                    <div class="form-group">
-                        <label for="horario_atencion">Horario de Atención</label>
-                        <input type="text" id="horario_atencion" name="horario_atencion" 
-                               placeholder="Ej: Lunes a Viernes 9:00-18:00">
-                    </div>
-
-                    <!-- Áreas de Especialización -->
-                    <div class="form-group full-width">
-                        <label for="areas_especializacion">Áreas de Especialización</label>
-                        <textarea id="areas_especializacion" name="areas_especializacion" 
-                                  placeholder="Describe tus áreas de especialización, técnicas que manejas, etc."></textarea>
-                    </div>
-
-                    <!-- Certificaciones -->
-                    <div class="form-group full-width">
-                        <label for="certificaciones">Certificaciones Adicionales</label>
-                        <textarea id="certificaciones" name="certificaciones" 
-                                  placeholder="Lista de certificaciones, cursos, diplomados, etc."></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <button type="submit" class="register-btn" id="submitBtn">
-                Crear Cuenta
-            </button>
-        </form>
-
-        <div class="login-link">
-            <p>¿Ya tienes cuenta? <a href="{{ url_for('login') }}">Inicia Sesión</a></p>
         </div>
     </div>
 
     <script>
-        // Selector de tipo de usuario
-        document.querySelectorAll('.user-type-option').forEach(option => {
-            option.addEventListener('click', function() {
-                // Remover selección anterior
-                document.querySelectorAll('.user-type-option').forEach(opt => 
-                    opt.classList.remove('selected'));
-                
-                // Seleccionar actual
-                this.classList.add('selected');
-                const userType = this.dataset.type;
-                document.getElementById('tipo_usuario').value = userType;
-                
-                // Mostrar/ocultar campos de profesional
-                const professionalFields = document.getElementById('professionalFields');
-                const professionalRequiredFields = ['profesion', 'numero_registro', 'institucion', 'titulo'];
-                
-                if (userType === 'profesional') {
-                    professionalFields.classList.add('show');
-                    // Agregar required a los campos de profesional
-                    professionalRequiredFields.forEach(fieldId => {
-                        const field = document.getElementById(fieldId);
-                        if (field) {
-                            field.setAttribute('required', 'required');
-                        }
-                    });
-                } else {
-                    professionalFields.classList.remove('show');
-                    // Remover required de los campos de profesional
-                    professionalRequiredFields.forEach(fieldId => {
-                        const field = document.getElementById(fieldId);
-                        if (field) {
-                            field.removeAttribute('required');
-                        }
-                    });
-                }
+        function selectUserType(type, element) {
+            // Remover selección anterior
+            document.querySelectorAll('.user-type-option').forEach(opt => {
+                opt.classList.remove('selected');
             });
-        });
-
-        // Validación de contraseña
-        document.getElementById('password').addEventListener('input', function() {
-            const password = this.value;
-            const strengthDiv = document.getElementById('passwordStrength');
             
-            if (password.length === 0) {
-                strengthDiv.textContent = '';
-                return;
-            }
-            
-            let strength = 0;
-            let feedback = [];
-            
-            if (password.length >= 6) strength++;
-            else feedback.push('al menos 6 caracteres');
-            
-            if (/[A-Za-z]/.test(password)) strength++;
-            else feedback.push('una letra');
-            
-            if (/[0-9]/.test(password)) strength++;
-            else feedback.push('un número');
-            
-            if (/[^A-Za-z0-9]/.test(password)) strength++;
-            
-            if (strength <= 1) {
-                strengthDiv.textContent = `Débil - Necesita: ${feedback.join(', ')}`;
-                strengthDiv.className = 'password-strength strength-weak';
-            } else if (strength <= 2) {
-                strengthDiv.textContent = 'Regular - Considera agregar símbolos';
-                strengthDiv.className = 'password-strength strength-medium';
-            } else {
-                strengthDiv.textContent = '¡Fuerte!';
-                strengthDiv.className = 'password-strength strength-strong';
-            }
-        });
-
-        // Validación de formulario
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
-            const tipoUsuario = document.getElementById('tipo_usuario').value;
-            
-            if (!tipoUsuario) {
-                alert('Por favor selecciona el tipo de usuario');
-                e.preventDefault();
-                return;
-            }
-            
-            if (password !== confirmPassword) {
-                alert('Las contraseñas no coinciden');
-                e.preventDefault();
-                return;
-            }
-            
-            if (password.length < 6) {
-                alert('La contraseña debe tener al menos 6 caracteres');
-                e.preventDefault();
-                return;
-            }
-            
-            // Validación específica para profesionales
-            if (tipoUsuario === 'profesional') {
-                const requiredFields = ['profesion', 'numero_registro', 'institucion', 'titulo'];
-                const missingFields = [];
-                
-                requiredFields.forEach(field => {
-                    const element = document.getElementById(field);
-                    if (!element.value.trim()) {
-                        missingFields.push(element.previousElementSibling.textContent.replace(' *', ''));
-                    }
-                });
-                
-                if (missingFields.length > 0) {
-                    alert(`Para profesionales, los siguientes campos son obligatorios:\n${missingFields.join('\n')}`);
-                    e.preventDefault();
-                    return;
-                }
-            }
-            
-            // Deshabilitar botón durante el envío
-            document.getElementById('submitBtn').disabled = true;
-            document.getElementById('submitBtn').textContent = 'Creando cuenta...';
-        });
-        
-        // Inicialización: asegurar que los campos de profesional no sean required por defecto
-        document.addEventListener('DOMContentLoaded', function() {
-            const professionalRequiredFields = ['profesion', 'numero_registro', 'institucion', 'titulo'];
-            professionalRequiredFields.forEach(fieldId => {
-                const field = document.getElementById(fieldId);
-                if (field) {
-                    field.removeAttribute('required');
-                }
-            });
-        });
+            // Seleccionar nuevo tipo
+            element.classList.add('selected');
+            document.getElementById('tipo_usuario').value = type;
+        }
     </script>
 </body>
-</html> 
+</html>
