@@ -10,6 +10,8 @@ if [ -z "$OPENROUTER_API_KEY" ]; then
     echo "❌ ERROR: OPENROUTER_API_KEY no configurada"
     echo "🔧 Configura esta variable en Railway Dashboard"
     exit 1
+else
+    echo "✅ OPENROUTER_API_KEY configurada correctamente"
 fi
 
 if [ -z "$FLASK_ENV" ]; then
@@ -30,7 +32,11 @@ fi
 echo "✅ Variables de entorno configuradas"
 echo "🔧 FLASK_ENV: $FLASK_ENV"
 echo "🔧 PORT: $PORT"
-echo "🔧 OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:0:10}..."
+if [ -n "$OPENROUTER_API_KEY" ]; then
+    echo "🔧 OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:0:10}..."
+else
+    echo "🔧 OPENROUTER_API_KEY: No configurada"
+fi
 
 # Iniciar la aplicación
 echo "🚀 Iniciando aplicación Flask..."

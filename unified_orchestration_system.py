@@ -751,10 +751,7 @@ CHUNK {i+1} [ID: {chunk.anchors[0]}]:
             import os
 
             # Configurar cliente OpenAI
-            api_key = (
-                os.getenv("OPENROUTER_API_KEY")
-                os.getenv("OPENROUTER_API_KEY")
-            )
+            api_key = os.getenv("OPENROUTER_API_KEY")
             client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
 
             # Llamar al LLM real

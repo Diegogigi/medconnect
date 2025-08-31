@@ -197,10 +197,7 @@ class UnifiedCopilotAssistant:
             import os
             from openai import OpenAI
 
-            self.openrouter_api_key = (
-                os.getenv("OPENROUTER_API_KEY")
-                os.getenv("OPENROUTER_API_KEY")
-            )
+            self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
 
             self.openrouter_client = OpenAI(
                 api_key=self.openrouter_api_key, base_url="https://openrouter.ai/api/v1"
