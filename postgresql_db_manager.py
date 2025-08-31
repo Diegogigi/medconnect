@@ -29,11 +29,15 @@ class PostgreSQLDBManager:
     def connect(self):
         """Conectar a PostgreSQL"""
         try:
+            # Priorizar DATABASE_URL (Railway)
             database_url = os.environ.get("DATABASE_URL")
-
+            
             if database_url:
+                logger.info("🔗 Conectando usando DATABASE_URL de Railway...")
                 self.conn = psycopg2.connect(database_url)
             else:
+                # Fallback para desarrollo local
+                logger.info("🔗 Conectando usando variables individuales...")
                 self.conn = psycopg2.connect(
                     host=os.environ.get("PGHOST", "localhost"),
                     database=os.environ.get("PGDATABASE", "medconnect"),
@@ -49,6 +53,9 @@ class PostgreSQLDBManager:
         except Exception as e:
             logger.error(f"❌ Error conectando a PostgreSQL: {e}")
             self.connected = False
+            # En Railway, si no hay DATABASE_URL, no intentar localhost
+            if not database_url:
+                logger.warning("⚠️ No se encontró DATABASE_URL - modo fallback activado")
 
     def is_connected(self) -> bool:
         """Verificar si está conectado"""
