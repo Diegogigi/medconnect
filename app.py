@@ -44,12 +44,12 @@ except Exception as e:
 
 # --- Config
 class Config:
-    # Variables de entorno críticas (sin defaults para seguridad)
-    SECRET_KEY = os.environ["SECRET_KEY"]  # Requerida
-    DATABASE_URL = os.environ["DATABASE_URL"]  # Requerida
+    # Variables de entorno críticas (con fallbacks para desarrollo)
+    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-local-12345")
+    DATABASE_URL = os.environ.get("DATABASE_URL", "")  # Vacía para desarrollo
     
     # Variables de entorno opcionales
-    FLASK_ENV = os.environ.get("FLASK_ENV", "production")
+    FLASK_ENV = os.environ.get("FLASK_ENV", "development")
     CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*")
     TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")  # opcional
     TELEGRAM_API = "https://api.telegram.org/bot{token}/sendMessage"
