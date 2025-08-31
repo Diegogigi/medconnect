@@ -27,19 +27,22 @@ except Exception:
 # Dependencias opcionales que tu app menciona:
 auth_manager = None
 postgres_db = None
-try:
-    from auth_manager import AuthManager
 
-    auth_manager = AuthManager()
-except Exception as e:
-    print(f"[WARN] AuthManager no disponible: {e}")
-
+# Inicializar PostgreSQL una sola vez
 try:
     from postgresql_db_manager import PostgreSQLDBManager
-
     postgres_db = PostgreSQLDBManager()
+    print(f"[INFO] PostgreSQLDBManager inicializado: {'Conectado' if postgres_db.is_connected() else 'Modo fallback'}")
 except Exception as e:
     print(f"[WARN] PostgreSQLDBManager no disponible: {e}")
+
+# Inicializar AuthManager con la instancia de PostgreSQL
+try:
+    from auth_manager import AuthManager
+    auth_manager = AuthManager(db_instance=postgres_db)  # Pasar la instancia existente
+    print(f"[INFO] AuthManager inicializado correctamente")
+except Exception as e:
+    print(f"[WARN] AuthManager no disponible: {e}")
 
 
 # --- Config
