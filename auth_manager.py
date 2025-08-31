@@ -6,8 +6,8 @@ Maneja registro, login y gestión de sesiones con Google Sheets
 """
 
 import os
-import gspread
-from google.oauth2.service_account import Credentials
+import psycopg2
+from psycopg2.extras import RealDictCursor
 import json
 import bcrypt
 from datetime import datetime

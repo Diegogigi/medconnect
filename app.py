@@ -53,11 +53,11 @@ try:
 
     logger.info("[OK] Bibliotecas est ndar importadas")
 
-    logger.info("[PAQUETE] Importando Google Sheets...")
-    import gspread
-    from google.oauth2.service_account import Credentials
+    logger.info("[PAQUETE] Importando PostgreSQL...")
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
 
-    logger.info("[OK] Google Sheets importado exitosamente")
+    logger.info("[OK] PostgreSQL importado exitosamente")
 
     logger.info("[PAQUETE] Importando m dulos locales...")
     from config import get_config, SHEETS_CONFIG
@@ -65,7 +65,7 @@ try:
 
     # Importar SheetsManager con manejo robusto de errores
     try:
-        from backend.database.sheets_manager import sheets_db
+        from postgresql_db_manager import PostgreSQLDBManager
 
         logger.info("[OK] SheetsManager importado correctamente")
     except Exception as e:
@@ -74,7 +74,7 @@ try:
         try:
             from sheets_manager_init import get_sheets_manager
 
-            sheets_db = get_sheets_manager()
+            postgres_db = PostgreSQLDBManager()
             if sheets_db:
                 logger.info("[OK] SheetsManager inicializado con m todo alternativo")
             else:
@@ -93,6 +93,19 @@ try:
     import secrets
 
     logger.info("[OK] Todas las importaciones completadas exitosamente")
+
+# Configurar PostgreSQL
+logger.info("[CONFIG] Configurando PostgreSQL...")
+try:
+    postgres_db = PostgreSQLDBManager()
+    if postgres_db.is_connected():
+        logger.info("[OK] PostgreSQL configurado exitosamente")
+    else:
+        logger.error("[ERROR] No se pudo conectar a PostgreSQL")
+        postgres_db = None
+except Exception as e:
+    logger.error(f"[ERROR] Error configurando PostgreSQL: {e}")
+    postgres_db = None
 
     # Importar m dulo Copilot Health
     logger.info("[PAQUETE] Importando Copilot Health...")
@@ -10737,7 +10750,7 @@ def get_professional_schedule():
         try:
             # Intentar usar el m todo optimizado primero
             try:
-                from backend.database.sheets_manager import sheets_db
+                from postgresql_db_manager import PostgreSQLDBManager
 
                 # Obtener agenda optimizada
                 schedule_data = sheets_db.get_professional_schedule_optimized(
@@ -11367,7 +11380,7 @@ def get_reminders():
 
         # Intentar usar el m todo optimizado primero
         try:
-            from backend.database.sheets_manager import sheets_db
+            from postgresql_db_manager import PostgreSQLDBManager
 
             # Obtener recordatorios usando el m todo optimizado
             recordatorios = sheets_db.get_user_active_reminders(profesional_id)
