@@ -55,7 +55,9 @@ class Config:
     # Configuración específica para Railway PostgreSQL
     DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:SBbyfurhbJUJsFbelYJCcOvkSpXDCNZd@postgres.railway.internal:5432/railway")
     OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "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")
-    PORT = int(os.environ.get("PORT", "5000"))app = Flask(__name__)
+    PORT = int(os.environ.get("PORT", "5000"))
+
+app = Flask(__name__)
 app.config.from_object(Config)
 
 # CORS seguro aunque no exista `config` externo
