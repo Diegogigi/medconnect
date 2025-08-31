@@ -29,21 +29,36 @@ class PostgreSQLDBManager:
     def connect(self):
         """Conectar a PostgreSQL"""
         try:
-            # Priorizar DATABASE_URL (Railway)
+            # Debug: Mostrar todas las variables de entorno relacionadas con DB
+            logger.info("🔍 Verificando variables de entorno de base de datos...")
             database_url = os.environ.get("DATABASE_URL")
+            pghost = os.environ.get("PGHOST")
+            pgdatabase = os.environ.get("PGDATABASE")
+            pguser = os.environ.get("PGUSER")
+            pgpassword = os.environ.get("PGPASSWORD")
+            pgport = os.environ.get("PGPORT")
+            
+            logger.info(f"📋 Variables encontradas:")
+            logger.info(f"   DATABASE_URL: {'✅ Configurada' if database_url else '❌ No configurada'}")
+            logger.info(f"   PGHOST: {pghost or 'No configurado'}")
+            logger.info(f"   PGDATABASE: {pgdatabase or 'No configurado'}")
+            logger.info(f"   PGUSER: {pguser or 'No configurado'}")
+            logger.info(f"   PGPASSWORD: {'✅ Configurada' if pgpassword else '❌ No configurada'}")
+            logger.info(f"   PGPORT: {pgport or 'No configurado'}")
             
             if database_url:
                 logger.info("🔗 Conectando usando DATABASE_URL de Railway...")
+                logger.info(f"   URL: {database_url[:50]}..." if len(database_url) > 50 else f"   URL: {database_url}")
                 self.conn = psycopg2.connect(database_url)
             else:
                 # Fallback para desarrollo local
                 logger.info("🔗 Conectando usando variables individuales...")
                 self.conn = psycopg2.connect(
-                    host=os.environ.get("PGHOST", "localhost"),
-                    database=os.environ.get("PGDATABASE", "medconnect"),
-                    user=os.environ.get("PGUSER", "postgres"),
-                    password=os.environ.get("PGPASSWORD", ""),
-                    port=os.environ.get("PGPORT", "5432"),
+                    host=pghost or "localhost",
+                    database=pgdatabase or "medconnect",
+                    user=pguser or "postgres",
+                    password=pgpassword or "",
+                    port=pgport or "5432",
                 )
 
             self.cursor = self.conn.cursor(cursor_factory=RealDictCursor)
@@ -56,6 +71,7 @@ class PostgreSQLDBManager:
             # En Railway, si no hay DATABASE_URL, no intentar localhost
             if not database_url:
                 logger.warning("⚠️ No se encontró DATABASE_URL - modo fallback activado")
+                logger.warning("🔧 Verifica que DATABASE_URL esté configurada en Railway")
 
     def is_connected(self) -> bool:
         """Verificar si está conectado"""

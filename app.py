@@ -42,19 +42,20 @@ except Exception as e:
 
 # --- Config
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+    # Variables de entorno con valores por defecto para Railway
+    SECRET_KEY = os.environ.get("SECRET_KEY", "medconnect-secret-key-2025-railway-production")
     FLASK_ENV = os.environ.get("FLASK_ENV", "production")
     CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*")
     TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")  # opcional
     TELEGRAM_API = "https://api.telegram.org/bot{token}/sendMessage"
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads")
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
-    PREFERRED_URL_SCHEME = (
-        "https" if "medconnect.cl" in os.environ.get("CUSTOM_DOMAIN", "") else "http"
-    )
-
-
-app = Flask(__name__)
+    PREFERRED_URL_SCHEME = "https" if "medconnect.cl" in os.environ.get("CUSTOM_DOMAIN","") else "http"
+    
+    # Configuración específica para Railway PostgreSQL
+    DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:SBbyfurhbJUJsFbelYJCcOvkSpXDCNZd@postgres.railway.internal:5432/railway")
+    OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "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")
+    PORT = int(os.environ.get("PORT", "5000"))app = Flask(__name__)
 app.config.from_object(Config)
 
 # CORS seguro aunque no exista `config` externo
