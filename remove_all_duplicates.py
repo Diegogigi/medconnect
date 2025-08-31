@@ -1,27 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script para eliminar endpoints duplicados en app.py
+Script para eliminar todos los endpoints duplicados en app.py
 """
 
 import re
 import logging
 
-# Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def remove_duplicate_endpoints():
-    """Eliminar endpoints duplicados"""
-    logger.info("🔧 Eliminando endpoints duplicados...")
+def remove_all_duplicates():
+    """Eliminar todos los endpoints duplicados"""
+    logger.info("🔧 Eliminando todos los endpoints duplicados...")
 
     try:
-        # Leer el archivo
         with open("app.py", "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Lista de patrones para diferentes endpoints duplicados
+        # Patrones para todos los endpoints duplicados encontrados
         patterns = [
             {
                 "name": "test_complete",
@@ -33,7 +31,15 @@ def remove_duplicate_endpoints():
             },
             {
                 "name": "serve_static",
-                "pattern": r'@app\.route\("/static/<path:filename>"\)\s*def serve_static\([^)]*\):[^@]*?return send_from_directory[^@]*?\n',
+                "pattern": r'@app\.route\("/static/<path:filename>"\)\s*def serve_static\([^)]*\):[^@]*?return[^@]*?\n(?=\s*(?:@app\.route|def|class|if __name__|$))',
+            },
+            {
+                "name": "uploaded_file",
+                "pattern": r'@app\.route\("/uploads/medical_files/<filename>"\)\s*def uploaded_file\([^)]*\):[^@]*?return[^@]*?\n(?=\s*(?:@app\.route|def|class|if __name__|$))',
+            },
+            {
+                "name": "upload_exam_file",
+                "pattern": r'@app\.route\("/api/patient/<patient_id>/exams/upload"[^)]*\)\s*def upload_exam_file\([^)]*\):[^@]*?return[^@]*?\n(?=\s*(?:@app\.route|def|class|if __name__|$))',
             },
         ]
 
@@ -46,15 +52,16 @@ def remove_duplicate_endpoints():
             logger.info(f"📊 Encontradas {len(matches)} definiciones de {name}")
 
             if len(matches) > 1:
-                # Mantener solo la primera definición
                 logger.info(f"🗑️ Eliminando definiciones duplicadas de {name}...")
 
-                # Eliminar desde la última hacia la primera para no afectar las posiciones
+                # Eliminar desde la última hacia la primera
                 for i in range(len(matches) - 1, 0, -1):
                     match = matches[i]
                     start, end = match.span()
+                    start_line = content[:start].count("\n") + 1
+                    end_line = content[:end].count("\n") + 1
                     logger.info(
-                        f"❌ Eliminando definición {i+1} de {name} (líneas {content[:start].count(chr(10))+1}-{content[:end].count(chr(10))+1})"
+                        f"❌ Eliminando definición {i+1} de {name} (líneas {start_line}-{end_line})"
                     )
                     content = content[:start] + content[end:]
 
@@ -76,9 +83,9 @@ def remove_duplicate_endpoints():
 
 def main():
     """Función principal"""
-    logger.info("🚀 Iniciando eliminación de endpoints duplicados...")
+    logger.info("🚀 Iniciando eliminación de todos los endpoints duplicados...")
 
-    if remove_duplicate_endpoints():
+    if remove_all_duplicates():
         logger.info("🎉 Proceso completado exitosamente")
         logger.info("💡 Ahora puedes ejecutar python app.py")
     else:

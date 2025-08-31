@@ -1,8 +1,8 @@
-(// Archivo principal del dashboard profesional
-    // Las funciones globales est n definidas en global-functions.js
+// Archivo principal del dashboard profesional
+// Las funciones globales están definidas en global-functions.js
 
-    // Variables globales para la agenda
-    let currentDate = new Date();
+// Variables globales para la agenda
+let currentDate = new Date();
 let agendaData = {};
 let pacientesDropdownList = [];
 let currentView = 'diaria'; // diaria, semanal, mensual
