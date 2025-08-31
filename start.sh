@@ -13,4 +13,4 @@ echo "✅ Variables verificadas"
 
 # Railway debería usar Procfile automáticamente
 # Si no, usar el comando directamente
-exec gunicorn -k gthread -w 2 -b 0.0.0.0:$PORT app:app --timeout 120 --log-level info
+exec gunicorn -k gthread -w 2 -b 0.0.0.0:$PORT app:app --timeout 120 --log-level info --access-logfile -

@@ -419,10 +419,4 @@ class AuthManager:
             }
 
 
-# Crear instancia global
-try:
-    auth_manager = AuthManager()
-    logger.info("✅ AuthManager inicializado correctamente")
-except Exception as e:
-    logger.error(f"❌ Error inicializando AuthManager: {e}")
-    auth_manager = None
+# No crear instancia global - se crea en app.py cuando sea necesario
