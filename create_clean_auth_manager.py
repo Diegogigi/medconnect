@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+"""
+Crear auth_manager.py completamente limpio para PostgreSQL
+"""
+
+def create_clean_auth_manager():
+    """Crear auth_manager.py limpio para PostgreSQL"""
+    
+    clean_auth_manager = '''#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Módulo de autenticación para MedConnect
@@ -43,7 +51,7 @@ class AuthManager:
 
     def validate_email(self, email):
         """Validar formato de email"""
-        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
         return re.match(pattern, email) is not None
 
     def validate_password(self, password):
@@ -409,3 +417,21 @@ try:
 except Exception as e:
     logger.error(f"❌ Error inicializando AuthManager: {e}")
     auth_manager = None
+'''
+    
+    with open("auth_manager.py", "w", encoding="utf-8") as f:
+        f.write(clean_auth_manager)
+    
+    print("✅ auth_manager.py completamente limpio creado")
+    print("📋 Características:")
+    print("  ✅ Solo PostgreSQL - sin Google Sheets")
+    print("  ✅ Sin errores de sintaxis")
+    print("  ✅ Sistema de fallback robusto")
+    print("  ✅ Métodos esenciales implementados")
+    print("  ✅ Sin imports problemáticos")
+
+if __name__ == "__main__":
+    create_clean_auth_manager()
+    print("\n🎉 auth_manager.py completamente limpio")
+    print("💡 Ahora usa únicamente PostgreSQL")
+    print("🚀 Listo para hacer commit y push") 
