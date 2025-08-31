@@ -1,47 +1,49 @@
 #!/usr/bin/env python3
 """
-Script para corregir el error de sintaxis en app.py
+Script para arreglar el error de sintaxis en app.py
 """
 
 
 def fix_syntax_error():
-    """Corrige el error de sintaxis en app.py"""
+    """Arregla el error de sintaxis en app.py"""
 
-    print("🔧 Corrigiendo error de sintaxis en app.py...")
+    print("🔧 Arreglando error de sintaxis en app.py...")
 
-    # Leer el archivo
+    # Leer el archivo app.py
     with open("app.py", "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Corregir el bloque try-except mal estructurado
-    # Buscar el patrón problemático
-    problematic_pattern = """except Exception as e:
-    logger.error(f"[ERROR] Error durante las importaciones: {e}")
-    logger.error(f"[ERROR] Tipo de error: {type(e).__name__}")
-    import traceback
+    # Buscar y reemplazar la línea problemática
+    old_line = 'PORT = int(os.environ.get("PORT", "5000"))app = Flask(__name__)'
+    new_lines = """PORT = int(os.environ.get("PORT", "5000"))
 
-    logger.error(f"[ERROR] Traceback completo: {traceback.format_exc()}")
-    raise"""
+app = Flask(__name__)"""
 
-    fixed_pattern = """    except Exception as e:
-        logger.error(f"[ERROR] Error cargando Copilot Health: {e}")
+    if old_line in content:
+        content = content.replace(old_line, new_lines)
 
-except Exception as e:
-    logger.error(f"[ERROR] Error durante las importaciones: {e}")
-    logger.error(f"[ERROR] Tipo de error: {type(e).__name__}")
-    import traceback
+        # Escribir el archivo corregido
+        with open("app.py", "w", encoding="utf-8") as f:
+            f.write(content)
 
-    logger.error(f"[ERROR] Traceback completo: {traceback.format_exc()}")
-    raise"""
+        print("✅ Error de sintaxis corregido")
+        print("🔧 Ahora la aplicación debería iniciar correctamente")
+    else:
+        print("❌ No se encontró la línea problemática")
+        print("🔍 Verificando si hay otros errores de sintaxis...")
 
-    # Reemplazar
-    content = content.replace(problematic_pattern, fixed_pattern)
+        # Verificar si hay otros problemas similares
+        if "))app" in content:
+            print("⚠️ Se encontraron otros posibles errores de sintaxis")
+            print("   Buscando líneas pegadas...")
 
-    # Escribir el archivo corregido
-    with open("app.py", "w", encoding="utf-8") as f:
-        f.write(content)
-
-    print("✅ Error de sintaxis corregido en app.py")
+            # Buscar líneas que terminen en )) y empiecen con app
+            lines = content.split("\n")
+            for i, line in enumerate(lines):
+                if "))app" in line:
+                    print(f"   Línea {i+1}: {line[:50]}...")
+        else:
+            print("✅ No se encontraron otros errores de sintaxis")
 
 
 if __name__ == "__main__":

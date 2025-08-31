@@ -14,6 +14,8 @@ from flask import (
     make_response,
     send_from_directory,
 )
+import traceback
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_cors import CORS
 
 # --- Opcionales/externos
@@ -42,8 +44,11 @@ except Exception as e:
 
 # --- Config
 class Config:
-    # Variables de entorno con valores por defecto para Railway
-    SECRET_KEY = os.environ.get("SECRET_KEY", "medconnect-secret-key-2025-railway-production")
+    # Variables de entorno críticas (sin defaults para seguridad)
+    SECRET_KEY = os.environ["SECRET_KEY"]  # Requerida
+    DATABASE_URL = os.environ["DATABASE_URL"]  # Requerida
+    
+    # Variables de entorno opcionales
     FLASK_ENV = os.environ.get("FLASK_ENV", "production")
     CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*")
     TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")  # opcional
@@ -52,16 +57,25 @@ class Config:
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
     PREFERRED_URL_SCHEME = "https" if "medconnect.cl" in os.environ.get("CUSTOM_DOMAIN","") else "http"
     
-    # Configuración específica para Railway PostgreSQL
-    DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:SBbyfurhbJUJsFbelYJCcOvkSpXDCNZd@postgres.railway.internal:5432/railway")
-    OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "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")
-    PORT = int(os.environ.get("PORT", "5000"))
+    # Configuración específica para Railway
+    OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")  # opcional
+    PORT = int(os.environ.get("PORT", "8000"))  # Default coherente con PaaS
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# ProxyFix para respetar X-Forwarded-* headers (HTTPS detrás de PaaS)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
 # CORS seguro aunque no exista `config` externo
 CORS(app, origins=app.config["CORS_ORIGINS"])
+
+# Configuración de cookies de sesión (seguridad)
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax"
+)
 
 # WhiteNoise para estáticos si está disponible
 app.static_folder = "static"
@@ -838,4 +852,6 @@ def internal_error(e):
 
 # ---------- MAIN ----------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # Usa SIEMPRE la config ya cargada (y loguea el puerto)
+    logger.info(f"🌐 Binding Flask en 0.0.0.0:{app.config['PORT']}")
+    app.run(host="0.0.0.0", port=app.config["PORT"])
