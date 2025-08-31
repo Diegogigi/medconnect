@@ -92,4 +92,11 @@ beautifulsoup4>=4.12.0
 redis>=5.0.0
 
 # Logging y monitoreo
-structlog>=23.0.0 
+structlog>=23.0.0
+
+# ===== POSTGRESQL DATABASE =====
+# PostgreSQL adapter para Python
+psycopg2-binary>=2.9.7
+
+# ORM opcional (para consultas más complejas)
+SQLAlchemy>=2.0.21 
