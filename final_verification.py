@@ -72,7 +72,7 @@ def final_verification():
         print("✅ Base de datos lista para producción")
         
         return True
-        
+            
     except Exception as e:
         print(f"❌ Error en verificación: {e}")
         return False

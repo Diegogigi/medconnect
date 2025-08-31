@@ -60,29 +60,17 @@ try:
     logger.info("[OK] PostgreSQL importado exitosamente")
 
     logger.info("[PAQUETE] Importando m dulos locales...")
-    from config import get_config, SHEETS_CONFIG
+    # Configuración básica sin Google Sheets
     from auth_manager import AuthManager
 
-    # Importar SheetsManager con manejo robusto de errores
+    # Importar PostgreSQL Manager
     try:
         from postgresql_db_manager import PostgreSQLDBManager
-
-        logger.info("[OK] SheetsManager importado correctamente")
+        postgres_db = PostgreSQLDBManager()
+        logger.info("[OK] PostgreSQL Manager importado correctamente")
     except Exception as e:
-        logger.error(f"[ERROR] Error importando SheetsManager: {e}")
-        # Intentar inicializaci n alternativa
-        try:
-            from sheets_manager_init import get_sheets_manager
-
-            postgres_db = PostgreSQLDBManager()
-            if sheets_db:
-                logger.info("[OK] SheetsManager inicializado con m todo alternativo")
-            else:
-                logger.error("[ERROR] No se pudo inicializar SheetsManager")
-                sheets_db = None
-        except Exception as e2:
-            logger.error(f"[ERROR] Error en inicializaci n alternativa: {e2}")
-            sheets_db = None
+        logger.error(f"[ERROR] Error importando PostgreSQL Manager: {e}")
+        postgres_db = None
 
     logger.info("[OK] M dulos locales importados")
 
@@ -131,12 +119,13 @@ except Exception as e:
 
 # Inicializar Flask
 app = Flask(__name__)
-config = get_config()
-app.config.from_object(config)
+
+# Configuración básica
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
+app.config['FLASK_ENV'] = os.environ.get('FLASK_ENV', 'development')
 
 # Variables globales
 start_time = time.time()  # Tiempo de inicio de la aplicación
-SPREADSHEET_ID = config.GOOGLE_SHEETS_ID  # ID de la hoja de cálculo de Google
 
 # Configurar archivos estáticos para producción
 # Múltiples métodos para asegurar que funcione en Railway
