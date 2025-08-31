@@ -457,19 +457,39 @@ def register():
             return _register_fallback_html()
     
     try:
-        # Obtener datos del formulario
+        # Obtener datos del formulario según tipo de usuario
+        tipo_usuario = request.form.get('tipo_usuario', 'paciente').strip()
+        
         user_data = {
             'email': request.form.get('email', '').strip().lower(),
             'password': request.form.get('password', ''),
             'nombre': request.form.get('nombre', '').strip(),
             'apellido': request.form.get('apellido', '').strip(),
-            'telefono': request.form.get('telefono', '').strip(),
-            'fecha_nacimiento': request.form.get('fecha_nacimiento', ''),
-            'genero': request.form.get('genero', ''),
-            'direccion': request.form.get('direccion', '').strip(),
-            'ciudad': request.form.get('ciudad', '').strip(),
-            'tipo_usuario': request.form.get('tipo_usuario', 'paciente').strip()
+            'tipo_usuario': tipo_usuario
         }
+        
+        # Agregar campos específicos según tipo de usuario
+        if tipo_usuario == 'paciente':
+            user_data.update({
+                'rut': request.form.get('rut', '').strip(),
+                'fecha_nacimiento': request.form.get('fecha_nacimiento', ''),
+                'genero': request.form.get('genero', ''),
+                'telefono': request.form.get('telefono', '').strip(),
+                'direccion': request.form.get('direccion', '').strip(),
+                'antecedentes_medicos': request.form.get('antecedentes_medicos', '').strip()
+            })
+        elif tipo_usuario == 'profesional':
+            user_data.update({
+                'numero_registro': request.form.get('numero_registro', '').strip(),
+                'especialidad': request.form.get('especialidad', '').strip(),
+                'profesion': request.form.get('profesion', '').strip(),
+                'anos_experiencia': request.form.get('anos_experiencia', ''),
+                'institucion': request.form.get('institucion', '').strip(),
+                'direccion_consulta': request.form.get('direccion_consulta', '').strip(),
+                'horario_atencion': request.form.get('horario_atencion', '').strip(),
+                'idiomas': request.form.get('idiomas', '').strip(),
+                'calificacion': request.form.get('calificacion', '').strip()
+            })
         
         # Validar confirmación de contraseña
         confirm_password = request.form.get('confirm_password', '')

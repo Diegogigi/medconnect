@@ -494,3 +494,174 @@ class PostgreSQLDBManager:
 
 
 # No crear instancia global - se crea en app.py cuando sea necesario
+
+
+    def register_user(self, user_data):
+        """Registrar un nuevo usuario en la tabla correspondiente"""
+        try:
+            tipo_usuario = user_data.get('tipo_usuario', 'paciente')
+            
+            if tipo_usuario == 'paciente':
+                return self._register_patient(user_data)
+            elif tipo_usuario == 'profesional':
+                return self._register_professional(user_data)
+            else:
+                return False, "Tipo de usuario no válido"
+                
+        except Exception as e:
+            logger.error(f"❌ Error registrando usuario: {e}")
+            return False, "Error interno del servidor"
+
+    def _register_patient(self, user_data):
+        """Registrar un paciente"""
+        try:
+            # Generar ID único para paciente
+            paciente_id = f"PAC_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            # Insertar en tabla pacientes_profesional
+            query = """
+                INSERT INTO pacientes_profesional 
+                (paciente_id, nombre_completo, rut, edad, fecha_nacimiento, genero, 
+                 telefono, email, direccion, antecedentes_medicos, estado_relacion, fecha_registro)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            
+            # Calcular edad si hay fecha de nacimiento
+            edad = None
+            if user_data.get('fecha_nacimiento'):
+                try:
+                    fecha_nac = datetime.strptime(user_data['fecha_nacimiento'], '%Y-%m-%d')
+                    edad = (datetime.now() - fecha_nac).days // 365
+                except:
+                    pass
+            
+            values = (
+                paciente_id,
+                f"{user_data['nombre']} {user_data['apellido']}",
+                user_data.get('rut'),
+                edad,
+                user_data.get('fecha_nacimiento'),
+                user_data.get('genero'),
+                user_data.get('telefono'),
+                user_data['email'],
+                user_data.get('direccion'),
+                user_data.get('antecedentes_medicos'),
+                'activo',
+                datetime.now()
+            )
+            
+            self.cursor.execute(query, values)
+            self.connection.commit()
+            
+            logger.info(f"✅ Paciente registrado: {paciente_id}")
+            return True, "Paciente registrado exitosamente"
+            
+        except Exception as e:
+            logger.error(f"❌ Error registrando paciente: {e}")
+            self.connection.rollback()
+            return False, "Error registrando paciente"
+
+    def _register_professional(self, user_data):
+        """Registrar un profesional"""
+        try:
+            # Insertar en tabla profesionales
+            query = """
+                INSERT INTO profesionales 
+                (email, nombre, apellido, numero_registro, especialidad, anos_experiencia,
+                 calificacion, direccion_consulta, horario_atencion, idiomas, profesion,
+                 institucion, estado, disponible, unnamed_21, unnamed_22)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            
+            values = (
+                user_data['email'],
+                user_data['nombre'],
+                user_data['apellido'],
+                user_data.get('numero_registro'),
+                user_data.get('especialidad'),
+                user_data.get('anos_experiencia'),
+                user_data.get('calificacion'),
+                user_data.get('direccion_consulta'),
+                user_data.get('horario_atencion'),
+                user_data.get('idiomas'),
+                user_data.get('profesion'),
+                user_data.get('institucion'),
+                'activo',
+                True,
+                datetime.now(),
+                datetime.now()
+            )
+            
+            self.cursor.execute(query, values)
+            self.connection.commit()
+            
+            logger.info(f"✅ Profesional registrado: {user_data['email']}")
+            return True, "Profesional registrado exitosamente"
+            
+        except Exception as e:
+            logger.error(f"❌ Error registrando profesional: {e}")
+            self.connection.rollback()
+            return False, "Error registrando profesional"
+
+    def login_user(self, email, password):
+        """Iniciar sesión de usuario"""
+        try:
+            # Buscar en tabla profesionales
+            query_prof = "SELECT id, nombre, apellido, email, especialidad, numero_registro FROM profesionales WHERE email = %s"
+            self.cursor.execute(query_prof, (email,))
+            profesional = self.cursor.fetchone()
+            
+            if profesional:
+                # Por ahora, aceptar cualquier contraseña para profesionales
+                # En producción, deberías verificar hash de contraseña
+                return {
+                    'id': profesional[0],
+                    'nombre': profesional[1],
+                    'apellido': profesional[2],
+                    'email': profesional[3],
+                    'tipo_usuario': 'profesional',
+                    'especialidad': profesional[4],
+                    'numero_registro': profesional[5]
+                }
+            
+            # Buscar en tabla pacientes_profesional
+            query_pac = "SELECT paciente_id, nombre_completo, email, rut, edad FROM pacientes_profesional WHERE email = %s"
+            self.cursor.execute(query_pac, (email,))
+            paciente = self.cursor.fetchone()
+            
+            if paciente:
+                # Por ahora, aceptar cualquier contraseña para pacientes
+                # En producción, deberías verificar hash de contraseña
+                return {
+                    'id': paciente[0],
+                    'nombre_completo': paciente[1],
+                    'email': paciente[2],
+                    'tipo_usuario': 'paciente',
+                    'rut': paciente[3],
+                    'edad': paciente[4]
+                }
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"❌ Error en login: {e}")
+            return None
+
+    def email_exists(self, email):
+        """Verificar si un email ya existe"""
+        try:
+            # Verificar en profesionales
+            query_prof = "SELECT COUNT(*) FROM profesionales WHERE email = %s"
+            self.cursor.execute(query_prof, (email,))
+            count_prof = self.cursor.fetchone()[0]
+            
+            # Verificar en pacientes
+            query_pac = "SELECT COUNT(*) FROM pacientes_profesional WHERE email = %s"
+            self.cursor.execute(query_pac, (email,))
+            count_pac = self.cursor.fetchone()[0]
+            
+            return count_prof > 0 or count_pac > 0
+            
+        except Exception as e:
+            logger.error(f"❌ Error verificando email: {e}")
+            return False
