@@ -332,23 +332,61 @@
             class="ai-image"
           />
         </div>
-
-        <div class="welcome-text">
-          <h2>¡HOLA!</h2>
-          <h3>Bienvenido</h3>
-          <p>
-            Estás a punto de acceder a MedConnect, donde podrás gestionar tu
-            información clínica y permitir que tus familiares se mantengan
-            informados sobre tu salud.
-          </p>
-        </div>
       </div>
 
       <!-- Panel derecho con formulario -->
       <div class="login-right">
         <div class="login-header">
-          <h1><i class="fas fa-heartbeat"></i> MedConnect</h1>
+          <img
+            src="{{ url_for('static', filename='images/logo.png') }}"
+            alt="MedConnect Logo"
+            style="
+              width: 80px;
+              height: 80px;
+              object-fit: contain;
+              margin-bottom: 15px;
+              border-radius: 12px;
+            "
+          />
+          <h1>MedConnect</h1>
           <p>Accede a tu plataforma médica</p>
+        </div>
+
+        <div
+          class="welcome-section"
+          style="
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 16px;
+          "
+        >
+          <h2
+            style="
+              color: var(--color-primary);
+              font-size: 1.8em;
+              font-weight: 700;
+              margin-bottom: 10px;
+            "
+          >
+            ¡HOLA!
+          </h2>
+          <h3
+            style="
+              color: var(--color-secondary);
+              font-size: 1.3em;
+              font-weight: 500;
+              margin-bottom: 15px;
+            "
+          >
+            Bienvenido
+          </h3>
+          <p style="color: var(--color-gray); font-size: 1em; line-height: 1.6">
+            Estás a punto de acceder a MedConnect, donde podrás gestionar tu
+            información clínica y permitir que tus familiares se mantengan
+            informados sobre tu salud.
+          </p>
         </div>
 
         {% if message %}
