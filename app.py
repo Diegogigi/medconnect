@@ -852,6 +852,6 @@ def internal_error(e):
 
 # ---------- MAIN ----------
 if __name__ == "__main__":
-    # Usa SIEMPRE la config ya cargada (y loguea el puerto)
-    logger.info(f"🌐 Binding Flask en 0.0.0.0:{app.config['PORT']}")
-    app.run(host="0.0.0.0", port=app.config["PORT"])
+    # Solo para desarrollo local (no se ejecuta con Gunicorn)
+    logger.info(f"🌐 Iniciando Flask en modo desarrollo - puerto: {app.config['PORT']}")
+    app.run(host="0.0.0.0", port=app.config["PORT"], debug=True)
