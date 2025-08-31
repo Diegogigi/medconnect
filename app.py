@@ -318,40 +318,8 @@ def favicon():
 
 @app.route("/")
 def index():
-    # Página simple de bienvenida para desarrollo
-    html = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>MedConnect - Desarrollo Local</title>
-        <style>
-            body { font-family: Arial; margin: 40px; background: #f0f0f0; }
-            .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; }
-            .btn { background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 5px; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>🏥 MedConnect</h1>
-            <p><strong>Modo:</strong> Desarrollo Local</p>
-            <p>✅ Aplicación funcionando correctamente</p>
-            
-            <h3>🔐 Acceso:</h3>
-            <p>Usuarios de prueba:</p>
-            <ul>
-                <li>Paciente: paciente@test.com / password123</li>
-                <li>Profesional: diego.castro.lagos@gmail.com / password123</li>
-            </ul>
-            <a href="/login" class="btn">Iniciar Sesión</a>
-            
-            <h3>🧪 Pruebas:</h3>
-            <a href="/health" class="btn">Health Check</a>
-            <a href="/api/patient/1/consultations" class="btn">API Consultas</a>
-        </div>
-    </body>
-    </html>
-    """
-    return html
+    """Página principal - Landing page original"""
+    return render_template("index.html")
 # ---------- AUTH ----------
 @app.route("/login", methods=["GET", "POST"])
 def login():
