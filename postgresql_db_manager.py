@@ -37,18 +37,26 @@ class PostgreSQLDBManager:
             pguser = os.environ.get("PGUSER")
             pgpassword = os.environ.get("PGPASSWORD")
             pgport = os.environ.get("PGPORT")
-            
+
             logger.info(f"📋 Variables encontradas:")
-            logger.info(f"   DATABASE_URL: {'✅ Configurada' if database_url else '❌ No configurada'}")
+            logger.info(
+                f"   DATABASE_URL: {'✅ Configurada' if database_url else '❌ No configurada'}"
+            )
             logger.info(f"   PGHOST: {pghost or 'No configurado'}")
             logger.info(f"   PGDATABASE: {pgdatabase or 'No configurado'}")
             logger.info(f"   PGUSER: {pguser or 'No configurado'}")
-            logger.info(f"   PGPASSWORD: {'✅ Configurada' if pgpassword else '❌ No configurada'}")
+            logger.info(
+                f"   PGPASSWORD: {'✅ Configurada' if pgpassword else '❌ No configurada'}"
+            )
             logger.info(f"   PGPORT: {pgport or 'No configurado'}")
-            
+
             if database_url:
                 logger.info("🔗 Conectando usando DATABASE_URL de Railway...")
-                logger.info(f"   URL: {database_url[:50]}..." if len(database_url) > 50 else f"   URL: {database_url}")
+                logger.info(
+                    f"   URL: {database_url[:50]}..."
+                    if len(database_url) > 50
+                    else f"   URL: {database_url}"
+                )
                 self.conn = psycopg2.connect(database_url)
             else:
                 # Fallback para desarrollo local
@@ -71,7 +79,9 @@ class PostgreSQLDBManager:
             # En Railway, si no hay DATABASE_URL, no intentar localhost
             if not database_url:
                 logger.warning("⚠️ No se encontró DATABASE_URL - modo fallback activado")
-                logger.warning("🔧 Verifica que DATABASE_URL esté configurada en Railway")
+                logger.warning(
+                    "🔧 Verifica que DATABASE_URL esté configurada en Railway"
+                )
 
     def is_connected(self) -> bool:
         """Verificar si está conectado"""
@@ -483,5 +493,4 @@ class PostgreSQLDBManager:
         logger.info("🔒 Conexión PostgreSQL DB Manager cerrada")
 
 
-# Instancia global
-postgresql_db = PostgreSQLDBManager()
+# No crear instancia global - se crea en app.py cuando sea necesario

@@ -19,27 +19,44 @@ logger = logging.getLogger(__name__)
 
 logger.info("🔍 Iniciando AuthManager con PostgreSQL...")
 
+
 class AuthManager:
-    def __init__(self):
+    def __init__(self, db_instance=None):
         """Inicializar el gestor de autenticación con PostgreSQL"""
         self.postgres_db = None
         self.use_fallback = False
 
-        try:
-            # Importar PostgreSQL Manager
-            from postgresql_db_manager import PostgreSQLDBManager
-            self.postgres_db = PostgreSQLDBManager()
-            
+        if db_instance:
+            # Usar instancia existente
+            self.postgres_db = db_instance
             if self.postgres_db.is_connected():
-                logger.info("✅ AuthManager inicializado con PostgreSQL")
+                logger.info(
+                    "✅ AuthManager inicializado con PostgreSQL (instancia compartida)"
+                )
             else:
-                logger.warning("⚠️ PostgreSQL no disponible - usando sistema de fallback")
+                logger.warning(
+                    "⚠️ PostgreSQL no disponible - usando sistema de fallback"
+                )
                 self.use_fallback = True
-                
-        except Exception as e:
-            logger.error(f"❌ Error inicializando AuthManager: {e}")
-            logger.warning("⚠️ Usando sistema de fallback")
-            self.use_fallback = True
+        else:
+            # Crear nueva instancia si no se proporciona una
+            try:
+                from postgresql_db_manager import PostgreSQLDBManager
+
+                self.postgres_db = PostgreSQLDBManager()
+
+                if self.postgres_db.is_connected():
+                    logger.info("✅ AuthManager inicializado con PostgreSQL")
+                else:
+                    logger.warning(
+                        "⚠️ PostgreSQL no disponible - usando sistema de fallback"
+                    )
+                    self.use_fallback = True
+
+            except Exception as e:
+                logger.error(f"❌ Error inicializando AuthManager: {e}")
+                logger.warning("⚠️ Usando sistema de fallback")
+                self.use_fallback = True
 
     def validate_email(self, email):
         """Validar formato de email"""
@@ -69,7 +86,7 @@ class AuthManager:
         try:
             if self.use_fallback:
                 return email in ["diego.castro.lagos@gmail.com", "paciente@test.com"]
-            
+
             if self.postgres_db:
                 user_record = self.postgres_db.get_user_by_email(email)
                 return user_record is not None
@@ -86,36 +103,36 @@ class AuthManager:
         try:
             if not self.postgres_db:
                 return self._login_user_fallback(email, password)
-            
+
             # Buscar usuario por email en PostgreSQL
             user_record = self.postgres_db.get_user_by_email(email)
-            
+
             if not user_record:
                 return False, "Email o contraseña incorrectos"
-            
+
             # Verificar contraseña
             stored_hash = user_record.get("password_hash", "")
-            
+
             if not stored_hash:
                 logger.error(f"❌ Hash de contraseña vacío para {email}")
                 return False, "Error de autenticación. Contacte al administrador"
-            
+
             logger.info(f"🔍 Verificando contraseña para {email}...")
-            
+
             # Verificar contraseña
             if not self.verify_password(password, stored_hash):
                 return False, "Email o contraseña incorrectos"
-            
+
             # Actualizar último acceso
             try:
                 self.postgres_db.update_last_access(user_record["id"])
                 logger.info(f"✅ Último acceso actualizado")
             except Exception as e:
                 logger.warning(f"⚠️ No se pudo actualizar último acceso: {e}")
-            
+
             # Determinar tipo de usuario
             tipo_usuario = user_record.get("tipo_usuario", "paciente")
-            
+
             # Preparar datos del usuario para la sesión
             user_data = {
                 "id": user_record.get("id"),
@@ -132,11 +149,11 @@ class AuthManager:
                 "verificado": user_record.get("verificado"),
                 "ultimo_acceso": datetime.now().isoformat(),
             }
-            
+
             logger.info(f"✅ Login exitoso: {email}")
             logger.info(f"🎯 Tipo usuario: {tipo_usuario}")
             return True, user_data
-            
+
         except Exception as e:
             logger.error(f"❌ Error en login: {e}")
             return False, "Error interno del servidor"
@@ -251,7 +268,7 @@ class AuthManager:
                     },
                 }
                 return fallback_users.get(email)
-            
+
             if self.postgres_db:
                 return self.postgres_db.get_user_by_email(email)
             return None
@@ -265,21 +282,21 @@ class AuthManager:
             # Validar datos
             if not self.validate_email(user_data["email"]):
                 return False, "Email inválido"
-            
+
             if not self.validate_password(user_data["password"]):
                 return False, "Contraseña debe tener al menos 6 caracteres"
-            
+
             if self.email_exists(user_data["email"]):
                 return False, "Email ya registrado"
-            
+
             if self.use_fallback:
                 return False, "Registro no disponible en modo fallback"
-            
+
             if self.postgres_db:
                 return self.postgres_db.register_user(user_data)
-            
+
             return False, "Sistema de registro no disponible"
-            
+
         except Exception as e:
             logger.error(f"❌ Error registrando usuario: {e}")
             return False, "Error interno del servidor"
@@ -311,11 +328,11 @@ class AuthManager:
                         "disponible": True,
                     }
                 return None
-            
+
             if self.postgres_db:
                 return self.postgres_db.get_professional_by_id(user_id)
             return None
-            
+
         except Exception as e:
             logger.error(f"❌ Error obteniendo profesional: {e}")
             return None
@@ -325,12 +342,12 @@ class AuthManager:
         try:
             if self.use_fallback:
                 return True, "Perfil actualizado (modo fallback)"
-            
+
             if self.postgres_db:
                 return self.postgres_db.update_user_profile(user_id, update_data)
-            
+
             return False, "Sistema de actualización no disponible"
-            
+
         except Exception as e:
             logger.error(f"❌ Error actualizando perfil: {e}")
             return False, "Error interno del servidor"
@@ -355,7 +372,7 @@ class AuthManager:
                         "tipo_usuario": "paciente",
                     },
                 ]
-            
+
             if self.postgres_db:
                 return self.postgres_db.get_all_users()
             return []
@@ -368,7 +385,7 @@ class AuthManager:
         try:
             if self.use_fallback:
                 return 2
-            
+
             if self.postgres_db:
                 return self.postgres_db.get_user_count()
             return 0
@@ -385,10 +402,10 @@ class AuthManager:
                     "message": "Usando sistema de fallback",
                     "user_count": 2,
                 }
-            
+
             if self.postgres_db:
                 return self.postgres_db.test_connection()
-            
+
             return {
                 "status": "ERROR",
                 "message": "No hay conexión disponible",
