@@ -16,18 +16,16 @@
         }
 
         :root {
-            /* Colores basados en la imagen */
-            --color-primary: #0066cc; /* Azul médico */
-            --color-secondary: #6366f1; /* Morado/índigo */
-            --color-tertiary: #8b5cf6; /* Morado vibrante */
-            --color-accent: #a855f7; /* Morado del robot */
+            --color-primary: #0066cc;
+            --color-secondary: #6366f1;
+            --color-tertiary: #8b5cf6;
+            --color-accent: #a855f7;
             --color-white: #ffffff;
             --color-gray: #6b7280;
             --color-light-gray: #f8fafc;
             --color-success: #10b981;
             --color-error: #ef4444;
             
-            /* Gradientes */
             --gradient-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
             --gradient-button: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-tertiary) 100%);
@@ -58,39 +56,53 @@
             flex: 1;
             background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-tertiary) 100%);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             position: relative;
-            overflow: hidden;
+            padding: 40px;
         }
 
-        .robot-container {
+        .logo-container {
             text-align: center;
             color: white;
-            z-index: 2;
-            position: relative;
+            margin-bottom: 30px;
         }
 
-        .robot-icon {
-            font-size: 120px;
+        .logo-image {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
             margin-bottom: 20px;
-            animation: float 3s ease-in-out infinite;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
         }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
+        .ai-image {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            border-radius: 20px;
+            margin-bottom: 20px;
         }
 
-        .robot-text h2 {
+        .welcome-text h2 {
             font-size: 2.2em;
             font-weight: 700;
             margin-bottom: 15px;
         }
 
-        .robot-text p {
-            font-size: 1.1em;
+        .welcome-text h3 {
+            font-size: 1.5em;
+            font-weight: 500;
+            margin-bottom: 15px;
             opacity: 0.9;
+        }
+
+        .welcome-text p {
+            font-size: 1.1em;
+            opacity: 0.8;
             line-height: 1.6;
             max-width: 300px;
         }
@@ -173,12 +185,30 @@
             font-size: 16px;
             font-weight: 600;
             transition: all 0.3s ease;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .btn-login:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-register {
+            background: linear-gradient(135deg, var(--color-tertiary) 0%, var(--color-accent) 100%);
+            color: white;
+            padding: 16px 30px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(168, 85, 247, 0.3);
         }
 
         .alert {
@@ -264,14 +294,16 @@
             }
             
             .login-left {
-                min-height: 200px;
+                min-height: 250px;
+                padding: 30px;
             }
             
-            .robot-icon {
-                font-size: 80px;
+            .logo-image, .ai-image {
+                width: 80px;
+                height: 80px;
             }
             
-            .robot-text h2 {
+            .welcome-text h2 {
                 font-size: 1.8em;
             }
             
@@ -283,17 +315,24 @@
 </head>
 <body>
     <div class="login-wrapper">
-        <!-- Panel izquierdo con robot IA -->
+        <!-- Panel izquierdo con imágenes oficiales -->
         <div class="login-left">
-            <div class="robot-container">
-                <div class="robot-icon">
-                    <i class="fas fa-robot"></i>
-                </div>
-                <div class="robot-text">
-                    <h2>¡HOLA!</h2>
-                    <h3>Bienvenido</h3>
-                    <p>Estás a punto de registrarte en MedConnect, donde podrás acceder a tu información clínica y permitir que tus familiares se mantengan informados sobre tu salud.</p>
-                </div>
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                     alt="MedConnect Logo" 
+                     class="logo-image">
+            </div>
+            
+            <div class="ai-image-container">
+                <img src="{{ url_for('static', filename='images/Imagen2.png') }}" 
+                     alt="IA MedConnect" 
+                     class="ai-image">
+            </div>
+            
+            <div class="welcome-text">
+                <h2>¡HOLA!</h2>
+                <h3>Bienvenido</h3>
+                <p>Estás a punto de acceder a MedConnect, donde podrás gestionar tu información clínica y permitir que tus familiares se mantengan informados sobre tu salud.</p>
             </div>
         </div>
 
@@ -336,7 +375,7 @@
                     Ingresar
                 </button>
 
-                <button type="button" class="btn-login" onclick="window.location.href='/register'" style="background: linear-gradient(135deg, var(--color-tertiary) 0%, var(--color-accent) 100%);">
+                <button type="button" class="btn-register" onclick="window.location.href='/register'">
                     Crear Cuenta
                 </button>
             </form>

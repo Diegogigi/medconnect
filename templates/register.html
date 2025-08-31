@@ -16,7 +16,6 @@
         }
 
         :root {
-            /* Colores iguales al login */
             --color-primary: #0066cc;
             --color-secondary: #6366f1;
             --color-tertiary: #8b5cf6;
@@ -56,39 +55,54 @@
             flex: 1;
             background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-tertiary) 100%);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            position: relative;
+            padding: 40px;
         }
 
-        .welcome-container {
+        .logo-container {
             text-align: center;
             color: white;
-            z-index: 2;
-        }
-
-        .welcome-icon {
-            font-size: 100px;
             margin-bottom: 20px;
-            animation: pulse 2s ease-in-out infinite;
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+        .logo-image {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            margin-bottom: 15px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+        }
+
+        .ai-image {
+            width: 180px;
+            height: 180px;
+            object-fit: contain;
+            border-radius: 20px;
+            margin-bottom: 20px;
         }
 
         .welcome-text h2 {
-            font-size: 2.2em;
+            font-size: 2em;
             font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .welcome-text h3 {
+            font-size: 1.3em;
+            font-weight: 500;
             margin-bottom: 15px;
+            opacity: 0.9;
         }
 
         .welcome-text p {
-            font-size: 1.1em;
-            opacity: 0.9;
-            line-height: 1.6;
-            max-width: 320px;
+            font-size: 1em;
+            opacity: 0.8;
+            line-height: 1.5;
+            max-width: 280px;
         }
 
         .register-right {
@@ -163,45 +177,6 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
 
-        .btn-register {
-            background: var(--gradient-button);
-            color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-        }
-
-        .btn-register:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
-        }
-
-        .alert {
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 12px;
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .alert-error {
-            background: #fef2f2;
-            color: var(--color-error);
-            border: 2px solid #fecaca;
-        }
-
-        .alert-success {
-            background: #f0fdf4;
-            color: var(--color-success);
-            border: 2px solid #bbf7d0;
-        }
-
         .user-type-selector {
             display: flex;
             gap: 10px;
@@ -235,6 +210,25 @@
             margin-bottom: 8px;
         }
 
+        .btn-register-main {
+            background: var(--gradient-button);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .btn-register-main:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+        }
+
         .links {
             text-align: center;
             margin-top: 25px;
@@ -261,14 +255,16 @@
             
             .register-left {
                 min-height: 200px;
+                padding: 25px;
             }
             
-            .welcome-icon {
-                font-size: 70px;
+            .logo-image, .ai-image {
+                width: 60px;
+                height: 60px;
             }
             
             .welcome-text h2 {
-                font-size: 1.8em;
+                font-size: 1.5em;
             }
             
             .register-right {
@@ -284,17 +280,24 @@
 </head>
 <body>
     <div class="register-wrapper">
-        <!-- Panel izquierdo con bienvenida -->
+        <!-- Panel izquierdo con imágenes oficiales -->
         <div class="register-left">
-            <div class="welcome-container">
-                <div class="welcome-icon">
-                    <i class="fas fa-user-plus"></i>
-                </div>
-                <div class="welcome-text">
-                    <h2>¡Únete!</h2>
-                    <h3>Crear Cuenta</h3>
-                    <p>Regístrate en MedConnect y accede a una plataforma integral de gestión médica familiar con IA inteligente.</p>
-                </div>
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" 
+                     alt="MedConnect Logo" 
+                     class="logo-image">
+            </div>
+            
+            <div class="ai-image-container">
+                <img src="{{ url_for('static', filename='images/Imagen2.png') }}" 
+                     alt="IA MedConnect" 
+                     class="ai-image">
+            </div>
+            
+            <div class="welcome-text">
+                <h2>¡Únete!</h2>
+                <h3>Crear Cuenta</h3>
+                <p>Regístrate en MedConnect y accede a una plataforma integral de gestión médica familiar con IA inteligente.</p>
             </div>
         </div>
 
@@ -391,7 +394,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn-register">
+                <button type="submit" class="btn-register-main">
                     <i class="fas fa-user-plus"></i> Crear Cuenta
                 </button>
             </form>
