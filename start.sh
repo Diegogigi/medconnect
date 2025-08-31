@@ -39,5 +39,13 @@ else
 fi
 
 # Iniciar la aplicación
-echo "🚀 Iniciando aplicación Flask..."
-python app.py 
+echo "🚀 Iniciando aplicación con Gunicorn..."
+
+# Verificar si Gunicorn está disponible
+if command -v gunicorn &> /dev/null; then
+    echo "✅ Gunicorn encontrado, iniciando en modo producción..."
+    gunicorn -k gthread -w 2 -b 0.0.0.0:$PORT app:app --timeout 120 --log-level info
+else
+    echo "⚠️ Gunicorn no encontrado, usando Flask en modo desarrollo..."
+    python app.py
+fi 
