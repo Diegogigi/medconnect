@@ -517,8 +517,11 @@
     
     <!-- Script del usuario -->
     <script>
-        // Pasar ID del usuario al JavaScript
-        window.currentUserId = {% if user and user.id %}{{ user.id }}{% else %}null{% endif %};
+        // Pasar ID del usuario al JavaScript con validación robusta
+        window.currentUserId = {% if user and user.id is defined and user.id %}{{ user.id }}{% else %}null{% endif %};
+        window.currentUserEmail = {% if user and user.email is defined and user.email %}"{{ user.email }}"{% else %}null{% endif %};
+        window.currentUserName = {% if user and user.nombre is defined and user.nombre %}"{{ user.nombre }}"{% else %}null{% endif %};
+        window.currentUserType = {% if user and user.tipo_usuario is defined and user.tipo_usuario %}"{{ user.tipo_usuario }}"{% else %}"paciente"{% endif %};
     </script>
     
     <!-- Script para mensaje de bienvenida -->
