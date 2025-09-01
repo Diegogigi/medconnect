@@ -492,22 +492,72 @@ class PostgreSQLDBManager:
             self.conn.close()
         logger.info("🔒 Conexión PostgreSQL DB Manager cerrada")
 
+    # No crear instancia global - se crea en app.py cuando sea necesario
 
-# No crear instancia global - se crea en app.py cuando sea necesario
+    def get_user_by_email(self, email):
+        """Obtener usuario por email desde ambas tablas"""
+        try:
+            # Buscar en tabla profesionales
+            self.cursor.execute(
+                """
+                SELECT id, nombre, apellido, 'profesional' as tipo_usuario
+                FROM profesionales 
+                WHERE nombre = %s AND apellido = %s
+            """,
+                (email.split("@")[0], email.split("@")[0]),
+            )
+            professional = self.cursor.fetchone()
 
+            if professional:
+                return {
+                    "id": professional[0],
+                    "nombre": professional[1],
+                    "apellido": professional[2],
+                    "email": email,
+                    "tipo_usuario": "profesional",
+                }
+
+            # Buscar en tabla pacientes_profesional
+            self.cursor.execute(
+                """
+                SELECT paciente_id as id, email, 
+                       SPLIT_PART(nombre_completo, ' ', 1) as nombre,
+                       SPLIT_PART(nombre_completo, ' ', 2) as apellido,
+                       'paciente' as tipo_usuario
+                FROM pacientes_profesional 
+                WHERE email = %s
+            """,
+                (email,),
+            )
+            patient = self.cursor.fetchone()
+
+            if patient:
+                return {
+                    "id": patient[0],
+                    "nombre": patient[1],
+                    "apellido": patient[2],
+                    "email": patient[3],
+                    "tipo_usuario": "paciente",
+                }
+
+            return None
+
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo usuario por email: {e}")
+            return None
 
     def register_user(self, user_data):
         """Registrar un nuevo usuario en la tabla correspondiente"""
         try:
-            tipo_usuario = user_data.get('tipo_usuario', 'paciente')
-            
-            if tipo_usuario == 'paciente':
+            tipo_usuario = user_data.get("tipo_usuario", "paciente")
+
+            if tipo_usuario == "paciente":
                 return self._register_patient(user_data)
-            elif tipo_usuario == 'profesional':
+            elif tipo_usuario == "profesional":
                 return self._register_professional(user_data)
             else:
                 return False, "Tipo de usuario no válido"
-                
+
         except Exception as e:
             logger.error(f"❌ Error registrando usuario: {e}")
             return False, "Error interno del servidor"
@@ -517,7 +567,7 @@ class PostgreSQLDBManager:
         try:
             # Generar ID único para paciente
             paciente_id = f"PAC_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            
+
             # Insertar en tabla pacientes_profesional
             query = """
                 INSERT INTO pacientes_profesional 
@@ -525,37 +575,39 @@ class PostgreSQLDBManager:
                  telefono, email, direccion, antecedentes_medicos, estado_relacion, fecha_registro)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            
+
             # Calcular edad si hay fecha de nacimiento
             edad = None
-            if user_data.get('fecha_nacimiento'):
+            if user_data.get("fecha_nacimiento"):
                 try:
-                    fecha_nac = datetime.strptime(user_data['fecha_nacimiento'], '%Y-%m-%d')
+                    fecha_nac = datetime.strptime(
+                        user_data["fecha_nacimiento"], "%Y-%m-%d"
+                    )
                     edad = (datetime.now() - fecha_nac).days // 365
                 except:
                     pass
-            
+
             values = (
                 paciente_id,
                 f"{user_data['nombre']} {user_data['apellido']}",
-                user_data.get('rut'),
+                user_data.get("rut"),
                 edad,
-                user_data.get('fecha_nacimiento'),
-                user_data.get('genero'),
-                user_data.get('telefono'),
-                user_data['email'],
-                user_data.get('direccion'),
-                user_data.get('antecedentes_medicos'),
-                'activo',
-                datetime.now()
+                user_data.get("fecha_nacimiento"),
+                user_data.get("genero"),
+                user_data.get("telefono"),
+                user_data["email"],
+                user_data.get("direccion"),
+                user_data.get("antecedentes_medicos"),
+                "activo",
+                datetime.now(),
             )
-            
+
             self.cursor.execute(query, values)
             self.conn.commit()
-            
+
             logger.info(f"✅ Paciente registrado: {paciente_id}")
             return True, "Paciente registrado exitosamente"
-            
+
         except Exception as e:
             logger.error(f"❌ Error registrando paciente: {e}")
             self.conn.rollback()
@@ -572,30 +624,31 @@ class PostgreSQLDBManager:
                  institucion, estado, disponible, unnamed_21, unnamed_22)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            
+
             values = (
-                user_data['nombre'],
-                user_data['apellido'],
-                user_data.get('numero_registro'),
-                user_data.get('especialidad'),
-                user_data.get('anos_experiencia'),
-                user_data.get('calificacion'),
-                user_data.get('direccion_consulta'),
-                user_data.get('horario_atencion'),
-                user_data.get('idiomas'),
-                user_data.get('profesion'),
-                user_data.get('institucion'),
-                'activo',
+                user_data["nombre"],
+                user_data["apellido"],
+                user_data.get("numero_registro"),
+                user_data.get("especialidad"),
+                user_data.get("anos_experiencia"),
+                user_data.get("calificacion"),
+                user_data.get("direccion_consulta"),
+                user_data.get("horario_atencion"),
+                user_data.get("idiomas"),
+                user_data.get("profesion"),
+                user_data.get("institucion"),
+                "activo",
                 True,
-                datetime.now()
+                datetime.now(),
+                datetime.now(),
             )
-            
+
             self.cursor.execute(query, values)
             self.conn.commit()
-            
+
             logger.info(f"✅ Profesional registrado: {user_data['email']}")
             return True, "Profesional registrado exitosamente"
-            
+
         except Exception as e:
             logger.error(f"❌ Error registrando profesional: {e}")
             self.conn.rollback()
@@ -607,42 +660,42 @@ class PostgreSQLDBManager:
             # Buscar en tabla profesionales
             query_prof = "SELECT id, nombre, apellido, especialidad, numero_registro FROM profesionales WHERE nombre = %s AND apellido = %s"
             # Buscar por nombre y apellido (ya que no hay email)
-            nombre = email.split('@')[0] if '@' in email else email
+            nombre = email.split("@")[0] if "@" in email else email
             self.cursor.execute(query_prof, (nombre, nombre))
             profesional = self.cursor.fetchone()
-            
+
             if profesional:
                 # Por ahora, aceptar cualquier contraseña para profesionales
                 # En producción, deberías verificar hash de contraseña
                 return {
-                    'id': profesional[0],
-                    'nombre': profesional[1],
-                    'apellido': profesional[2],
-                    'email': email,  # Usar el email original
-                    'tipo_usuario': 'profesional',
-                    'especialidad': profesional[3],
-                    'numero_registro': profesional[4]
+                    "id": profesional[0],
+                    "nombre": profesional[1],
+                    "apellido": profesional[2],
+                    "email": email,  # Usar el email original
+                    "tipo_usuario": "profesional",
+                    "especialidad": profesional[3],
+                    "numero_registro": profesional[4],
                 }
-            
+
             # Buscar en tabla pacientes_profesional
             query_pac = "SELECT paciente_id, nombre_completo, email, rut, edad FROM pacientes_profesional WHERE email = %s"
             self.cursor.execute(query_pac, (email,))
             paciente = self.cursor.fetchone()
-            
+
             if paciente:
                 # Por ahora, aceptar cualquier contraseña para pacientes
                 # En producción, deberías verificar hash de contraseña
                 return {
-                    'id': paciente[0],
-                    'nombre_completo': paciente[1],
-                    'email': paciente[2],
-                    'tipo_usuario': 'paciente',
-                    'rut': paciente[3],
-                    'edad': paciente[4]
+                    "id": paciente[0],
+                    "nombre_completo": paciente[1],
+                    "email": paciente[2],
+                    "tipo_usuario": "paciente",
+                    "rut": paciente[3],
+                    "edad": paciente[4],
                 }
-            
+
             return None
-            
+
         except Exception as e:
             logger.error(f"❌ Error en login: {e}")
             return None
@@ -653,17 +706,17 @@ class PostgreSQLDBManager:
             # Verificar en profesionales
             query_prof = "SELECT COUNT(*) FROM profesionales WHERE email = %s"
             # Buscar por nombre y apellido (ya que no hay email)
-            nombre = email.split('@')[0] if '@' in email else email
+            nombre = email.split("@")[0] if "@" in email else email
             self.cursor.execute(query_prof, (nombre, nombre))
             count_prof = self.cursor.fetchone()[0]
-            
+
             # Verificar en pacientes
             query_pac = "SELECT COUNT(*) FROM pacientes_profesional WHERE email = %s"
             self.cursor.execute(query_pac, (email,))
             count_pac = self.cursor.fetchone()[0]
-            
+
             return count_prof > 0 or count_pac > 0
-            
+
         except Exception as e:
             logger.error(f"❌ Error verificando email: {e}")
             return False
