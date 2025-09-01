@@ -567,14 +567,13 @@ class PostgreSQLDBManager:
             # Insertar en tabla profesionales
             query = """
                 INSERT INTO profesionales 
-                (email, nombre, apellido, numero_registro, especialidad, anos_experiencia,
+                (nombre, apellido, numero_registro, especialidad, anos_experiencia,
                  calificacion, direccion_consulta, horario_atencion, idiomas, profesion,
                  institucion, estado, disponible, unnamed_21, unnamed_22)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             
             values = (
-                user_data['email'],
                 user_data['nombre'],
                 user_data['apellido'],
                 user_data.get('numero_registro'),
@@ -588,7 +587,6 @@ class PostgreSQLDBManager:
                 user_data.get('institucion'),
                 'activo',
                 True,
-                datetime.now(),
                 datetime.now()
             )
             
@@ -607,8 +605,10 @@ class PostgreSQLDBManager:
         """Iniciar sesión de usuario"""
         try:
             # Buscar en tabla profesionales
-            query_prof = "SELECT id, nombre, apellido, email, especialidad, numero_registro FROM profesionales WHERE email = %s"
-            self.cursor.execute(query_prof, (email,))
+            query_prof = "SELECT id, nombre, apellido, especialidad, numero_registro FROM profesionales WHERE nombre = %s AND apellido = %s"
+            # Buscar por nombre y apellido (ya que no hay email)
+            nombre = email.split('@')[0] if '@' in email else email
+            self.cursor.execute(query_prof, (nombre, nombre))
             profesional = self.cursor.fetchone()
             
             if profesional:
@@ -618,10 +618,10 @@ class PostgreSQLDBManager:
                     'id': profesional[0],
                     'nombre': profesional[1],
                     'apellido': profesional[2],
-                    'email': profesional[3],
+                    'email': email,  # Usar el email original
                     'tipo_usuario': 'profesional',
-                    'especialidad': profesional[4],
-                    'numero_registro': profesional[5]
+                    'especialidad': profesional[3],
+                    'numero_registro': profesional[4]
                 }
             
             # Buscar en tabla pacientes_profesional
@@ -652,7 +652,9 @@ class PostgreSQLDBManager:
         try:
             # Verificar en profesionales
             query_prof = "SELECT COUNT(*) FROM profesionales WHERE email = %s"
-            self.cursor.execute(query_prof, (email,))
+            # Buscar por nombre y apellido (ya que no hay email)
+            nombre = email.split('@')[0] if '@' in email else email
+            self.cursor.execute(query_prof, (nombre, nombre))
             count_prof = self.cursor.fetchone()[0]
             
             # Verificar en pacientes
