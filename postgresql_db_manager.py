@@ -551,14 +551,14 @@ class PostgreSQLDBManager:
             )
             
             self.cursor.execute(query, values)
-            self.connection.commit()
+            self.conn.commit()
             
             logger.info(f"✅ Paciente registrado: {paciente_id}")
             return True, "Paciente registrado exitosamente"
             
         except Exception as e:
             logger.error(f"❌ Error registrando paciente: {e}")
-            self.connection.rollback()
+            self.conn.rollback()
             return False, "Error registrando paciente"
 
     def _register_professional(self, user_data):
@@ -593,14 +593,14 @@ class PostgreSQLDBManager:
             )
             
             self.cursor.execute(query, values)
-            self.connection.commit()
+            self.conn.commit()
             
             logger.info(f"✅ Profesional registrado: {user_data['email']}")
             return True, "Profesional registrado exitosamente"
             
         except Exception as e:
             logger.error(f"❌ Error registrando profesional: {e}")
-            self.connection.rollback()
+            self.conn.rollback()
             return False, "Error registrando profesional"
 
     def login_user(self, email, password):
