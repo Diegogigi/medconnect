@@ -553,7 +553,16 @@ class PostgreSQLDBManager:
             )
 
             self.cursor.execute(query, values)
-            user_id = self.cursor.fetchone()[0]
+            result = self.cursor.fetchone()
+            logger.info(f"📊 Resultado de INSERT usuario: {result}")
+
+            # Manejar tanto tupla como diccionario
+            if isinstance(result, dict):
+                user_id = result["id"]
+            else:
+                user_id = result[0]
+
+            logger.info(f"📊 User ID extraído: {user_id} (tipo: {type(user_id)})")
 
             # Si es profesional, insertar en tabla profesionales
             if user_data["tipo_usuario"] == "profesional":
