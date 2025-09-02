@@ -1102,13 +1102,126 @@ def profile():
         user_name = session.get("user_name")
         user_type = session.get("user_type", "paciente")
 
-        # Crear objeto user para el template
+        # Crear objeto user básico
         user = {
             "id": user_id,
             "email": user_email,
             "nombre": user_name,
             "tipo_usuario": user_type,
         }
+
+        # Si es profesional, obtener datos completos del perfil
+        if user_type == "profesional" and postgres_db and postgres_db.is_connected():
+            try:
+                # Obtener datos del perfil profesional desde la base de datos
+                query = """
+                    SELECT numero_registro, especialidad, profesion, anos_experiencia, 
+                           institucion, direccion_consulta, horario_atencion, idiomas, 
+                           calificacion, verificado, disponible
+                    FROM profesionales 
+                    WHERE user_id = %s
+                """
+                result = postgres_db.execute_query(query, (user_id,))
+
+                if result and len(result) > 0:
+                    prof_data = result[0]
+                    # Enriquecer el objeto user con datos del profesional
+                    user.update(
+                        {
+                            "numero_registro": prof_data.get(
+                                "numero_registro", "No especificado"
+                            ),
+                            "especialidad": prof_data.get(
+                                "especialidad", "No especificada"
+                            ),
+                            "profesion": prof_data.get(
+                                "profesion", "Profesional de la Salud"
+                            ),
+                            "anos_experiencia": prof_data.get(
+                                "anos_experiencia", "No especificado"
+                            ),
+                            "institucion": prof_data.get(
+                                "institucion", "No especificada"
+                            ),
+                            "direccion_consulta": prof_data.get(
+                                "direccion_consulta", "No especificada"
+                            ),
+                            "horario_atencion": prof_data.get(
+                                "horario_atencion", "No especificado"
+                            ),
+                            "idiomas": (
+                                prof_data.get("idiomas", "Español").split(",")
+                                if prof_data.get("idiomas")
+                                else ["Español"]
+                            ),
+                            "calificacion": prof_data.get("calificacion", 5.0),
+                            "verificado": prof_data.get("verificado", "false"),
+                            "disponible": prof_data.get("disponible", True),
+                            # Campos adicionales con valores por defecto
+                            "total_pacientes": 0,
+                            "atenciones_mes": 0,
+                            "tiempo_respuesta": "24h",
+                            "certificaciones": [],
+                            "areas_especializacion": [],
+                            "foto_perfil": None,
+                            "profile_image": None,
+                        }
+                    )
+
+                    logger.info(f"✅ Perfil profesional cargado para usuario {user_id}")
+                else:
+                    logger.warning(
+                        f"⚠️ No se encontró perfil profesional para usuario {user_id}"
+                    )
+                    # Usar valores por defecto
+                    user.update(
+                        {
+                            "numero_registro": "No especificado",
+                            "especialidad": "No especificada",
+                            "profesion": "Profesional de la Salud",
+                            "anos_experiencia": "No especificado",
+                            "institucion": "No especificada",
+                            "direccion_consulta": "No especificada",
+                            "horario_atencion": "No especificado",
+                            "idiomas": ["Español"],
+                            "calificacion": 5.0,
+                            "verificado": "false",
+                            "disponible": True,
+                            "total_pacientes": 0,
+                            "atenciones_mes": 0,
+                            "tiempo_respuesta": "24h",
+                            "certificaciones": [],
+                            "areas_especializacion": [],
+                            "foto_perfil": None,
+                            "profile_image": None,
+                        }
+                    )
+
+            except Exception as e:
+                logger.error(f"❌ Error obteniendo perfil profesional: {e}")
+                # Usar valores por defecto en caso de error
+                user.update(
+                    {
+                        "numero_registro": "Error al cargar",
+                        "especialidad": "Error al cargar",
+                        "profesion": "Profesional de la Salud",
+                        "anos_experiencia": "Error al cargar",
+                        "institucion": "Error al cargar",
+                        "direccion_consulta": "Error al cargar",
+                        "horario_atencion": "Error al cargar",
+                        "idiomas": ["Español"],
+                        "calificacion": 5.0,
+                        "verificado": "false",
+                        "disponible": True,
+                        "total_pacientes": 0,
+                        "atenciones_mes": 0,
+                        "tiempo_respuesta": "24h",
+                        "certificaciones": [],
+                        "areas_especializacion": [],
+                        "foto_perfil": None,
+                        "profile_image": None,
+                    }
+                )
 
         # Usar template específico según tipo de usuario
         if user_type == "profesional":
