@@ -794,10 +794,18 @@ class PostgreSQLDBManager:
                     SELECT FROM information_schema.tables 
                     WHERE table_schema = 'public' 
                     AND table_name = 'usuarios'
-                );
+                ) as table_exists;
             """
             )
-            table_exists = self.cursor.fetchone()[0]
+            result = self.cursor.fetchone()
+            logger.info(f"📊 Resultado de tabla existe: {result}")
+
+            # Manejar tanto tupla como diccionario
+            if isinstance(result, dict):
+                table_exists = result["table_exists"]
+            else:
+                table_exists = result[0]
+
             logger.info(f"📋 Tabla usuarios existe: {table_exists}")
 
             if not table_exists:
@@ -805,14 +813,19 @@ class PostgreSQLDBManager:
                 self._create_users_table()
 
             # Verificar en tabla usuarios
-            query = "SELECT COUNT(*) FROM usuarios WHERE email = %s"
+            query = "SELECT COUNT(*) as count FROM usuarios WHERE email = %s"
             logger.info(f"🔍 Ejecutando consulta: {query} con email: {email}")
 
             self.cursor.execute(query, (email,))
             result = self.cursor.fetchone()
             logger.info(f"📊 Resultado crudo: {result}")
 
-            count = result[0] if result else 0
+            # Manejar tanto tupla como diccionario
+            if isinstance(result, dict):
+                count = result["count"]
+            else:
+                count = result[0]
+
             logger.info(f"📊 Count extraído: {count} (tipo: {type(count)})")
 
             exists = count > 0
