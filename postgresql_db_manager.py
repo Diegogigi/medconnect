@@ -495,53 +495,27 @@ class PostgreSQLDBManager:
     # No crear instancia global - se crea en app.py cuando sea necesario
 
     def get_user_by_email(self, email):
-        """Obtener usuario por email desde ambas tablas"""
+        """Obtener usuario por email desde la tabla usuarios"""
         try:
-            # Buscar en tabla profesionales
-            self.cursor.execute(
-                """
-                SELECT id, nombre, apellido, 'profesional' as tipo_usuario
-                FROM profesionales 
-                WHERE nombre = %s AND apellido = %s
-            """,
-                (email.split("@")[0], email.split("@")[0]),
-            )
-            professional = self.cursor.fetchone()
-
-            if professional:
+            # Buscar en tabla usuarios
+            self.cursor.execute("""
+                SELECT id, email, nombre, apellido, tipo_usuario
+                FROM usuarios 
+                WHERE email = %s AND activo = TRUE
+            """, (email,))
+            user = self.cursor.fetchone()
+            
+            if user:
                 return {
-                    "id": professional[0],
-                    "nombre": professional[1],
-                    "apellido": professional[2],
-                    "email": email,
-                    "tipo_usuario": "profesional",
+                    'id': user[0],
+                    'email': user[1],
+                    'nombre': user[2],
+                    'apellido': user[3],
+                    'tipo_usuario': user[4]
                 }
-
-            # Buscar en tabla pacientes_profesional
-            self.cursor.execute(
-                """
-                SELECT paciente_id as id, email, 
-                       SPLIT_PART(nombre_completo, ' ', 1) as nombre,
-                       SPLIT_PART(nombre_completo, ' ', 2) as apellido,
-                       'paciente' as tipo_usuario
-                FROM pacientes_profesional 
-                WHERE email = %s
-            """,
-                (email,),
-            )
-            patient = self.cursor.fetchone()
-
-            if patient:
-                return {
-                    "id": patient[0],
-                    "nombre": patient[1],
-                    "apellido": patient[2],
-                    "email": patient[3],
-                    "tipo_usuario": "paciente",
-                }
-
+            
             return None
-
+            
         except Exception as e:
             logger.error(f"❌ Error obteniendo usuario por email: {e}")
             return None
