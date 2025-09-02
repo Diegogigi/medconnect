@@ -1023,6 +1023,74 @@ def professional_dashboard():
 
 
 # ---------- API PERFIL ----------
+@app.route("/profile")
+@login_required
+def profile():
+    """Página de perfil del usuario"""
+    try:
+        # Obtener datos del usuario desde la sesión
+        user_id = session.get("user_id")
+        user_email = session.get("user_email")
+        user_name = session.get("user_name")
+        user_type = session.get("user_type", "paciente")
+
+        # Crear objeto user para el template
+        user = {
+            "id": user_id,
+            "email": user_email,
+            "nombre": user_name,
+            "tipo_usuario": user_type,
+        }
+
+        # Usar el template profile.html que ya existe
+        return render_template("profile.html", user=user)
+    except Exception as e:
+        logger.error(f"❌ Error cargando profile.html: {e}")
+        # Fallback a página simple
+        return f"""
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>MedConnect - Perfil</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }}
+                .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }}
+                .header {{ text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #007bff; }}
+                .user-info {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; }}
+                .btn {{ background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 10px 5px; }}
+                .btn:hover {{ background: #0056b3; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🏥 MedConnect</h1>
+                    <h2>Perfil del Usuario</h2>
+                </div>
+                
+                <div class="user-info">
+                    <h3>👤 Información del Usuario</h3>
+                    <p><strong>ID:</strong> {user_id}</p>
+                    <p><strong>Email:</strong> {user_email}</p>
+                    <p><strong>Nombre:</strong> {user_name}</p>
+                    <p><strong>Tipo:</strong> {user_type}</p>
+                </div>
+                
+                <div style="text-align: center;">
+                    <h3>🚧 Error cargando perfil</h3>
+                    <p>Error: {e}</p>
+                    
+                    <a href="/" class="btn">← Volver al Inicio</a>
+                    <a href="/logout" class="btn">Cerrar Sesión</a>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+
 @app.route("/api/profile/medical", methods=["PUT"])
 @login_required
 def update_medical_info():
