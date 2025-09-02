@@ -498,24 +498,27 @@ class PostgreSQLDBManager:
         """Obtener usuario por email desde la tabla usuarios"""
         try:
             # Buscar en tabla usuarios
-            self.cursor.execute("""
+            self.cursor.execute(
+                """
                 SELECT id, email, nombre, apellido, tipo_usuario
                 FROM usuarios 
                 WHERE email = %s AND activo = TRUE
-            """, (email,))
+            """,
+                (email,),
+            )
             user = self.cursor.fetchone()
-            
+
             if user:
                 return {
-                    'id': user[0],
-                    'email': user[1],
-                    'nombre': user[2],
-                    'apellido': user[3],
-                    'tipo_usuario': user[4]
+                    "id": user[0],
+                    "email": user[1],
+                    "nombre": user[2],
+                    "apellido": user[3],
+                    "tipo_usuario": user[4],
                 }
-            
+
             return None
-            
+
         except Exception as e:
             logger.error(f"❌ Error obteniendo usuario por email: {e}")
             return None
@@ -524,43 +527,46 @@ class PostgreSQLDBManager:
         """Registrar un nuevo usuario en la tabla usuarios"""
         try:
             # Verificar si el email ya existe
-            if self.email_exists(user_data['email']):
+            if self.email_exists(user_data["email"]):
                 return False, "Email ya registrado"
-            
+
             # Hashear contraseña
             import bcrypt
-            password_hash = bcrypt.hashpw(user_data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            
+
+            password_hash = bcrypt.hashpw(
+                user_data["password"].encode("utf-8"), bcrypt.gensalt()
+            ).decode("utf-8")
+
             # Insertar en tabla usuarios
             query = """
                 INSERT INTO usuarios (email, password_hash, nombre, apellido, tipo_usuario)
                 VALUES (%s, %s, %s, %s, %s)
                 RETURNING id
             """
-            
+
             values = (
-                user_data['email'],
+                user_data["email"],
                 password_hash,
-                user_data['nombre'],
-                user_data['apellido'],
-                user_data['tipo_usuario']
+                user_data["nombre"],
+                user_data["apellido"],
+                user_data["tipo_usuario"],
             )
-            
+
             self.cursor.execute(query, values)
             user_id = self.cursor.fetchone()[0]
-            
+
             # Si es profesional, insertar en tabla profesionales
-            if user_data['tipo_usuario'] == 'profesional':
+            if user_data["tipo_usuario"] == "profesional":
                 self._register_professional_profile(user_id, user_data)
             # Si es paciente, insertar en tabla pacientes_profesional
-            elif user_data['tipo_usuario'] == 'paciente':
+            elif user_data["tipo_usuario"] == "paciente":
                 self._register_patient_profile(user_id, user_data)
-            
+
             self.conn.commit()
-            
+
             logger.info(f"✅ Usuario registrado: {user_data['email']}")
             return True, "Usuario registrado exitosamente"
-                
+
         except Exception as e:
             logger.error(f"❌ Error registrando usuario: {e}")
             self.conn.rollback()
@@ -575,7 +581,7 @@ class PostgreSQLDBManager:
                  horario_trabajo, telefono_consultorio, direccion_consultorio)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
-            
+
             values = (
                 user_id,
                 user_data.get("especialidad"),
@@ -583,61 +589,61 @@ class PostgreSQLDBManager:
                 user_data.get("anos_experiencia"),
                 user_data.get("horario_atencion"),
                 user_data.get("telefono"),
-                user_data.get("direccion_consulta")
+                user_data.get("direccion_consulta"),
             )
-            
+
             self.cursor.execute(query, values)
             logger.info(f"✅ Perfil profesional registrado para usuario {user_id}")
-            
+
         except Exception as e:
             logger.error(f"❌ Error registrando perfil profesional: {e}")
             raise
-    
+
     def _register_patient_profile(self, user_id, user_data):
         """Registrar perfil de paciente"""
         try:
             # Generar ID único para paciente
             paciente_id = f"PAC_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            
+
             query = """
                 INSERT INTO pacientes_profesional 
                 (paciente_id, nombre_completo, rut, edad, fecha_nacimiento, genero, 
                  telefono, email, direccion, antecedentes_medicos, estado_relacion, fecha_registro)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
-            
+
             # Calcular edad
             edad = None
-            if user_data.get('fecha_nacimiento'):
+            if user_data.get("fecha_nacimiento"):
                 try:
-                    fecha_nac = datetime.strptime(user_data['fecha_nacimiento'], '%Y-%m-%d')
+                    fecha_nac = datetime.strptime(
+                        user_data["fecha_nacimiento"], "%Y-%m-%d"
+                    )
                     edad = (datetime.now() - fecha_nac).days // 365
                 except:
                     pass
-            
+
             values = (
                 paciente_id,
                 f"{user_data['nombre']} {user_data['apellido']}",
-                user_data.get('rut'),
+                user_data.get("rut"),
                 edad,
-                user_data.get('fecha_nacimiento'),
-                user_data.get('genero'),
-                user_data.get('telefono'),
-                user_data['email'],
-                user_data.get('direccion'),
-                user_data.get('antecedentes_medicos'),
-                'activo',
-                datetime.now()
+                user_data.get("fecha_nacimiento"),
+                user_data.get("genero"),
+                user_data.get("telefono"),
+                user_data["email"],
+                user_data.get("direccion"),
+                user_data.get("antecedentes_medicos"),
+                "activo",
+                datetime.now(),
             )
-            
+
             self.cursor.execute(query, values)
             logger.info(f"✅ Perfil de paciente registrado para usuario {user_id}")
-            
+
         except Exception as e:
             logger.error(f"❌ Error registrando perfil de paciente: {e}")
             raise
-
-
 
     def _register_patient(self, user_data):
         """Registrar un paciente"""
@@ -783,9 +789,11 @@ class PostgreSQLDBManager:
             query = "SELECT COUNT(*) FROM usuarios WHERE email = %s"
             self.cursor.execute(query, (email,))
             count = self.cursor.fetchone()[0]
-            
+
+            logger.info(f"🔍 Email {email} - Count: {count}")
             return count > 0
 
         except Exception as e:
             logger.error(f"❌ Error verificando email: {e}")
+            # En caso de error, asumir que el email no existe para permitir el registro
             return False
