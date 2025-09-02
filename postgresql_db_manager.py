@@ -547,9 +547,51 @@ class PostgreSQLDBManager:
             return None
 
     def register_user(self, user_data):
-        """Registrar un nuevo usuario en la tabla correspondiente"""
+        """Registrar un nuevo usuario en la tabla usuarios"""
         try:
-            tipo_usuario = user_data.get("tipo_usuario", "paciente")
+            # Verificar si el email ya existe
+            if self.email_exists(user_data['email']):
+                return False, "Email ya registrado"
+            
+            # Hashear contraseña
+            import bcrypt
+            password_hash = bcrypt.hashpw(user_data['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
+            # Insertar en tabla usuarios
+            query = """
+                INSERT INTO usuarios (email, password_hash, nombre, apellido, tipo_usuario)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+            """
+            
+            values = (
+                user_data['email'],
+                password_hash,
+                user_data['nombre'],
+                user_data['apellido'],
+                user_data['tipo_usuario']
+            )
+            
+            self.cursor.execute(query, values)
+            user_id = self.cursor.fetchone()[0]
+            
+            # Si es profesional, insertar en tabla profesionales
+            if user_data['tipo_usuario'] == 'profesional':
+                self._register_professional_profile(user_id, user_data)
+            # Si es paciente, insertar en tabla pacientes_profesional
+            elif user_data['tipo_usuario'] == 'paciente':
+                self._register_patient_profile(user_id, user_data)
+            
+            self.conn.commit()
+            
+            logger.info(f"✅ Usuario registrado: {user_data['email']}")
+            return True, "Usuario registrado exitosamente"
+                
+        except Exception as e:
+            logger.error(f"❌ Error registrando usuario: {e}")
+            self.conn.rollback()
+            return False, "Error interno del servidor"
+
     def _register_professional_profile(self, user_id, user_data):
         """Registrar perfil profesional"""
         try:
@@ -621,16 +663,7 @@ class PostgreSQLDBManager:
             logger.error(f"❌ Error registrando perfil de paciente: {e}")
             raise
 
-            if tipo_usuario == "paciente":
-                return self._register_patient(user_data)
-            elif tipo_usuario == "profesional":
-                return self._register_professional(user_data)
-            else:
-                return False, "Tipo de usuario no válido"
 
-        except Exception as e:
-            logger.error(f"❌ Error registrando usuario: {e}")
-            return False, "Error interno del servidor"
 
     def _register_patient(self, user_data):
         """Registrar un paciente"""
