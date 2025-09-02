@@ -777,21 +777,14 @@ class PostgreSQLDBManager:
             return None
 
     def email_exists(self, email):
-        """Verificar si un email ya existe"""
+        """Verificar si un email ya existe en la tabla usuarios"""
         try:
-            # Verificar en profesionales
-            query_prof = "SELECT COUNT(*) FROM profesionales WHERE email = %s"
-            # Buscar por nombre y apellido (ya que no hay email)
-            nombre = email.split("@")[0] if "@" in email else email
-            self.cursor.execute(query_prof, (nombre, nombre))
-            count_prof = self.cursor.fetchone()[0]
-
-            # Verificar en pacientes
-            query_pac = "SELECT COUNT(*) FROM pacientes_profesional WHERE email = %s"
-            self.cursor.execute(query_pac, (email,))
-            count_pac = self.cursor.fetchone()[0]
-
-            return count_prof > 0 or count_pac > 0
+            # Verificar en tabla usuarios
+            query = "SELECT COUNT(*) FROM usuarios WHERE email = %s"
+            self.cursor.execute(query, (email,))
+            count = self.cursor.fetchone()[0]
+            
+            return count > 0
 
         except Exception as e:
             logger.error(f"❌ Error verificando email: {e}")
