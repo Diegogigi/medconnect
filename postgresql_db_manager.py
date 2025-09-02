@@ -785,6 +785,8 @@ class PostgreSQLDBManager:
     def email_exists(self, email):
         """Verificar si un email ya existe en la tabla usuarios"""
         try:
+            logger.info(f"🔍 Verificando email: {email}")
+
             # Primero verificar si la tabla usuarios existe
             self.cursor.execute(
                 """
@@ -796,6 +798,7 @@ class PostgreSQLDBManager:
             """
             )
             table_exists = self.cursor.fetchone()[0]
+            logger.info(f"📋 Tabla usuarios existe: {table_exists}")
 
             if not table_exists:
                 logger.warning("⚠️ Tabla 'usuarios' no existe, creando...")
@@ -803,14 +806,26 @@ class PostgreSQLDBManager:
 
             # Verificar en tabla usuarios
             query = "SELECT COUNT(*) FROM usuarios WHERE email = %s"
-            self.cursor.execute(query, (email,))
-            count = self.cursor.fetchone()[0]
+            logger.info(f"🔍 Ejecutando consulta: {query} con email: {email}")
 
-            logger.info(f"🔍 Email {email} - Count: {count}")
-            return count > 0
+            self.cursor.execute(query, (email,))
+            result = self.cursor.fetchone()
+            logger.info(f"📊 Resultado crudo: {result}")
+
+            count = result[0] if result else 0
+            logger.info(f"📊 Count extraído: {count} (tipo: {type(count)})")
+
+            exists = count > 0
+            logger.info(f"✅ Email {email} existe: {exists} (tipo: {type(exists)})")
+
+            return exists
 
         except Exception as e:
-            logger.error(f"❌ Error verificando email: {e}")
+            logger.error(f"❌ Error verificando email {email}: {e}")
+            logger.error(f"❌ Tipo de error: {type(e)}")
+            import traceback
+
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
             # En caso de error, asumir que el email no existe para permitir el registro
             return False
 
