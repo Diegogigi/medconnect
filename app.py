@@ -1110,10 +1110,16 @@ def profile():
             "tipo_usuario": user_type,
         }
 
-        # Usar el template profile.html que ya existe
-        return render_template("profile.html", user=user)
+        # Usar template específico según tipo de usuario
+        if user_type == "profesional":
+            # Para profesionales, usar profile_professional.html
+            return render_template("profile_professional.html", user=user)
+        else:
+            # Para pacientes, usar profile.html
+            return render_template("profile.html", user=user)
+
     except Exception as e:
-        logger.error(f"❌ Error cargando profile.html: {e}")
+        logger.error(f"❌ Error cargando perfil: {e}")
         # Fallback a página simple
         return f"""
         <!DOCTYPE html>
