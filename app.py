@@ -31,14 +31,18 @@ postgres_db = None
 # Inicializar PostgreSQL una sola vez
 try:
     from postgresql_db_manager import PostgreSQLDBManager
+
     postgres_db = PostgreSQLDBManager()
-    print(f"[INFO] PostgreSQLDBManager inicializado: {'Conectado' if postgres_db.is_connected() else 'Modo fallback'}")
+    print(
+        f"[INFO] PostgreSQLDBManager inicializado: {'Conectado' if postgres_db.is_connected() else 'Modo fallback'}"
+    )
 except Exception as e:
     print(f"[WARN] PostgreSQLDBManager no disponible: {e}")
 
 # Inicializar AuthManager con la instancia de PostgreSQL
 try:
     from auth_manager import AuthManager
+
     auth_manager = AuthManager(db_instance=postgres_db)  # Pasar la instancia existente
     print(f"[INFO] AuthManager inicializado correctamente")
 except Exception as e:
@@ -50,7 +54,7 @@ class Config:
     # Variables de entorno críticas (con fallbacks para desarrollo)
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-local-12345")
     DATABASE_URL = os.environ.get("DATABASE_URL", "")  # Vacía para desarrollo
-    
+
     # Variables de entorno opcionales
     FLASK_ENV = os.environ.get("FLASK_ENV", "development")
     CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "*")
@@ -58,11 +62,14 @@ class Config:
     TELEGRAM_API = "https://api.telegram.org/bot{token}/sendMessage"
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads")
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
-    PREFERRED_URL_SCHEME = "https" if "medconnect.cl" in os.environ.get("CUSTOM_DOMAIN","") else "http"
-    
+    PREFERRED_URL_SCHEME = (
+        "https" if "medconnect.cl" in os.environ.get("CUSTOM_DOMAIN", "") else "http"
+    )
+
     # Configuración específica para Railway
     OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")  # opcional
     PORT = int(os.environ.get("PORT", "8000"))  # Default coherente con PaaS
+
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -77,7 +84,7 @@ CORS(app, origins=app.config["CORS_ORIGINS"])
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax"
+    SESSION_COOKIE_SAMESITE="Lax",
 )
 
 # WhiteNoise para estáticos si está disponible
@@ -325,16 +332,17 @@ def index():
         if not os.path.exists(template_path):
             logger.error(f"❌ Template no encontrado: {template_path}")
             raise FileNotFoundError(f"Template no encontrado: {template_path}")
-        
+
         logger.info("✅ Template index.html encontrado, renderizando...")
         return render_template("index.html")
-        
+
     except Exception as e:
         logger.error(f"❌ Error cargando template index.html: {e}")
         logger.error(f"❌ Tipo de error: {type(e).__name__}")
         import traceback
+
         logger.error(f"❌ Traceback completo: {traceback.format_exc()}")
-        
+
         # Fallback temporal con información del error
         html = f"""
         <!DOCTYPE html>
@@ -401,6 +409,8 @@ def index():
         </html>
         """
         return html
+
+
 # ---------- AUTH ----------
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -410,128 +420,153 @@ def login():
         except Exception as e:
             logger.error(f"❌ Error cargando template login.html: {e}")
             return _login_fallback_html()
-    
+
     data = request.form or request.get_json(silent=True) or {}
     email, password = data.get("email", "").strip(), data.get("password", "")
-    
+
     try:
         if not auth_manager:
             raise RuntimeError("AuthManager no disponible")
-        
+
         ok, user_data = auth_manager.login_user(email, password)
         if not ok:
             try:
-                return render_template("login.html", message="Credenciales inválidas", success=False)
+                return render_template(
+                    "login.html", message="Credenciales inválidas", success=False
+                )
             except Exception as e:
                 logger.error(f"❌ Error renderizando login con error: {e}")
                 return _login_fallback_html("Credenciales inválidas", False)
-        
+
         # set session
         session.clear()
         session["user_id"] = user_data["id"]
         session["user_email"] = user_data["email"]
         session["user_name"] = user_data.get("nombre") or user_data.get("name") or email
         session["user_type"] = user_data.get("tipo_usuario", "paciente")
-        
+
         if session["user_type"] == "profesional":
-            return redirect(url_for("professional_dashboard"))
-        return redirect(url_for("patient_dashboard"))
+            return redirect("/professional")
+        return redirect("/patient")
 
     except Exception as e:
         diag = diagnose_login_error(e)
         logger.error(f"[LOGIN] {diag['debug_info']}")
         try:
-            return render_template("login.html", message=diag["user_message"], success=False)
+            return render_template(
+                "login.html", message=diag["user_message"], success=False
+            )
         except Exception as template_error:
             logger.error(f"❌ Error renderizando login con error: {template_error}")
             return _login_fallback_html(diag["user_message"], False)
 
-@app.route('/register', methods=['GET', 'POST'])
+
+@app.route("/register", methods=["GET", "POST"])
 def register():
     """Página de registro de usuarios"""
-    if request.method == 'GET':
+    if request.method == "GET":
         try:
             return render_template("register.html")
         except Exception as e:
             logger.error(f"❌ Error cargando template register.html: {e}")
             return _register_fallback_html()
-    
+
     try:
         # Obtener datos del formulario según tipo de usuario
-        tipo_usuario = request.form.get('tipo_usuario', 'paciente').strip()
-        
+        tipo_usuario = request.form.get("tipo_usuario", "paciente").strip()
+
         user_data = {
-            'email': request.form.get('email', '').strip().lower(),
-            'password': request.form.get('password', ''),
-            'nombre': request.form.get('nombre', '').strip(),
-            'apellido': request.form.get('apellido', '').strip(),
-            'tipo_usuario': tipo_usuario
+            "email": request.form.get("email", "").strip().lower(),
+            "password": request.form.get("password", ""),
+            "nombre": request.form.get("nombre", "").strip(),
+            "apellido": request.form.get("apellido", "").strip(),
+            "tipo_usuario": tipo_usuario,
         }
-        
+
         # Agregar campos específicos según tipo de usuario
-        if tipo_usuario == 'paciente':
-            user_data.update({
-                'rut': request.form.get('rut', '').strip(),
-                'fecha_nacimiento': request.form.get('fecha_nacimiento', ''),
-                'genero': request.form.get('genero', ''),
-                'telefono': request.form.get('telefono', '').strip(),
-                'direccion': request.form.get('direccion', '').strip(),
-                'antecedentes_medicos': request.form.get('antecedentes_medicos', '').strip()
-            })
-        elif tipo_usuario == 'profesional':
-            user_data.update({
-                'numero_registro': request.form.get('numero_registro', '').strip(),
-                'especialidad': request.form.get('especialidad', '').strip(),
-                'profesion': request.form.get('profesion', '').strip(),
-                'anos_experiencia': request.form.get('anos_experiencia', ''),
-                'institucion': request.form.get('institucion', '').strip(),
-                'direccion_consulta': request.form.get('direccion_consulta', '').strip(),
-                'horario_atencion': request.form.get('horario_atencion', '').strip(),
-                'idiomas': request.form.get('idiomas', '').strip(),
-                'calificacion': request.form.get('calificacion', '').strip()
-            })
-        
+        if tipo_usuario == "paciente":
+            user_data.update(
+                {
+                    "rut": request.form.get("rut", "").strip(),
+                    "fecha_nacimiento": request.form.get("fecha_nacimiento", ""),
+                    "genero": request.form.get("genero", ""),
+                    "telefono": request.form.get("telefono", "").strip(),
+                    "direccion": request.form.get("direccion", "").strip(),
+                    "antecedentes_medicos": request.form.get(
+                        "antecedentes_medicos", ""
+                    ).strip(),
+                }
+            )
+        elif tipo_usuario == "profesional":
+            user_data.update(
+                {
+                    "numero_registro": request.form.get("numero_registro", "").strip(),
+                    "especialidad": request.form.get("especialidad", "").strip(),
+                    "profesion": request.form.get("profesion", "").strip(),
+                    "anos_experiencia": request.form.get("anos_experiencia", ""),
+                    "institucion": request.form.get("institucion", "").strip(),
+                    "direccion_consulta": request.form.get(
+                        "direccion_consulta", ""
+                    ).strip(),
+                    "horario_atencion": request.form.get(
+                        "horario_atencion", ""
+                    ).strip(),
+                    "idiomas": request.form.get("idiomas", "").strip(),
+                    "calificacion": request.form.get("calificacion", "").strip(),
+                }
+            )
+
         # Validar confirmación de contraseña
-        confirm_password = request.form.get('confirm_password', '')
-        if user_data['password'] != confirm_password:
+        confirm_password = request.form.get("confirm_password", "")
+        if user_data["password"] != confirm_password:
             try:
-                return render_template('register.html', 
-                                     message='Las contraseñas no coinciden', 
-                                     success=False, 
-                                     user_data=user_data)
+                return render_template(
+                    "register.html",
+                    message="Las contraseñas no coinciden",
+                    success=False,
+                    user_data=user_data,
+                )
             except Exception:
-                return _register_fallback_html('Las contraseñas no coinciden', False)
-        
+                return _register_fallback_html("Las contraseñas no coinciden", False)
+
         # Registrar usuario usando AuthManager
         if not auth_manager:
             raise RuntimeError("AuthManager no disponible")
-        
+
         success, message = auth_manager.register_user(user_data)
-        
+
         if success:
             try:
-                return render_template('register.html', 
-                                     message='Usuario registrado exitosamente. Puedes iniciar sesión.', 
-                                     success=True)
+                return render_template(
+                    "register.html",
+                    message="Usuario registrado exitosamente. Puedes iniciar sesión.",
+                    success=True,
+                )
             except Exception:
-                return _register_fallback_html('Usuario registrado exitosamente. Puedes iniciar sesión.', True)
+                return _register_fallback_html(
+                    "Usuario registrado exitosamente. Puedes iniciar sesión.", True
+                )
         else:
             try:
-                return render_template('register.html', 
-                                     message=message, 
-                                     success=False, 
-                                     user_data=user_data)
+                return render_template(
+                    "register.html", message=message, success=False, user_data=user_data
+                )
             except Exception:
                 return _register_fallback_html(message, False)
-            
+
     except Exception as e:
         logger.error(f"[REGISTER] Error: {e}")
         try:
-            return render_template('register.html', 
-                                 message='Error interno del servidor. Inténtalo más tarde.', 
-                                 success=False)
+            return render_template(
+                "register.html",
+                message="Error interno del servidor. Inténtalo más tarde.",
+                success=False,
+            )
         except Exception:
-            return _register_fallback_html('Error interno del servidor. Inténtalo más tarde.', False)
+            return _register_fallback_html(
+                "Error interno del servidor. Inténtalo más tarde.", False
+            )
+
 
 def _register_fallback_html(message=None, success=True):
     """HTML de fallback para register"""
@@ -539,7 +574,7 @@ def _register_fallback_html(message=None, success=True):
     if message:
         alert_class = "success" if success else "error"
         alert_html = f'<div class="alert alert-{alert_class}">{message}</div>'
-    
+
     html = f"""
     <!DOCTYPE html>
     <html lang="es">
@@ -667,13 +702,14 @@ def _register_fallback_html(message=None, success=True):
     """
     return html
 
+
 def _login_fallback_html(message=None, success=True):
     """HTML de fallback para login"""
     alert_html = ""
     if message:
         alert_class = "success" if success else "error"
         alert_html = f'<div class="alert alert-{alert_class}">{message}</div>'
-    
+
     html = f"""
     <!DOCTYPE html>
     <html lang="es">
@@ -827,15 +863,15 @@ def patient_dashboard():
         user_email = session.get("user_email")
         user_name = session.get("user_name")
         user_type = session.get("user_type", "paciente")
-        
+
         # Crear objeto user para el template
         user = {
             "id": user_id,
             "email": user_email,
             "nombre": user_name,
-            "tipo_usuario": user_type
+            "tipo_usuario": user_type,
         }
-        
+
         # Intentar usar el template patient.html
         return render_template("patient.html", user=user, just_logged_in=False)
     except Exception as e:
