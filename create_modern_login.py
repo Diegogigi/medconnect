@@ -1,0 +1,394 @@
+#!/usr/bin/env python3
+"""
+Script para crear login moderno con diseño de la imagen
+"""
+
+
+def create_modern_login():
+    """Crea login moderno con fondo blanco y robot IA"""
+
+    print("🎨 Creando login moderno con diseño de la imagen...")
+
+    # Template de login moderno inspirado en la imagen
+    login_html = """<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedConnect - Iniciar Sesión</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Colores basados en la imagen */
+            --color-primary: #0066cc; /* Azul médico */
+            --color-secondary: #6366f1; /* Morado/índigo */
+            --color-tertiary: #8b5cf6; /* Morado vibrante */
+            --color-accent: #a855f7; /* Morado del robot */
+            --color-white: #ffffff;
+            --color-gray: #6b7280;
+            --color-light-gray: #f8fafc;
+            --color-success: #10b981;
+            --color-error: #ef4444;
+            
+            /* Gradientes */
+            --gradient-bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            --gradient-button: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-tertiary) 100%);
+        }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: var(--gradient-bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-wrapper {
+            display: flex;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 1000px;
+            width: 100%;
+            min-height: 600px;
+        }
+
+        .login-left {
+            flex: 1;
+            background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-tertiary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .robot-container {
+            text-align: center;
+            color: white;
+            z-index: 2;
+            position: relative;
+        }
+
+        .robot-icon {
+            font-size: 120px;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .robot-text h2 {
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .robot-text p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            line-height: 1.6;
+            max-width: 300px;
+        }
+
+        .login-right {
+            flex: 1;
+            padding: 60px 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-header h1 {
+            color: var(--color-primary);
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: var(--color-gray);
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--color-primary);
+            font-size: 14px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-gray);
+            font-size: 16px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px 15px 15px 45px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--color-secondary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-login {
+            background: var(--gradient-button);
+            color: white;
+            padding: 16px 30px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: var(--color-error);
+            border: 2px solid #fecaca;
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            color: var(--color-success);
+            border: 2px solid #bbf7d0;
+        }
+
+        .demo-users {
+            background: var(--color-light-gray);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+
+        .demo-users h4 {
+            color: var(--color-primary);
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .user-demo {
+            background: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid var(--color-secondary);
+            font-size: 14px;
+        }
+
+        .links {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .links a {
+            color: var(--color-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            margin: 0 15px;
+            font-size: 14px;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .forgot-password a {
+            color: var(--color-gray);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .forgot-password a:hover {
+            color: var(--color-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .login-wrapper {
+                flex-direction: column;
+                margin: 10px;
+            }
+            
+            .login-left {
+                min-height: 200px;
+            }
+            
+            .robot-icon {
+                font-size: 80px;
+            }
+            
+            .robot-text h2 {
+                font-size: 1.8em;
+            }
+            
+            .login-right {
+                padding: 40px 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <!-- Panel izquierdo con robot IA -->
+        <div class="login-left">
+            <div class="robot-container">
+                <div class="robot-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="robot-text">
+                    <h2>¡HOLA!</h2>
+                    <h3>Bienvenido</h3>
+                    <p>Estás a punto de registrarte en MedConnect, donde podrás acceder a tu información clínica y permitir que tus familiares se mantengan informados sobre tu salud.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel derecho con formulario -->
+        <div class="login-right">
+            <div class="login-header">
+                <h1><i class="fas fa-heartbeat"></i> MedConnect</h1>
+                <p>Accede a tu plataforma médica</p>
+            </div>
+
+            {% if message %}
+            <div class="alert alert-{{ 'success' if success else 'error' }}">
+                <i class="fas fa-{{ 'check-circle' if success else 'exclamation-triangle' }}"></i>
+                {{ message }}
+            </div>
+            {% endif %}
+
+            <form method="POST" action="/login">
+                <div class="form-group">
+                    <label for="email">Nombre de Usuario</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="email" id="email" name="email" required placeholder="tu@email.com" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" name="password" required placeholder="Tu contraseña" />
+                    </div>
+                </div>
+
+                <div class="forgot-password">
+                    <a href="#">¿Has olvidado tu contraseña?</a>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    Ingresar
+                </button>
+
+                <button type="button" class="btn-login" onclick="window.location.href='/register'" style="background: linear-gradient(135deg, var(--color-tertiary) 0%, var(--color-accent) 100%);">
+                    Crear Cuenta
+                </button>
+            </form>
+
+            <div class="demo-users">
+                <h4><i class="fas fa-users"></i> Usuarios de Prueba</h4>
+                
+                <div class="user-demo">
+                    <strong><i class="fas fa-user"></i> Paciente:</strong><br>
+                    Email: paciente@test.com<br>
+                    Contraseña: password123
+                </div>
+
+                <div class="user-demo">
+                    <strong><i class="fas fa-user-md"></i> Profesional:</strong><br>
+                    Email: diego.castro.lagos@gmail.com<br>
+                    Contraseña: password123
+                </div>
+            </div>
+
+            <div class="links">
+                <a href="/"><i class="fas fa-home"></i> Volver al inicio</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
+
+    # Escribir el nuevo login.html
+    with open("templates/login.html", "w", encoding="utf-8") as f:
+        f.write(login_html)
+
+    print("✅ Login moderno creado con diseño de la imagen")
+    print("🎨 Características:")
+    print("   - Fondo blanco con gradiente sutil")
+    print("   - Panel izquierdo con robot IA")
+    print("   - Colores primarios y secundarios personalizados")
+    print("   - Diseño responsive")
+    print("   - Botones 'Ingresar' y 'Crear Cuenta'")
+
+
+if __name__ == "__main__":
+    create_modern_login()

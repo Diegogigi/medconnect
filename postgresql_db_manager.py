@@ -550,6 +550,76 @@ class PostgreSQLDBManager:
         """Registrar un nuevo usuario en la tabla correspondiente"""
         try:
             tipo_usuario = user_data.get("tipo_usuario", "paciente")
+    def _register_professional_profile(self, user_id, user_data):
+        """Registrar perfil profesional"""
+        try:
+            query = """
+                INSERT INTO profesionales 
+                (usuario_id, especialidad, numero_colegio, experiencia_anos, 
+                 horario_trabajo, telefono_consultorio, direccion_consultorio)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            
+            values = (
+                user_id,
+                user_data.get("especialidad"),
+                user_data.get("numero_registro"),
+                user_data.get("anos_experiencia"),
+                user_data.get("horario_atencion"),
+                user_data.get("telefono"),
+                user_data.get("direccion_consulta")
+            )
+            
+            self.cursor.execute(query, values)
+            logger.info(f"✅ Perfil profesional registrado para usuario {user_id}")
+            
+        except Exception as e:
+            logger.error(f"❌ Error registrando perfil profesional: {e}")
+            raise
+    
+    def _register_patient_profile(self, user_id, user_data):
+        """Registrar perfil de paciente"""
+        try:
+            # Generar ID único para paciente
+            paciente_id = f"PAC_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            query = """
+                INSERT INTO pacientes_profesional 
+                (paciente_id, nombre_completo, rut, edad, fecha_nacimiento, genero, 
+                 telefono, email, direccion, antecedentes_medicos, estado_relacion, fecha_registro)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            
+            # Calcular edad
+            edad = None
+            if user_data.get('fecha_nacimiento'):
+                try:
+                    fecha_nac = datetime.strptime(user_data['fecha_nacimiento'], '%Y-%m-%d')
+                    edad = (datetime.now() - fecha_nac).days // 365
+                except:
+                    pass
+            
+            values = (
+                paciente_id,
+                f"{user_data['nombre']} {user_data['apellido']}",
+                user_data.get('rut'),
+                edad,
+                user_data.get('fecha_nacimiento'),
+                user_data.get('genero'),
+                user_data.get('telefono'),
+                user_data['email'],
+                user_data.get('direccion'),
+                user_data.get('antecedentes_medicos'),
+                'activo',
+                datetime.now()
+            )
+            
+            self.cursor.execute(query, values)
+            logger.info(f"✅ Perfil de paciente registrado para usuario {user_id}")
+            
+        except Exception as e:
+            logger.error(f"❌ Error registrando perfil de paciente: {e}")
+            raise
 
             if tipo_usuario == "paciente":
                 return self._register_patient(user_data)
@@ -619,10 +689,9 @@ class PostgreSQLDBManager:
             # Insertar en tabla profesionales
             query = """
                 INSERT INTO profesionales 
-                (nombre, apellido, numero_registro, especialidad, anos_experiencia,
-                 calificacion, direccion_consulta, horario_atencion, idiomas, profesion,
-                 institucion, estado, disponible, unnamed_21, unnamed_22)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (especialidad, numero_colegio, experiencia_anos, horario_trabajo,
+                 telefono_consultorio, direccion_consultorio)
+                VALUES (%s, %s, %s, %s, %s, %s)
             """
 
             values = (
@@ -658,7 +727,7 @@ class PostgreSQLDBManager:
         """Iniciar sesión de usuario"""
         try:
             # Buscar en tabla profesionales
-            query_prof = "SELECT id, nombre, apellido, especialidad, numero_registro FROM profesionales WHERE nombre = %s AND apellido = %s"
+            query_prof = "SELECT id, especialidad, numero_colegio FROM profesionales WHERE id = %s"
             # Buscar por nombre y apellido (ya que no hay email)
             nombre = email.split("@")[0] if "@" in email else email
             self.cursor.execute(query_prof, (nombre, nombre))

@@ -1,0 +1,571 @@
+#!/usr/bin/env python3
+"""
+Script para crear formulario de registro dinámico basado en las tablas de la base de datos
+"""
+
+
+def create_dynamic_register_form():
+    """Crea un formulario de registro dinámico basado en las tablas de la base de datos"""
+
+    print("🎯 Creando formulario de registro dinámico...")
+
+    dynamic_register_html = """<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedConnect - Crear Cuenta</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --color-primary: #6366f1;
+            --color-secondary: #8b5cf6;
+            --color-white: #ffffff;
+            --color-gray: #6b7280;
+            --color-dark: #1e293b;
+            --color-light: #f8fafc;
+            
+            --gradient-button: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+        }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .register-container {
+            display: flex;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 1200px;
+            width: 100%;
+            min-height: 700px;
+        }
+
+        .robot-section {
+            flex: 1;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            position: relative;
+        }
+
+        .robot-container {
+            text-align: center;
+            color: #1e293b;
+        }
+
+        .robot-image {
+            width: 250px;
+            height: 250px;
+            object-fit: contain;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.2));
+        }
+
+        .form-section {
+            flex: 1.2;
+            padding: 50px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-container {
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .logo-main {
+            width: 70px;
+            height: 70px;
+            background: var(--gradient-button);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            font-weight: 800;
+            color: white;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .form-header h1 {
+            color: var(--color-dark);
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .form-header p {
+            color: var(--color-gray);
+            font-size: 1em;
+        }
+
+        .user-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .user-type-option {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .user-type-option:hover {
+            border-color: var(--color-primary);
+            background: white;
+        }
+
+        .user-type-option.selected {
+            border-color: var(--color-primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .user-type-option i {
+            font-size: 24px;
+            color: var(--color-primary);
+            margin-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: var(--color-dark);
+            font-size: 14px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-gray);
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 12px 12px 40px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .btn-register {
+            background: var(--gradient-button);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .links {
+            text-align: center;
+            margin-top: 25px;
+        }
+
+        .links a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+            margin: 0 15px;
+            font-size: 14px;
+        }
+
+        .links a:hover {
+            color: var(--color-secondary);
+        }
+
+        /* Campos específicos por tipo de usuario */
+        .paciente-fields, .profesional-fields {
+            display: none;
+        }
+
+        .paciente-fields.active, .profesional-fields.active {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .register-container {
+                flex-direction: column;
+                margin: 10px;
+            }
+            
+            .robot-section {
+                min-height: 200px;
+                padding: 25px;
+            }
+            
+            .robot-image {
+                width: 180px;
+                height: 180px;
+            }
+            
+            .form-section {
+                padding: 30px 25px;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <!-- Panel izquierdo con robot -->
+        <div class="robot-section">
+            <div class="robot-container">
+                <img src="{{ url_for('static', filename='images/robot_e-health.png') }}" 
+                     alt="Robot E-Health" 
+                     class="robot-image">
+            </div>
+        </div>
+
+        <!-- Panel derecho con formulario -->
+        <div class="form-section">
+            <div class="form-header">
+                <div class="logo-container">
+                    <div class="logo-main">M</div>
+                </div>
+                <h1>MedConnect</h1>
+                <p>Crear nueva cuenta</p>
+            </div>
+
+            {% if message %}
+            <div class="alert alert-{{ 'success' if success else 'error' }}">
+                <i class="fas fa-{{ 'check-circle' if success else 'exclamation-triangle' }}"></i>
+                {{ message }}
+            </div>
+            {% endif %}
+
+            <form method="POST" action="/register">
+                <!-- Selector de tipo de usuario -->
+                <div class="form-group">
+                    <label>Tipo de Usuario</label>
+                    <div class="user-type-selector">
+                        <div class="user-type-option selected" onclick="selectUserType('paciente', this)">
+                            <i class="fas fa-user"></i>
+                            <div><strong>Paciente</strong></div>
+                            <div style="font-size: 12px; color: var(--color-gray);">Gestiona tu salud</div>
+                        </div>
+                        <div class="user-type-option" onclick="selectUserType('profesional', this)">
+                            <i class="fas fa-user-md"></i>
+                            <div><strong>Profesional</strong></div>
+                            <div style="font-size: 12px; color: var(--color-gray);">Atiende pacientes</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="tipo_usuario" name="tipo_usuario" value="paciente">
+                </div>
+
+                <!-- Campos comunes -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nombre">Nombre</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="nombre" name="nombre" required placeholder="Tu nombre" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="apellido">Apellido</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="apellido" name="apellido" required placeholder="Tu apellido" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" name="email" required placeholder="tu@email.com" />
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Contraseña</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="password" name="password" required placeholder="Mínimo 6 caracteres" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">Confirmar</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="confirm_password" name="confirm_password" required placeholder="Repetir contraseña" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Campos específicos para PACIENTES -->
+                <div class="paciente-fields active" id="paciente-fields">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rut">RUT</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-id-card"></i>
+                                <input type="text" id="rut" name="rut" placeholder="12345678-9" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="fecha_nacimiento">Fecha de Nacimiento</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-calendar"></i>
+                                <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="genero">Género</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-venus-mars"></i>
+                                <select id="genero" name="genero">
+                                    <option value="">Seleccionar</option>
+                                    <option value="Masculino">Masculino</option>
+                                    <option value="Femenino">Femenino</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="telefono">Teléfono</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-phone"></i>
+                                <input type="tel" id="telefono" name="telefono" placeholder="+56 9 1234 5678" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="direccion">Dirección</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <input type="text" id="direccion" name="direccion" placeholder="Tu dirección completa" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="antecedentes_medicos">Antecedentes Médicos</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-notes-medical"></i>
+                            <textarea id="antecedentes_medicos" name="antecedentes_medicos" rows="3" placeholder="Enfermedades crónicas, alergias, etc."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Campos específicos para PROFESIONALES -->
+                <div class="profesional-fields" id="profesional-fields">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="numero_registro">Número de Registro</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-certificate"></i>
+                                <input type="text" id="numero_registro" name="numero_registro" placeholder="Número de registro profesional" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="especialidad">Especialidad</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-stethoscope"></i>
+                                <input type="text" id="especialidad" name="especialidad" placeholder="Tu especialidad médica" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="profesion">Profesión</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-user-md"></i>
+                                <input type="text" id="profesion" name="profesion" placeholder="Ej: Médico, Kinesiólogo, etc." />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="anos_experiencia">Años de Experiencia</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-clock"></i>
+                                <input type="number" id="anos_experiencia" name="anos_experiencia" min="0" max="50" placeholder="0" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="institucion">Institución</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-university"></i>
+                            <input type="text" id="institucion" name="institucion" placeholder="Universidad o institución donde estudió" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="direccion_consulta">Dirección de Consulta</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-clinic-medical"></i>
+                            <input type="text" id="direccion_consulta" name="direccion_consulta" placeholder="Dirección de tu consulta" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="horario_atencion">Horario de Atención</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-clock"></i>
+                                <input type="text" id="horario_atencion" name="horario_atencion" placeholder="Ej: 09:00 - 18:00" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="idiomas">Idiomas</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-language"></i>
+                                <input type="text" id="idiomas" name="idiomas" placeholder="Español, Inglés, etc." />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="calificacion">Calificación</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-star"></i>
+                            <input type="text" id="calificacion" name="calificacion" placeholder="Tu calificación o título" />
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-register">
+                    <i class="fas fa-user-plus"></i> Crear Cuenta
+                </button>
+            </form>
+
+            <div class="links">
+                <a href="/login"><i class="fas fa-sign-in-alt"></i> Ya tengo cuenta</a>
+                <a href="/"><i class="fas fa-home"></i> Volver al inicio</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function selectUserType(type, element) {
+            // Remover selección anterior
+            document.querySelectorAll('.user-type-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // Seleccionar nuevo tipo
+            element.classList.add('selected');
+            document.getElementById('tipo_usuario').value = type;
+            
+            // Mostrar/ocultar campos específicos
+            const pacienteFields = document.getElementById('paciente-fields');
+            const profesionalFields = document.getElementById('profesional-fields');
+            
+            if (type === 'paciente') {
+                pacienteFields.classList.add('active');
+                profesionalFields.classList.remove('active');
+            } else {
+                pacienteFields.classList.remove('active');
+                profesionalFields.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>"""
+
+    # Escribir el nuevo template dinámico
+    with open("templates/register.html", "w", encoding="utf-8") as f:
+        f.write(dynamic_register_html)
+
+    print("✅ Formulario dinámico creado:")
+    print("   - Campos específicos para PACIENTES:")
+    print("     * RUT, Fecha nacimiento, Género")
+    print("     * Teléfono, Dirección")
+    print("     * Antecedentes médicos")
+    print("   - Campos específicos para PROFESIONALES:")
+    print("     * Número registro, Especialidad, Profesión")
+    print("     * Años experiencia, Institución")
+    print("     * Dirección consulta, Horario, Idiomas")
+    print("     * Calificación")
+    print("   - Formulario adaptativo según selección")
+
+
+if __name__ == "__main__":
+    create_dynamic_register_form()
