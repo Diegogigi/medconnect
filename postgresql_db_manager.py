@@ -785,6 +785,22 @@ class PostgreSQLDBManager:
     def email_exists(self, email):
         """Verificar si un email ya existe en la tabla usuarios"""
         try:
+            # Primero verificar si la tabla usuarios existe
+            self.cursor.execute(
+                """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'usuarios'
+                );
+            """
+            )
+            table_exists = self.cursor.fetchone()[0]
+
+            if not table_exists:
+                logger.warning("⚠️ Tabla 'usuarios' no existe, creando...")
+                self._create_users_table()
+
             # Verificar en tabla usuarios
             query = "SELECT COUNT(*) FROM usuarios WHERE email = %s"
             self.cursor.execute(query, (email,))
@@ -797,3 +813,31 @@ class PostgreSQLDBManager:
             logger.error(f"❌ Error verificando email: {e}")
             # En caso de error, asumir que el email no existe para permitir el registro
             return False
+
+    def _create_users_table(self):
+        """Crear la tabla usuarios si no existe"""
+        try:
+            create_table_query = """
+                CREATE TABLE IF NOT EXISTS usuarios (
+                    id SERIAL PRIMARY KEY,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    nombre VARCHAR(100) NOT NULL,
+                    apellido VARCHAR(100) NOT NULL,
+                    tipo_usuario VARCHAR(20) NOT NULL CHECK (tipo_usuario IN ('paciente', 'profesional')),
+                    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    activo BOOLEAN DEFAULT TRUE
+                );
+                
+                CREATE INDEX IF NOT EXISTS idx_usuarios_email ON usuarios(email);
+                CREATE INDEX IF NOT EXISTS idx_usuarios_tipo ON usuarios(tipo_usuario);
+            """
+
+            self.cursor.execute(create_table_query)
+            self.conn.commit()
+            logger.info("✅ Tabla 'usuarios' creada exitosamente")
+
+        except Exception as e:
+            logger.error(f"❌ Error creando tabla usuarios: {e}")
+            self.conn.rollback()
+            raise
