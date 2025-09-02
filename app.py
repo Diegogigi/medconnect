@@ -1113,19 +1113,42 @@ def profile():
         # Si es profesional, obtener datos completos del perfil
         if user_type == "profesional" and postgres_db and postgres_db.is_connected():
             try:
-                # Obtener datos del perfil profesional desde la base de datos
-                query = """
+                # Primero obtener datos básicos del usuario desde tabla usuarios
+                user_query = """
+                    SELECT telefono, direccion, ciudad, fecha_registro
+                    FROM usuarios 
+                    WHERE id = %s
+                """
+                user_result = postgres_db.execute_query(user_query, (user_id,))
+
+                # Luego obtener datos profesionales desde tabla profesionales
+                prof_query = """
                     SELECT numero_registro, especialidad, profesion, anos_experiencia, 
                            institucion, direccion_consulta, horario_atencion, idiomas, 
                            calificacion, verificado, disponible
                     FROM profesionales 
                     WHERE user_id = %s
                 """
-                result = postgres_db.execute_query(query, (user_id,))
+                prof_result = postgres_db.execute_query(prof_query, (user_id,))
 
-                if result and len(result) > 0:
-                    prof_data = result[0]
-                    # Enriquecer el objeto user con datos del profesional
+                # Enriquecer el objeto user con datos del usuario
+                if user_result and len(user_result) > 0:
+                    user_data = user_result[0]
+                    user.update(
+                        {
+                            "telefono": user_data.get("telefono", "No especificado"),
+                            "direccion": user_data.get("direccion", "No especificada"),
+                            "ciudad": user_data.get("ciudad", "No especificada"),
+                            "fecha_registro": user_data.get(
+                                "fecha_registro", "Recientemente"
+                            ),
+                        }
+                    )
+                    logger.info(f"✅ Datos básicos del usuario cargados para {user_id}")
+
+                # Enriquecer con datos profesionales
+                if prof_result and len(prof_result) > 0:
+                    prof_data = prof_result[0]
                     user.update(
                         {
                             "numero_registro": prof_data.get(
@@ -1167,13 +1190,14 @@ def profile():
                             "profile_image": None,
                         }
                     )
-
-                    logger.info(f"✅ Perfil profesional cargado para usuario {user_id}")
+                    logger.info(
+                        f"✅ Datos profesionales cargados para usuario {user_id}"
+                    )
                 else:
                     logger.warning(
                         f"⚠️ No se encontró perfil profesional para usuario {user_id}"
                     )
-                    # Usar valores por defecto
+                    # Usar valores por defecto para campos profesionales
                     user.update(
                         {
                             "numero_registro": "No especificado",
@@ -1202,6 +1226,10 @@ def profile():
                 # Usar valores por defecto en caso de error
                 user.update(
                     {
+                        "telefono": "Error al cargar",
+                        "direccion": "Error al cargar",
+                        "ciudad": "Error al cargar",
+                        "fecha_registro": "Error al cargar",
                         "numero_registro": "Error al cargar",
                         "especialidad": "Error al cargar",
                         "profesion": "Profesional de la Salud",
