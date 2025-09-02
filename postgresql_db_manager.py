@@ -500,22 +500,35 @@ class PostgreSQLDBManager:
             # Buscar en tabla usuarios
             self.cursor.execute(
                 """
-                SELECT id, email, nombre, apellido, tipo_usuario
+                SELECT id, email, password_hash, nombre, apellido, tipo_usuario
                 FROM usuarios 
                 WHERE email = %s AND activo = TRUE
             """,
                 (email,),
             )
             user = self.cursor.fetchone()
+            logger.info(f"📊 Resultado de búsqueda usuario: {user}")
 
             if user:
-                return {
-                    "id": user[0],
-                    "email": user[1],
-                    "nombre": user[2],
-                    "apellido": user[3],
-                    "tipo_usuario": user[4],
-                }
+                # Manejar tanto tupla como diccionario
+                if isinstance(user, dict):
+                    return {
+                        "id": user["id"],
+                        "email": user["email"],
+                        "password_hash": user["password_hash"],
+                        "nombre": user["nombre"],
+                        "apellido": user["apellido"],
+                        "tipo_usuario": user["tipo_usuario"],
+                    }
+                else:
+                    return {
+                        "id": user[0],
+                        "email": user[1],
+                        "password_hash": user[2],
+                        "nombre": user[3],
+                        "apellido": user[4],
+                        "tipo_usuario": user[5],
+                    }
 
             return None
 
