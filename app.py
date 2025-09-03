@@ -965,6 +965,10 @@ def professional_dashboard():
         user_name = session.get("user_name")
         user_type = session.get("user_type", "profesional")
 
+        logger.info(
+            f"🔍 Iniciando dashboard profesional para usuario {user_id} ({user_email})"
+        )
+
         # Crear objeto user para el template
         user = {
             "id": user_id,
@@ -973,10 +977,29 @@ def professional_dashboard():
             "tipo_usuario": user_type,
         }
 
+        logger.info(f"📊 Objeto user creado: {user}")
+
+        # Verificar que el template existe
+        template_path = os.path.join("templates", "professional.html")
+        if not os.path.exists(template_path):
+            logger.error(f"❌ Template professional.html NO existe en {template_path}")
+            raise FileNotFoundError(
+                f"Template professional.html no encontrado en {template_path}"
+            )
+
+        logger.info(f"✅ Template professional.html encontrado en {template_path}")
+
         # Usar el template professional.html que ya existe
-        return render_template("professional.html", user=user, just_logged_in=True)
+        logger.info(f"🎨 Intentando renderizar professional.html con user={user}")
+        result = render_template("professional.html", user=user, just_logged_in=True)
+        logger.info(f"✅ Template professional.html renderizado exitosamente")
+        return result
+
     except Exception as e:
         logger.error(f"❌ Error cargando professional.html: {e}")
+        logger.error(f"❌ Tipo de error: {type(e).__name__}")
+        logger.error(f"❌ Traceback completo: ", exc_info=True)
+
         # Fallback a página simple
         return f"""
         <!DOCTYPE html>
@@ -1011,7 +1034,8 @@ def professional_dashboard():
                 
                 <div style="text-align: center;">
                     <h3>🚧 Error cargando dashboard</h3>
-                    <p>Error: {e}</p>
+                    <p><strong>Error:</strong> {e}</p>
+                    <p><strong>Tipo:</strong> {type(e).__name__}</p>
                     
                     <a href="/" class="btn">← Volver al Inicio</a>
                     <a href="/logout" class="btn">Cerrar Sesión</a>
