@@ -1732,7 +1732,26 @@ def get_atenciones():
             except Exception as e:
                 logger.error(f"❌ Error obteniendo atenciones: {e}")
                 logger.error(f"❌ Tipo de error: {type(e).__name__}")
-                logger.error(f"❌ Traceback completo: ", exc_info=True)
+
+                # Si es error de transacción abortada, intentar resetear la conexión
+                if "InFailedSqlTransaction" in str(
+                    e
+                ) or "current transaction is aborted" in str(e):
+                    logger.warning(
+                        "⚠️ Transacción abortada detectada, reseteando conexión..."
+                    )
+                    try:
+                        postgres_db.conn.rollback()
+                        logger.info("✅ Rollback exitoso")
+                    except Exception as rollback_error:
+                        logger.error(f"❌ Error en rollback: {rollback_error}")
+                        # Intentar reconectar
+                        try:
+                            postgres_db.connect()
+                            logger.info("✅ Reconexión exitosa")
+                        except Exception as reconnect_error:
+                            logger.error(f"❌ Error en reconexión: {reconnect_error}")
+
                 return jsonify({"error": "Error al consultar la base de datos"}), 500
         else:
             logger.warning("⚠️ PostgreSQL no disponible para obtener atenciones")
@@ -2151,18 +2170,60 @@ def get_professional_patients():
 
         if postgres_db and postgres_db.is_connected():
             try:
-                query = """
-                    SELECT DISTINCT u.id, u.nombre, u.apellido, u.email, u.telefono,
-                           u.fecha_nacimiento, u.genero, u.direccion, u.ciudad, u.estado,
+                # Primero verificar qué columnas tiene realmente la tabla usuarios
+                check_columns_query = """
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'usuarios'
+                    ORDER BY ordinal_position;
+                """
+                postgres_db.cursor.execute(check_columns_query)
+                columns_result = postgres_db.cursor.fetchall()
+                logger.info(
+                    f"📋 Columnas disponibles en tabla usuarios: {columns_result}"
+                )
+
+                # Construir consulta dinámicamente basada en las columnas existentes
+                available_columns = [col.get("column_name") for col in columns_result]
+
+                # Columnas básicas que siempre deberían existir
+                basic_columns = ["id", "nombre", "apellido", "email"]
+                select_columns = []
+
+                for col in basic_columns:
+                    if col in available_columns:
+                        select_columns.append(f"u.{col}")
+                    else:
+                        select_columns.append(f"NULL as {col}")
+
+                # Agregar columnas opcionales si existen
+                optional_columns = [
+                    "telefono",
+                    "fecha_nacimiento",
+                    "genero",
+                    "direccion",
+                    "ciudad",
+                    "estado",
+                ]
+                for col in optional_columns:
+                    if col in available_columns:
+                        select_columns.append(f"u.{col}")
+                    else:
+                        select_columns.append(f"NULL as {col}")
+
+                # Construir la consulta final
+                query = f"""
+                    SELECT DISTINCT {', '.join(select_columns)},
                            COUNT(a.id) as total_atenciones,
                            MAX(a.fecha_atencion) as ultima_atencion
                     FROM usuarios u
                     LEFT JOIN atenciones_medicas a ON u.id = a.paciente_id AND a.profesional_id = %s
                     WHERE u.tipo_usuario = 'paciente' AND u.estado = 'activo'
-                    GROUP BY u.id, u.nombre, u.apellido, u.email, u.telefono, 
-                             u.fecha_nacimiento, u.genero, u.direccion, u.ciudad, u.estado
+                    GROUP BY {', '.join([f"u.{col}" for col in basic_columns if col in available_columns])}
                     ORDER BY u.apellido, u.nombre
                 """
+
+                logger.info(f"🔍 Consulta construida dinámicamente: {query}")
 
                 postgres_db.cursor.execute(query, (user_id,))
                 result = postgres_db.cursor.fetchall()
@@ -2201,6 +2262,27 @@ def get_professional_patients():
 
             except Exception as e:
                 logger.error(f"❌ Error obteniendo pacientes: {e}")
+                logger.error(f"❌ Tipo de error: {type(e).__name__}")
+
+                # Si es error de transacción abortada, intentar resetear la conexión
+                if "InFailedSqlTransaction" in str(
+                    e
+                ) or "current transaction is aborted" in str(e):
+                    logger.warning(
+                        "⚠️ Transacción abortada detectada, reseteando conexión..."
+                    )
+                    try:
+                        postgres_db.conn.rollback()
+                        logger.info("✅ Rollback exitoso")
+                    except Exception as rollback_error:
+                        logger.error(f"❌ Error en rollback: {rollback_error}")
+                        # Intentar reconectar
+                        try:
+                            postgres_db.connect()
+                            logger.info("✅ Reconexión exitosa")
+                        except Exception as reconnect_error:
+                            logger.error(f"❌ Error en reconexión: {reconnect_error}")
+
                 return jsonify({"error": "Error al consultar la base de datos"}), 500
         else:
             logger.warning("⚠️ PostgreSQL no disponible para obtener pacientes")
