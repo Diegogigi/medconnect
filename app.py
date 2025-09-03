@@ -1535,43 +1535,6 @@ def register_atencion():
                 paciente_result = postgres_db.cursor.fetchone()
 
                 if not paciente_result:
-                    # Opción 2: Búsqueda flexible por nombre o apellido
-                    logger.info(
-                        f"🔍 Búsqueda exacta falló, intentando búsqueda flexible..."
-                    )
-                    paciente_query_flexible = """
-                        SELECT id FROM usuarios 
-                        WHERE (nombre ILIKE %s OR apellido ILIKE %s OR CONCAT(nombre, ' ', apellido) ILIKE %s) 
-                        AND tipo_usuario = 'paciente'
-                        LIMIT 1
-                    """
-                    search_pattern = f"%{paciente_nombre}%"
-                    postgres_db.cursor.execute(
-                        paciente_query_flexible,
-                        (search_pattern, search_pattern, search_pattern),
-                    )
-                    paciente_result = postgres_db.cursor.fetchone()
-
-                    if not paciente_result:
-                        # Opción 3: Búsqueda por partes del nombre
-                        logger.info(
-                            f"🔍 Búsqueda flexible falló, intentando búsqueda por partes..."
-                        )
-                        nombre_partes = paciente_nombre.split()
-                        if len(nombre_partes) >= 2:
-                            nombre = nombre_partes[0]
-                            apellido = nombre_partes[-1]
-                            paciente_query_partes = """
-                                SELECT id FROM usuarios 
-                                WHERE nombre ILIKE %s AND apellido ILIKE %s AND tipo_usuario = 'paciente'
-                                LIMIT 1
-                            """
-                            postgres_db.cursor.execute(
-                                paciente_query_partes, (f"%{nombre}%", f"%{apellido}%")
-                            )
-                            paciente_result = postgres_db.cursor.fetchone()
-
-                if not paciente_result:
                     logger.error(
                         f"❌ Paciente con nombre '{paciente_nombre}' no encontrado"
                     )
@@ -1580,18 +1543,45 @@ def register_atencion():
                         for p in pacientes_existentes
                     ]
                     logger.error(f"❌ Pacientes disponibles: {pacientes_nombres}")
-                    return (
-                        jsonify(
-                            {
-                                "error": f"Paciente con nombre '{paciente_nombre}' no encontrado",
-                                "pacientes_disponibles": pacientes_nombres,
-                            }
-                        ),
-                        404,
-                    )
 
-                paciente_id = paciente_result.get("id")
-                logger.info(f"✅ Paciente encontrado con ID: {paciente_id}")
+                    # Ofrecer crear el paciente automáticamente si no existe
+                    if len(pacientes_existentes) == 0 or paciente_nombre not in [
+                        f"{p.get('nombre', '')} {p.get('apellido', '')}"
+                        for p in pacientes_existentes
+                    ]:
+                        logger.info(
+                            f"🔄 Intentando crear paciente automáticamente: {paciente_nombre}"
+                        )
+                        paciente_creado = crear_paciente_automatico(paciente_nombre)
+                        if paciente_creado:
+                            paciente_id = paciente_creado
+                            logger.info(
+                                f"✅ Paciente creado automáticamente con ID: {paciente_id}"
+                            )
+                        else:
+                            return (
+                                jsonify(
+                                    {
+                                        "error": f"Paciente con nombre '{paciente_nombre}' no encontrado",
+                                        "pacientes_disponibles": pacientes_nombres,
+                                        "sugerencia": "El paciente será creado automáticamente",
+                                    }
+                                ),
+                                404,
+                            )
+                    else:
+                        return (
+                            jsonify(
+                                {
+                                    "error": f"Paciente con nombre '{paciente_nombre}' no encontrado",
+                                    "pacientes_disponibles": pacientes_nombres,
+                                }
+                            ),
+                            404,
+                        )
+                else:
+                    paciente_id = paciente_result.get("id")
+                    logger.info(f"✅ Paciente encontrado con ID: {paciente_id}")
 
                 # Preparar consulta de inserción usando la estructura real de la tabla
                 insert_query = """
@@ -1678,6 +1668,54 @@ def register_atencion():
         return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 
+def crear_paciente_automatico(nombre_completo):
+    """Crear paciente automáticamente cuando no se encuentra"""
+    try:
+        partes_nombre = nombre_completo.strip().split()
+        if len(partes_nombre) >= 2:
+            nombre = partes_nombre[0]
+            apellido = " ".join(partes_nombre[1:])
+        else:
+            nombre = nombre_completo
+            apellido = "Paciente"
+
+        # Generar email único
+        nombre_clean = nombre.lower().replace(" ", "")
+        apellido_clean = apellido.lower().replace(" ", "")
+        import time
+
+        timestamp = str(int(time.time()))
+        email = f"{nombre_clean}.{apellido_clean}.{timestamp}@auto.medconnect.cl"
+
+        # Insertar en la base de datos
+        insert_query = """
+            INSERT INTO usuarios (nombre, apellido, email, tipo_usuario, fecha_registro, activo)
+            VALUES (%s, %s, %s, 'paciente', %s, true)
+            RETURNING id
+        """
+
+        insert_values = (nombre, apellido, email, datetime.now())
+
+        postgres_db.cursor.execute(insert_query, insert_values)
+        result = postgres_db.cursor.fetchone()
+        postgres_db.conn.commit()
+
+        if result and result.get("id"):
+            paciente_id = result.get("id")
+            logger.info(
+                f"✅ Paciente '{nombre_completo}' creado automáticamente con ID: {paciente_id}"
+            )
+            return paciente_id
+        else:
+            logger.error(f"❌ No se pudo crear paciente automáticamente")
+            return None
+
+    except Exception as e:
+        logger.error(f"❌ Error creando paciente automático: {e}")
+        postgres_db.conn.rollback()
+        return None
+
+
 @app.route("/api/get-atenciones", methods=["GET"])
 @login_required
 def get_atenciones():
@@ -1727,7 +1765,7 @@ def get_atenciones():
                 logger.info(
                     f"✅ {len(atenciones)} atenciones encontradas para profesional {user_id}"
                 )
-                return jsonify({"atenciones": atenciones})
+                return jsonify({"success": True, "atenciones": atenciones})
 
             except Exception as e:
                 logger.error(f"❌ Error obteniendo atenciones: {e}")
@@ -1752,10 +1790,18 @@ def get_atenciones():
                         except Exception as reconnect_error:
                             logger.error(f"❌ Error en reconexión: {reconnect_error}")
 
-                return jsonify({"error": "Error al consultar la base de datos"}), 500
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Error al consultar la base de datos",
+                        }
+                    ),
+                    500,
+                )
         else:
             logger.warning("⚠️ PostgreSQL no disponible para obtener atenciones")
-            return jsonify({"atenciones": []})
+            return jsonify({"success": True, "atenciones": []})
 
     except Exception as e:
         logger.error(f"❌ Error en get_atenciones: {e}")
@@ -2157,15 +2203,20 @@ def internal_error(e):
 # ==================== GESTIÓN DE PACIENTES ====================
 
 
-@app.route("/api/professional/patients", methods=["GET"])
+@app.route("/api/professional/patients", methods=["GET", "POST"])
 @login_required
 def get_professional_patients():
-    """Obtener lista de pacientes del profesional"""
+    """Obtener lista de pacientes del profesional o crear nuevo paciente"""
     try:
         user_id = session.get("user_id")
         if not user_id:
             return jsonify({"error": "Usuario no autenticado"}), 401
 
+        # Si es POST, crear nuevo paciente
+        if request.method == "POST":
+            return crear_paciente_desde_formulario(user_id)
+
+        # Si es GET, obtener lista de pacientes
         logger.info(f"[PACIENTES] Obteniendo pacientes para profesional {user_id}")
 
         if postgres_db and postgres_db.is_connected():
@@ -2258,7 +2309,7 @@ def get_professional_patients():
                 logger.info(
                     f"✅ {len(pacientes)} pacientes encontrados para profesional {user_id}"
                 )
-                return jsonify({"pacientes": pacientes})
+                return jsonify({"success": True, "pacientes": pacientes})
 
             except Exception as e:
                 logger.error(f"❌ Error obteniendo pacientes: {e}")
@@ -2283,14 +2334,129 @@ def get_professional_patients():
                         except Exception as reconnect_error:
                             logger.error(f"❌ Error en reconexión: {reconnect_error}")
 
-                return jsonify({"error": "Error al consultar la base de datos"}), 500
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Error al consultar la base de datos",
+                        }
+                    ),
+                    500,
+                )
         else:
             logger.warning("⚠️ PostgreSQL no disponible para obtener pacientes")
-            return jsonify({"pacientes": []})
+            return jsonify({"success": True, "pacientes": []})
 
     except Exception as e:
         logger.error(f"❌ Error en get_professional_patients: {e}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        return jsonify({"success": False, "error": "Error interno del servidor"}), 500
+
+
+def crear_paciente_desde_formulario(user_id):
+    """Crear paciente desde formulario del frontend"""
+    try:
+        data = request.get_json() or {}
+        logger.info(
+            f"[PACIENTE] Creando paciente desde formulario para profesional {user_id}: {json.dumps(data)[:200]}"
+        )
+
+        # Validar datos requeridos
+        required_fields = ["nombre", "apellido"]
+        for field in required_fields:
+            if not data.get(field):
+                return (
+                    jsonify({"success": False, "error": f"Campo {field} es requerido"}),
+                    400,
+                )
+
+        # Generar email automático si no se proporciona
+        email = data.get("email")
+        if not email:
+            # Generar email basado en nombre y apellido
+            nombre_clean = data.get("nombre", "").lower().replace(" ", "")
+            apellido_clean = data.get("apellido", "").lower().replace(" ", "")
+            email = f"{nombre_clean}.{apellido_clean}@paciente.medconnect.cl"
+
+        if postgres_db and postgres_db.is_connected():
+            try:
+                # Verificar si el email ya existe
+                check_email_query = """
+                    SELECT id FROM usuarios WHERE email = %s
+                """
+                postgres_db.cursor.execute(check_email_query, (email,))
+                existing_user = postgres_db.cursor.fetchone()
+
+                if existing_user:
+                    # Si existe, generar un email único
+                    import time
+
+                    timestamp = str(int(time.time()))
+                    email = f"{nombre_clean}.{apellido_clean}.{timestamp}@paciente.medconnect.cl"
+
+                # Insertar nuevo paciente usando solo las columnas que existen
+                insert_query = """
+                    INSERT INTO usuarios (nombre, apellido, email, tipo_usuario, fecha_registro, activo)
+                    VALUES (%s, %s, %s, 'paciente', %s, true)
+                    RETURNING id
+                """
+
+                insert_values = (
+                    data.get("nombre"),
+                    data.get("apellido"),
+                    email,
+                    datetime.now(),
+                )
+
+                postgres_db.cursor.execute(insert_query, insert_values)
+                result = postgres_db.cursor.fetchone()
+                postgres_db.conn.commit()
+
+                if result and result.get("id"):
+                    paciente_id = result.get("id")
+                    logger.info(
+                        f"✅ Paciente creado exitosamente con ID: {paciente_id}"
+                    )
+                    return jsonify(
+                        {
+                            "success": True,
+                            "message": "Paciente creado correctamente",
+                            "paciente": {
+                                "id": paciente_id,
+                                "nombre": data.get("nombre"),
+                                "apellido": data.get("apellido"),
+                                "email": email,
+                            },
+                        }
+                    )
+                else:
+                    return (
+                        jsonify(
+                            {"success": False, "error": "Error al crear el paciente"}
+                        ),
+                        500,
+                    )
+
+            except Exception as e:
+                logger.error(f"❌ Error creando paciente: {e}")
+                postgres_db.conn.rollback()
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Error al crear en la base de datos",
+                        }
+                    ),
+                    500,
+                )
+        else:
+            return (
+                jsonify({"success": False, "error": "Base de datos no disponible"}),
+                503,
+            )
+
+    except Exception as e:
+        logger.error(f"❌ Error en crear_paciente_desde_formulario: {e}")
+        return jsonify({"success": False, "error": "Error interno del servidor"}), 500
 
 
 @app.route("/api/guardar-paciente", methods=["POST"])
@@ -2395,6 +2561,7 @@ def get_professional_schedule():
                 logger.info(f"✅ Agenda obtenida (vacía por ahora)")
                 return jsonify(
                     {
+                        "success": True,
                         "agenda": [],
                         "fecha": fecha,
                         "vista": vista,
@@ -2404,9 +2571,20 @@ def get_professional_schedule():
 
             except Exception as e:
                 logger.error(f"❌ Error obteniendo agenda: {e}")
-                return jsonify({"error": "Error al consultar la agenda"}), 500
+                return (
+                    jsonify(
+                        {"success": False, "error": "Error al consultar la agenda"}
+                    ),
+                    500,
+                )
         else:
-            return jsonify({"agenda": [], "error": "Base de datos no disponible"})
+            return jsonify(
+                {
+                    "success": True,
+                    "agenda": [],
+                    "mensaje": "Base de datos no disponible",
+                }
+            )
 
     except Exception as e:
         logger.error(f"❌ Error en get_professional_schedule: {e}")
