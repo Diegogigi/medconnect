@@ -1501,30 +1501,67 @@ def register_atencion():
                     logger.error(f"❌ Nombre del paciente es requerido")
                     return jsonify({"error": "Nombre del paciente es requerido"}), 400
 
-                # Buscar paciente por nombre (puede haber múltiples, tomamos el primero)
-                paciente_query = """
-                    SELECT id FROM usuarios 
-                    WHERE CONCAT(nombre, ' ', apellido) ILIKE %s AND tipo_usuario = 'paciente'
-                    LIMIT 1
+                # Primero, verificar qué pacientes existen en la tabla usuarios
+                check_pacientes_query = """
+                    SELECT id, nombre, apellido, email, tipo_usuario 
+                    FROM usuarios 
+                    WHERE tipo_usuario = 'paciente'
+                    ORDER BY nombre, apellido
                 """
-                search_pattern = f"%{paciente_nombre}%"
-                postgres_db.cursor.execute(paciente_query, (search_pattern,))
+                postgres_db.cursor.execute(check_pacientes_query)
+                pacientes_existentes = postgres_db.cursor.fetchall()
+                logger.info(f"📋 Pacientes existentes en tabla usuarios: {pacientes_existentes}")
+                
+                if not pacientes_existentes:
+                    logger.error(f"❌ No hay pacientes registrados en la tabla usuarios")
+                    return jsonify({"error": "No hay pacientes registrados en el sistema"}), 404
+
+                # Buscar paciente por nombre con búsqueda más flexible
+                # Opción 1: Búsqueda exacta por nombre completo
+                paciente_query_exacta = """
+                    SELECT id FROM usuarios 
+                    WHERE CONCAT(nombre, ' ', apellido) = %s AND tipo_usuario = 'paciente'
+                """
+                postgres_db.cursor.execute(paciente_query_exacta, (paciente_nombre,))
                 paciente_result = postgres_db.cursor.fetchone()
-
+                
                 if not paciente_result:
-                    logger.error(
-                        f"❌ Paciente con nombre '{paciente_nombre}' no encontrado"
-                    )
-                    return (
-                        jsonify(
-                            {
-                                "error": f"Paciente con nombre '{paciente_nombre}' no encontrado"
-                            }
-                        ),
-                        404,
-                    )
-
-                paciente_id = paciente_result.get("id")
+                    # Opción 2: Búsqueda flexible por nombre o apellido
+                    logger.info(f"🔍 Búsqueda exacta falló, intentando búsqueda flexible...")
+                    paciente_query_flexible = """
+                        SELECT id FROM usuarios 
+                        WHERE (nombre ILIKE %s OR apellido ILIKE %s OR CONCAT(nombre, ' ', apellido) ILIKE %s) 
+                        AND tipo_usuario = 'paciente'
+                        LIMIT 1
+                    """
+                    search_pattern = f"%{paciente_nombre}%"
+                    postgres_db.cursor.execute(paciente_query_flexible, (search_pattern, search_pattern, search_pattern))
+                    paciente_result = postgres_db.cursor.fetchone()
+                    
+                    if not paciente_result:
+                        # Opción 3: Búsqueda por partes del nombre
+                        logger.info(f"🔍 Búsqueda flexible falló, intentando búsqueda por partes...")
+                        nombre_partes = paciente_nombre.split()
+                        if len(nombre_partes) >= 2:
+                            nombre = nombre_partes[0]
+                            apellido = nombre_partes[-1]
+                            paciente_query_partes = """
+                                SELECT id FROM usuarios 
+                                WHERE nombre ILIKE %s AND apellido ILIKE %s AND tipo_usuario = 'paciente'
+                                LIMIT 1
+                            """
+                            postgres_db.cursor.execute(paciente_query_partes, (f"%{nombre}%", f"%{apellido}%"))
+                            paciente_result = postgres_db.cursor.fetchone()
+                
+                if not paciente_result:
+                    logger.error(f"❌ Paciente con nombre '{paciente_nombre}' no encontrado")
+                    logger.error(f"❌ Pacientes disponibles: {[f'{p.get('nombre', '')} {p.get('apellido', '')}' for p in pacientes_existentes]}")
+                    return jsonify({
+                        "error": f"Paciente con nombre '{paciente_nombre}' no encontrado",
+                        "pacientes_disponibles": [f"{p.get('nombre', '')} {p.get('apellido', '')}" for p in pacientes_existentes]
+                    }), 404
+                
+                paciente_id = paciente_result.get('id')
                 logger.info(f"✅ Paciente encontrado con ID: {paciente_id}")
 
                 # Preparar consulta de inserción usando la estructura real de la tabla
