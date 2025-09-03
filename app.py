@@ -1429,6 +1429,137 @@ def update_professional_profile():
         return jsonify({"error": "Error interno del servidor"}), 500
 
 
+@app.route("/api/register-atencion", methods=["POST"])
+@login_required
+def register_atencion():
+    """Registrar nueva atención médica"""
+    try:
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Usuario no autenticado"}), 401
+
+        data = request.get_json() or {}
+        logger.info(
+            f"[ATENCION] Registrando atención para usuario {user_id}: {json.dumps(data)[:200]}"
+        )
+
+        # Validar datos requeridos
+        required_fields = ["patient_id", "diagnosis", "treatment"]
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"error": f"Campo {field} es requerido"}), 400
+
+        # Crear atención en la base de datos
+        if postgres_db and postgres_db.is_connected():
+            try:
+                insert_query = """
+                    INSERT INTO atenciones_medicas 
+                    (patient_id, doctor_id, specialty, date, diagnosis, treatment, notes, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """
+
+                insert_values = (
+                    data.get("patient_id"),
+                    user_id,  # El profesional que registra la atención
+                    data.get("specialty", "General"),
+                    data.get("date", datetime.now().isoformat()),
+                    data.get("diagnosis"),
+                    data.get("treatment"),
+                    data.get("notes", ""),
+                    data.get("status", "completada"),
+                )
+
+                result = postgres_db.execute_query(insert_query, insert_values)
+                postgres_db.conn.commit()
+
+                if result and len(result) > 0:
+                    atencion_id = (
+                        result[0].get("id")
+                        if isinstance(result[0], dict)
+                        else result[0][0]
+                    )
+                    logger.info(
+                        f"✅ Atención médica registrada exitosamente con ID: {atencion_id}"
+                    )
+                    return jsonify(
+                        {
+                            "success": True,
+                            "message": "Atención médica registrada correctamente",
+                            "atencion_id": atencion_id,
+                        }
+                    )
+                else:
+                    logger.error(f"❌ No se pudo obtener ID de la atención registrada")
+                    return jsonify({"error": "Error al obtener ID de la atención"}), 500
+
+            except Exception as e:
+                logger.error(f"❌ Error registrando atención en la base de datos: {e}")
+                postgres_db.conn.rollback()
+                return jsonify({"error": "Error al registrar en la base de datos"}), 500
+        else:
+            logger.warning("⚠️ PostgreSQL no disponible para registrar atención")
+            return jsonify({"error": "Base de datos no disponible"}), 503
+
+    except Exception as e:
+        logger.error(f"❌ Error en register_atencion: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
+
+@app.route("/api/get-atenciones", methods=["GET"])
+@login_required
+def get_atenciones():
+    """Obtener atenciones médicas del profesional"""
+    try:
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Usuario no autenticado"}), 401
+
+        logger.info(f"[ATENCION] Obteniendo atenciones para profesional {user_id}")
+
+        # Obtener atenciones desde la base de datos
+        if postgres_db and postgres_db.is_connected():
+            try:
+                query = """
+                    SELECT id, patient_id, specialty, date, diagnosis, treatment, notes, status
+                    FROM atenciones_medicas 
+                    WHERE doctor_id = %s
+                    ORDER BY date DESC
+                """
+                result = postgres_db.execute_query(query, (user_id,))
+
+                atenciones = []
+                if result:
+                    for row in result:
+                        atencion = {
+                            "id": row.get("id"),
+                            "patient_id": row.get("patient_id"),
+                            "specialty": row.get("specialty"),
+                            "date": row.get("date"),
+                            "diagnosis": row.get("diagnosis"),
+                            "treatment": row.get("treatment"),
+                            "notes": row.get("notes"),
+                            "status": row.get("status", "completada"),
+                        }
+                        atenciones.append(atencion)
+
+                logger.info(
+                    f"✅ {len(atenciones)} atenciones encontradas para profesional {user_id}"
+                )
+                return jsonify({"atenciones": atenciones})
+
+            except Exception as e:
+                logger.error(f"❌ Error obteniendo atenciones: {e}")
+                return jsonify({"error": "Error al consultar la base de datos"}), 500
+        else:
+            logger.warning("⚠️ PostgreSQL no disponible para obtener atenciones")
+            return jsonify({"atenciones": []})
+
+    except Exception as e:
+        logger.error(f"❌ Error en get_atenciones: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
+
 # ---------- API PACIENTE (consultas, exámenes, familia) ----------
 @app.route("/api/patient/<patient_id>/consultations", methods=["GET"])
 @login_required
