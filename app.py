@@ -1443,8 +1443,17 @@ def register_atencion():
             f"[ATENCION] Registrando atención para usuario {user_id}: {json.dumps(data)[:200]}"
         )
 
+        # Mapear campos del formulario a la estructura de la base de datos
+        # El formulario envía: paciente_nombre, paciente_rut, tipo_atencion, motivo_consulta, etc.
+        # Necesitamos: paciente_id, tipo_atencion, motivo_consulta, diagnostico, tratamiento
+
+        # Buscar o crear paciente por RUT
+        paciente_rut = data.get("paciente_rut")
+        if not paciente_rut:
+            return jsonify({"error": "RUT del paciente es requerido"}), 400
+
         # Validar datos requeridos
-        required_fields = ["patient_id", "diagnosis", "treatment"]
+        required_fields = ["tipo_atencion", "motivo_consulta"]
         for field in required_fields:
             if not data.get(field):
                 logger.error(f"❌ Campo requerido faltante: {field}")
@@ -1464,10 +1473,11 @@ def register_atencion():
                         WHERE table_name = 'atenciones_medicas'
                     );
                 """
-                table_exists_result = postgres_db.execute_query(check_table_query)
+                postgres_db.cursor.execute(check_table_query)
+                table_exists_result = postgres_db.cursor.fetchone()
                 logger.info(f"📊 Resultado verificación tabla: {table_exists_result}")
 
-                if not table_exists_result or not table_exists_result[0].get(
+                if not table_exists_result or not table_exists_result.get(
                     "exists", False
                 ):
                     logger.error(f"❌ Tabla 'atenciones_medicas' NO existe")
@@ -1485,44 +1495,79 @@ def register_atencion():
                     WHERE table_name = 'atenciones_medicas'
                     ORDER BY ordinal_position;
                 """
-                columns_result = postgres_db.execute_query(check_columns_query)
+                postgres_db.cursor.execute(check_columns_query)
+                columns_result = postgres_db.cursor.fetchall()
                 logger.info(f"📋 Columnas de la tabla: {columns_result}")
 
-                # Preparar consulta de inserción
+                # Buscar paciente por RUT en la tabla usuarios
+                paciente_query = """
+                    SELECT id FROM usuarios 
+                    WHERE rut = %s AND tipo_usuario = 'paciente'
+                """
+                postgres_db.cursor.execute(paciente_query, (paciente_rut,))
+                paciente_result = postgres_db.cursor.fetchone()
+
+                if not paciente_result:
+                    logger.error(f"❌ Paciente con RUT {paciente_rut} no encontrado")
+                    return (
+                        jsonify(
+                            {"error": f"Paciente con RUT {paciente_rut} no encontrado"}
+                        ),
+                        404,
+                    )
+
+                paciente_id = paciente_result.get("id")
+                logger.info(f"✅ Paciente encontrado con ID: {paciente_id}")
+
+                # Preparar consulta de inserción usando la estructura real de la tabla
                 insert_query = """
                     INSERT INTO atenciones_medicas 
-                    (patient_id, doctor_id, specialty, date, diagnosis, treatment, notes, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    (profesional_id, paciente_id, fecha_atencion, hora_inicio, 
+                     tipo_atencion, motivo_consulta, diagnostico, tratamiento, observaciones)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """
 
-                current_date = datetime.now().isoformat()
+                # Parsear fecha y hora del formulario
+                fecha_hora_str = data.get("fecha_hora", "")
+                if fecha_hora_str:
+                    try:
+                        fecha_hora = datetime.fromisoformat(
+                            fecha_hora_str.replace("Z", "+00:00")
+                        )
+                        fecha_atencion = fecha_hora.date()
+                        hora_inicio = fecha_hora.time()
+                    except ValueError:
+                        fecha_atencion = datetime.now().date()
+                        hora_inicio = datetime.now().time()
+                else:
+                    fecha_atencion = datetime.now().date()
+                    hora_inicio = datetime.now().time()
+
                 insert_values = (
-                    data.get("patient_id"),
-                    user_id,  # El profesional que registra la atención
-                    data.get("specialty", "General"),
-                    current_date,
-                    data.get("diagnosis"),
-                    data.get("treatment"),
-                    data.get("notes", ""),
-                    data.get("status", "completada"),
+                    user_id,  # profesional_id
+                    paciente_id,  # paciente_id
+                    fecha_atencion,  # fecha_atencion
+                    hora_inicio,  # hora_inicio
+                    data.get("tipo_atencion"),  # tipo_atencion
+                    data.get("motivo_consulta"),  # motivo_consulta
+                    data.get("diagnostico", ""),  # diagnostico
+                    data.get("tratamiento", ""),  # tratamiento
+                    data.get("observaciones", ""),  # observaciones
                 )
 
                 logger.info(f"🔍 Ejecutando consulta: {insert_query}")
                 logger.info(f"📊 Valores a insertar: {insert_values}")
 
-                result = postgres_db.execute_query(insert_query, insert_values)
+                postgres_db.cursor.execute(insert_query, insert_values)
+                result = postgres_db.cursor.fetchone()
                 logger.info(f"📊 Resultado de la inserción: {result}")
 
                 postgres_db.conn.commit()
                 logger.info(f"✅ Transacción confirmada")
 
-                if result and len(result) > 0:
-                    atencion_id = (
-                        result[0].get("id")
-                        if isinstance(result[0], dict)
-                        else result[0][0]
-                    )
+                if result and result.get("id"):
+                    atencion_id = result.get("id")
                     logger.info(
                         f"✅ Atención médica registrada exitosamente con ID: {atencion_id}"
                     )
@@ -1574,25 +1619,34 @@ def get_atenciones():
         if postgres_db and postgres_db.is_connected():
             try:
                 query = """
-                    SELECT id, patient_id, specialty, date, diagnosis, treatment, notes, status
-                    FROM atenciones_medicas 
-                    WHERE doctor_id = %s
-                    ORDER BY date DESC
+                    SELECT a.id, a.paciente_id, a.fecha_atencion, a.hora_inicio,
+                           a.tipo_atencion, a.motivo_consulta, a.diagnostico, 
+                           a.tratamiento, a.observaciones, a.estado,
+                           u.nombre as paciente_nombre, u.apellido as paciente_apellido
+                    FROM atenciones_medicas a
+                    LEFT JOIN usuarios u ON a.paciente_id = u.id
+                    WHERE a.profesional_id = %s
+                    ORDER BY a.fecha_atencion DESC, a.hora_inicio DESC
                 """
-                result = postgres_db.execute_query(query, (user_id,))
+
+                postgres_db.cursor.execute(query, (user_id,))
+                result = postgres_db.cursor.fetchall()
 
                 atenciones = []
                 if result:
                     for row in result:
                         atencion = {
                             "id": row.get("id"),
-                            "patient_id": row.get("patient_id"),
-                            "specialty": row.get("specialty"),
-                            "date": row.get("date"),
-                            "diagnosis": row.get("diagnosis"),
-                            "treatment": row.get("treatment"),
-                            "notes": row.get("notes"),
-                            "status": row.get("status", "completada"),
+                            "paciente_id": row.get("paciente_id"),
+                            "paciente_nombre": f"{row.get('paciente_nombre', '')} {row.get('paciente_apellido', '')}".strip(),
+                            "fecha_atencion": row.get("fecha_atencion"),
+                            "hora_inicio": row.get("hora_inicio"),
+                            "tipo_atencion": row.get("tipo_atencion"),
+                            "motivo_consulta": row.get("motivo_consulta"),
+                            "diagnostico": row.get("diagnostico"),
+                            "tratamiento": row.get("tratamiento"),
+                            "observaciones": row.get("observaciones"),
+                            "estado": row.get("estado", "completada"),
                         }
                         atenciones.append(atencion)
 
@@ -1603,6 +1657,8 @@ def get_atenciones():
 
             except Exception as e:
                 logger.error(f"❌ Error obteniendo atenciones: {e}")
+                logger.error(f"❌ Tipo de error: {type(e).__name__}")
+                logger.error(f"❌ Traceback completo: ", exc_info=True)
                 return jsonify({"error": "Error al consultar la base de datos"}), 500
         else:
             logger.warning("⚠️ PostgreSQL no disponible para obtener atenciones")
@@ -1610,6 +1666,8 @@ def get_atenciones():
 
     except Exception as e:
         logger.error(f"❌ Error en get_atenciones: {e}")
+        logger.error(f"❌ Tipo de error: {type(e).__name__}")
+        logger.error(f"❌ Traceback completo: ", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500
 
 
