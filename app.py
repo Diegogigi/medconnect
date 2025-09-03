@@ -2218,7 +2218,7 @@ def get_professional_patients():
                            MAX(a.fecha_atencion) as ultima_atencion
                     FROM usuarios u
                     LEFT JOIN atenciones_medicas a ON u.id = a.paciente_id AND a.profesional_id = %s
-                    WHERE u.tipo_usuario = 'paciente' AND u.estado = 'activo'
+                    WHERE u.tipo_usuario = 'paciente' AND u.activo = true
                     GROUP BY {', '.join([f"u.{col}" for col in basic_columns if col in available_columns])}
                     ORDER BY u.apellido, u.nombre
                 """
@@ -2325,11 +2325,10 @@ def guardar_paciente():
                 if existing_user:
                     return jsonify({"error": "Ya existe un usuario con ese email"}), 400
 
-                # Insertar nuevo paciente
+                # Insertar nuevo paciente usando solo las columnas que existen
                 insert_query = """
-                    INSERT INTO usuarios (nombre, apellido, email, telefono, fecha_nacimiento, 
-                                        genero, direccion, ciudad, estado, tipo_usuario, fecha_registro)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'paciente', %s)
+                    INSERT INTO usuarios (nombre, apellido, email, tipo_usuario, fecha_registro, activo)
+                    VALUES (%s, %s, %s, 'paciente', %s, true)
                     RETURNING id
                 """
 
@@ -2337,12 +2336,6 @@ def guardar_paciente():
                     data.get("nombre"),
                     data.get("apellido"),
                     data.get("email"),
-                    data.get("telefono", ""),
-                    data.get("fecha_nacimiento"),
-                    data.get("genero", ""),
-                    data.get("direccion", ""),
-                    data.get("ciudad", ""),
-                    data.get("estado", "activo"),
                     datetime.now(),
                 )
 
