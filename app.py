@@ -1444,16 +1444,11 @@ def register_atencion():
         )
 
         # Mapear campos del formulario a la estructura de la base de datos
-        # El formulario envía: paciente_nombre, paciente_rut, tipo_atencion, motivo_consulta, etc.
+        # El formulario envía: paciente_nombre, paciente_email, tipo_atencion, motivo_consulta, etc.
         # Necesitamos: paciente_id, tipo_atencion, motivo_consulta, diagnostico, tratamiento
 
-        # Buscar o crear paciente por RUT
-        paciente_rut = data.get("paciente_rut")
-        if not paciente_rut:
-            return jsonify({"error": "RUT del paciente es requerido"}), 400
-
         # Validar datos requeridos
-        required_fields = ["tipo_atencion", "motivo_consulta"]
+        required_fields = ["paciente_email", "tipo_atencion", "motivo_consulta"]
         for field in required_fields:
             if not data.get(field):
                 logger.error(f"❌ Campo requerido faltante: {field}")
@@ -1499,19 +1494,31 @@ def register_atencion():
                 columns_result = postgres_db.cursor.fetchall()
                 logger.info(f"📋 Columnas de la tabla: {columns_result}")
 
-                # Buscar paciente por RUT en la tabla usuarios
+                # Buscar paciente por email en la tabla usuarios (ya que no existe columna rut)
+                # El formulario debería enviar paciente_email en lugar de paciente_rut
+                paciente_email = data.get("paciente_email")
+                if not paciente_email:
+                    logger.error(
+                        f"❌ Email del paciente es requerido (columna rut no existe)"
+                    )
+                    return jsonify({"error": "Email del paciente es requerido"}), 400
+
                 paciente_query = """
                     SELECT id FROM usuarios 
-                    WHERE rut = %s AND tipo_usuario = 'paciente'
+                    WHERE email = %s AND tipo_usuario = 'paciente'
                 """
-                postgres_db.cursor.execute(paciente_query, (paciente_rut,))
+                postgres_db.cursor.execute(paciente_query, (paciente_email,))
                 paciente_result = postgres_db.cursor.fetchone()
 
                 if not paciente_result:
-                    logger.error(f"❌ Paciente con RUT {paciente_rut} no encontrado")
+                    logger.error(
+                        f"❌ Paciente con email {paciente_email} no encontrado"
+                    )
                     return (
                         jsonify(
-                            {"error": f"Paciente con RUT {paciente_rut} no encontrado"}
+                            {
+                                "error": f"Paciente con email {paciente_email} no encontrado"
+                            }
                         ),
                         404,
                     )
