@@ -1447,11 +1447,48 @@ def register_atencion():
         required_fields = ["patient_id", "diagnosis", "treatment"]
         for field in required_fields:
             if not data.get(field):
+                logger.error(f"❌ Campo requerido faltante: {field}")
                 return jsonify({"error": f"Campo {field} es requerido"}), 400
+
+        logger.info(f"✅ Validación de campos exitosa")
 
         # Crear atención en la base de datos
         if postgres_db and postgres_db.is_connected():
             try:
+                logger.info(f"🔍 Verificando conexión a PostgreSQL...")
+
+                # Verificar que la tabla atenciones_medicas existe
+                check_table_query = """
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'atenciones_medicas'
+                    );
+                """
+                table_exists_result = postgres_db.execute_query(check_table_query)
+                logger.info(f"📊 Resultado verificación tabla: {table_exists_result}")
+
+                if not table_exists_result or not table_exists_result[0].get(
+                    "exists", False
+                ):
+                    logger.error(f"❌ Tabla 'atenciones_medicas' NO existe")
+                    return (
+                        jsonify({"error": "Tabla de atenciones médicas no disponible"}),
+                        500,
+                    )
+
+                logger.info(f"✅ Tabla 'atenciones_medicas' existe")
+
+                # Verificar estructura de la tabla
+                check_columns_query = """
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'atenciones_medicas'
+                    ORDER BY ordinal_position;
+                """
+                columns_result = postgres_db.execute_query(check_columns_query)
+                logger.info(f"📋 Columnas de la tabla: {columns_result}")
+
+                # Preparar consulta de inserción
                 insert_query = """
                     INSERT INTO atenciones_medicas 
                     (patient_id, doctor_id, specialty, date, diagnosis, treatment, notes, status)
@@ -1459,19 +1496,26 @@ def register_atencion():
                     RETURNING id
                 """
 
+                current_date = datetime.now().isoformat()
                 insert_values = (
                     data.get("patient_id"),
                     user_id,  # El profesional que registra la atención
                     data.get("specialty", "General"),
-                    data.get("date", datetime.now().isoformat()),
+                    current_date,
                     data.get("diagnosis"),
                     data.get("treatment"),
                     data.get("notes", ""),
                     data.get("status", "completada"),
                 )
 
+                logger.info(f"🔍 Ejecutando consulta: {insert_query}")
+                logger.info(f"📊 Valores a insertar: {insert_values}")
+
                 result = postgres_db.execute_query(insert_query, insert_values)
+                logger.info(f"📊 Resultado de la inserción: {result}")
+
                 postgres_db.conn.commit()
+                logger.info(f"✅ Transacción confirmada")
 
                 if result and len(result) > 0:
                     atencion_id = (
@@ -1495,15 +1539,24 @@ def register_atencion():
 
             except Exception as e:
                 logger.error(f"❌ Error registrando atención en la base de datos: {e}")
+                logger.error(f"❌ Tipo de error: {type(e).__name__}")
+                logger.error(f"❌ Traceback completo: ", exc_info=True)
                 postgres_db.conn.rollback()
-                return jsonify({"error": "Error al registrar en la base de datos"}), 500
+                return (
+                    jsonify(
+                        {"error": f"Error al registrar en la base de datos: {str(e)}"}
+                    ),
+                    500,
+                )
         else:
             logger.warning("⚠️ PostgreSQL no disponible para registrar atención")
             return jsonify({"error": "Base de datos no disponible"}), 503
 
     except Exception as e:
         logger.error(f"❌ Error en register_atencion: {e}")
-        return jsonify({"error": "Error interno del servidor"}), 500
+        logger.error(f"❌ Tipo de error: {type(e).__name__}")
+        logger.error(f"❌ Traceback completo: ", exc_info=True)
+        return jsonify({"error": f"Error interno del servidor: {str(e)}"}), 500
 
 
 @app.route("/api/get-atenciones", methods=["GET"])
