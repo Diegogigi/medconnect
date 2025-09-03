@@ -2444,32 +2444,58 @@ def crear_paciente_desde_formulario(user_id):
     try:
         data = request.get_json() or {}
         logger.info(
-            f"[PACIENTE] Creando paciente desde formulario para profesional {user_id}: {json.dumps(data)[:200]}"
+            f"[PACIENTE] Creando paciente desde formulario para profesional {user_id}: {json.dumps(data)[:300]}"
         )
 
-        # Validar datos requeridos
-        required_fields = ["nombre", "apellido"]
-        for field in required_fields:
-            if not data.get(field):
-                return (
-                    jsonify({"success": False, "error": f"Campo {field} es requerido"}),
-                    400,
-                )
+        # Procesar nombre y apellido (manejar ambos formatos)
+        nombre = data.get("nombre")
+        apellido = data.get("apellido")
 
-        # Generar email automático si no se proporciona
+        # Si viene nombre_completo en lugar de nombre/apellido separados
+        if not nombre and not apellido and data.get("nombre_completo"):
+            nombre_completo = data.get("nombre_completo").strip()
+            partes_nombre = nombre_completo.split()
+            if len(partes_nombre) >= 2:
+                nombre = partes_nombre[0]
+                apellido = " ".join(partes_nombre[1:])
+            else:
+                nombre = nombre_completo
+                apellido = "Paciente"
+
+            logger.info(
+                f"📝 Procesando nombre_completo: '{nombre_completo}' → nombre: '{nombre}', apellido: '{apellido}'"
+            )
+
+        # Validar que tengamos nombre y apellido
+        if not nombre or not apellido:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": "Se requiere nombre y apellido (o nombre_completo)",
+                    }
+                ),
+                400,
+            )
+
+        # Procesar email (usar el proporcionado o generar uno)
         email = data.get("email")
-        if not email:
+        if not email or email == "":
             # Generar email basado en nombre y apellido
-            nombre_clean = data.get("nombre", "").lower().replace(" ", "")
-            apellido_clean = data.get("apellido", "").lower().replace(" ", "")
-            email = f"{nombre_clean}.{apellido_clean}@paciente.medconnect.cl"
+            nombre_clean = nombre.lower().replace(" ", "")
+            apellido_clean = apellido.lower().replace(" ", "")
+            import time
+
+            timestamp = str(int(time.time()))
+            email = (
+                f"{nombre_clean}.{apellido_clean}.{timestamp}@paciente.medconnect.cl"
+            )
+            logger.info(f"📧 Email generado automáticamente: {email}")
 
         if postgres_db and postgres_db.is_connected():
             try:
                 # Verificar si el email ya existe
-                check_email_query = """
-                    SELECT id FROM usuarios WHERE email = %s
-                """
+                check_email_query = "SELECT id FROM usuarios WHERE email = %s"
                 postgres_db.cursor.execute(check_email_query, (email,))
                 existing_user = postgres_db.cursor.fetchone()
 
@@ -2478,9 +2504,12 @@ def crear_paciente_desde_formulario(user_id):
                     import time
 
                     timestamp = str(int(time.time()))
+                    nombre_clean = nombre.lower().replace(" ", "")
+                    apellido_clean = apellido.lower().replace(" ", "")
                     email = f"{nombre_clean}.{apellido_clean}.{timestamp}@paciente.medconnect.cl"
+                    logger.info(f"📧 Email duplicado, generando nuevo: {email}")
 
-                # Generar password hash por defecto para pacientes creados desde formulario
+                # Generar password hash por defecto
                 import bcrypt
                 import time
 
@@ -2490,22 +2519,74 @@ def crear_paciente_desde_formulario(user_id):
                     default_password.encode("utf-8"), bcrypt.gensalt()
                 ).decode("utf-8")
 
-                # Insertar nuevo paciente con password_hash requerido
-                insert_query = """
-                    INSERT INTO usuarios (nombre, apellido, email, password_hash, tipo_usuario, fecha_registro, activo)
-                    VALUES (%s, %s, %s, %s, 'paciente', %s, true)
+                # Preparar datos adicionales (opcional)
+                telefono = data.get("telefono", "").strip() or None
+                fecha_nacimiento = data.get("fecha_nacimiento", "").strip() or None
+                genero = data.get("genero", "").strip() or None
+                direccion = data.get("direccion", "").strip() or None
+                rut = data.get("rut", "").strip() or None
+                edad = data.get("edad", "").strip() or None
+
+                # Primero verificar qué columnas existen en la tabla usuarios
+                check_columns_query = """
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'usuarios'
+                    ORDER BY ordinal_position;
+                """
+                postgres_db.cursor.execute(check_columns_query)
+                columns_result = postgres_db.cursor.fetchall()
+                available_columns = [col.get("column_name") for col in columns_result]
+
+                logger.info(f"📋 Columnas disponibles en usuarios: {available_columns}")
+
+                # Construir consulta dinámicamente basada en columnas existentes
+                base_columns = [
+                    "nombre",
+                    "apellido",
+                    "email",
+                    "password_hash",
+                    "tipo_usuario",
+                    "fecha_registro",
+                    "activo",
+                ]
+                base_values = [
+                    nombre,
+                    apellido,
+                    email,
+                    password_hash,
+                    "paciente",
+                    datetime.now(),
+                    True,
+                ]
+
+                # Agregar columnas opcionales si existen
+                optional_fields = {
+                    "telefono": telefono,
+                    "fecha_nacimiento": fecha_nacimiento,
+                    "genero": genero,
+                    "direccion": direccion,
+                    "rut": rut,
+                    "edad": edad,
+                }
+
+                for field_name, field_value in optional_fields.items():
+                    if field_name in available_columns and field_value is not None:
+                        base_columns.append(field_name)
+                        base_values.append(field_value)
+                        logger.info(f"➕ Agregando campo {field_name}: {field_value}")
+
+                # Construir la consulta INSERT
+                columns_str = ", ".join(base_columns)
+                placeholders = ", ".join(["%s"] * len(base_values))
+                insert_query = f"""
+                    INSERT INTO usuarios ({columns_str})
+                    VALUES ({placeholders})
                     RETURNING id
                 """
 
-                insert_values = (
-                    data.get("nombre"),
-                    data.get("apellido"),
-                    email,
-                    password_hash,
-                    datetime.now(),
-                )
-
-                postgres_db.cursor.execute(insert_query, insert_values)
+                logger.info(f"🔍 Ejecutando INSERT con {len(base_values)} valores")
+                postgres_db.cursor.execute(insert_query, base_values)
                 result = postgres_db.cursor.fetchone()
                 postgres_db.conn.commit()
 
@@ -2514,34 +2595,45 @@ def crear_paciente_desde_formulario(user_id):
                     logger.info(
                         f"✅ Paciente creado exitosamente con ID: {paciente_id}"
                     )
+
                     return jsonify(
                         {
                             "success": True,
                             "message": "Paciente creado correctamente",
                             "paciente": {
                                 "id": paciente_id,
-                                "nombre": data.get("nombre"),
-                                "apellido": data.get("apellido"),
+                                "nombre": nombre,
+                                "apellido": apellido,
                                 "email": email,
+                                "telefono": telefono,
+                                "fecha_nacimiento": fecha_nacimiento,
+                                "genero": genero,
+                                "direccion": direccion,
+                                "rut": rut,
+                                "edad": edad,
                             },
                         }
                     )
                 else:
                     return (
                         jsonify(
-                            {"success": False, "error": "Error al crear el paciente"}
+                            {
+                                "success": False,
+                                "error": "Error al crear el paciente en la base de datos",
+                            }
                         ),
                         500,
                     )
 
             except Exception as e:
                 logger.error(f"❌ Error creando paciente: {e}")
+                logger.error(f"❌ Tipo de error: {type(e).__name__}")
                 postgres_db.conn.rollback()
                 return (
                     jsonify(
                         {
                             "success": False,
-                            "error": "Error al crear en la base de datos",
+                            "error": f"Error al crear en la base de datos: {str(e)}",
                         }
                     ),
                     500,
