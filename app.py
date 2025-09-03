@@ -1335,6 +1335,76 @@ def update_notification_settings():
         return jsonify({"error": "Error interno del servidor"}), 500
 
 
+@app.route("/api/update-professional-profile", methods=["POST"])
+@login_required
+def update_professional_profile():
+    """Actualizar perfil del profesional"""
+    try:
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Usuario no autenticado"}), 401
+
+        data = request.get_json() or {}
+        logger.info(
+            f"[PROFILE] Actualizando perfil profesional {user_id}: {json.dumps(data)[:200]}"
+        )
+
+        # Validar datos requeridos
+        required_fields = ["numero_registro", "especialidad", "profesion"]
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"error": f"Campo {field} es requerido"}), 400
+
+        # Actualizar en tabla profesionales
+        if postgres_db and postgres_db.is_connected():
+            try:
+                update_query = """
+                    UPDATE profesionales 
+                    SET numero_registro = %s, especialidad = %s, profesion = %s,
+                        anos_experiencia = %s, institucion = %s, direccion_consulta = %s,
+                        horario_atencion = %s, idiomas = %s, calificacion = %s,
+                        verificado = %s, disponible = %s
+                    WHERE user_id = %s
+                """
+
+                update_values = (
+                    data.get("numero_registro"),
+                    data.get("especialidad"),
+                    data.get("profesion"),
+                    data.get("anos_experiencia"),
+                    data.get("institucion"),
+                    data.get("direccion_consulta"),
+                    data.get("horario_atencion"),
+                    data.get("idiomas"),
+                    data.get("calificacion", 5.0),
+                    data.get("verificado", "false"),
+                    data.get("disponible", True),
+                    user_id,
+                )
+
+                postgres_db.execute_query(update_query, update_values)
+                postgres_db.conn.commit()
+
+                logger.info(f"✅ Perfil profesional actualizado para usuario {user_id}")
+                return jsonify(
+                    {"success": True, "message": "Perfil actualizado correctamente"}
+                )
+
+            except Exception as e:
+                logger.error(f"❌ Error actualizando perfil profesional: {e}")
+                return (
+                    jsonify({"error": "Error al actualizar en la base de datos"}),
+                    500,
+                )
+        else:
+            logger.warning("⚠️ PostgreSQL no disponible para actualizar perfil")
+            return jsonify({"error": "Base de datos no disponible"}), 503
+
+    except Exception as e:
+        logger.error(f"❌ Error en update_professional_profile: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
+
 # ---------- API PACIENTE (consultas, exámenes, familia) ----------
 @app.route("/api/patient/<patient_id>/consultations", methods=["GET"])
 @login_required
