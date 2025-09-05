@@ -36,6 +36,17 @@ try:
     print(
         f"[INFO] PostgreSQLDBManager inicializado: {'Conectado' if postgres_db.is_connected() else 'Modo fallback'}"
     )
+    
+    # Ejecutar migración de base de datos si está conectado
+    if postgres_db and postgres_db.is_connected():
+        try:
+            from migrate_database import migrate_database
+            print("[INFO] Ejecutando migración de base de datos...")
+            migrate_database()
+            print("[INFO] Migración de base de datos completada")
+        except Exception as e:
+            print(f"[WARN] Error en migración de base de datos: {e}")
+            
 except Exception as e:
     print(f"[WARN] PostgreSQLDBManager no disponible: {e}")
 
