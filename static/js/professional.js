@@ -2291,8 +2291,16 @@ function savePatient() {
 
     // Obtener datos del formulario
     const formData = new FormData(form);
+
+    // Procesar nombre completo para separar nombre y apellido
+    const nombreCompleto = document.getElementById('patientName').value.trim();
+    const partesNombre = nombreCompleto.split(' ');
+    const nombre = partesNombre[0] || '';
+    const apellido = partesNombre.slice(1).join(' ') || 'Paciente';
+
     const pacienteData = {
-        nombre_completo: document.getElementById('patientName').value.trim(),
+        nombre: nombre,
+        apellido: apellido,
         rut: document.getElementById('patientRut').value.trim(),
         edad: document.getElementById('patientAge').value,
         genero: document.getElementById('patientGender').value,
@@ -2306,15 +2314,12 @@ function savePatient() {
     console.log(' Datos del paciente:', pacienteData);
 
     // Validar campos requeridos
-    if (!pacienteData.nombre_completo) {
-        showNotification('El nombre completo es requerido', 'error');
+    if (!pacienteData.nombre) {
+        showNotification('El nombre es requerido', 'error');
         return;
     }
 
-    if (!pacienteData.rut) {
-        showNotification('El RUT es requerido', 'error');
-        return;
-    }
+    // El RUT es opcional, no validamos si está vacío
 
     // Verificar si es edicin o nuevo paciente
     const pacienteId = form.getAttribute('data-editing-id');
