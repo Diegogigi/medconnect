@@ -2726,6 +2726,85 @@ def guardar_paciente():
         return jsonify({"error": "Error interno del servidor"}), 500
 
 
+@app.route("/api/professional/patients/<paciente_id>", methods=["DELETE"])
+@login_required
+def delete_professional_patient(paciente_id):
+    """Eliminar paciente de la lista del profesional"""
+    try:
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Usuario no autenticado"}), 401
+
+        logger.info(f"[ELIMINAR] Eliminando paciente {paciente_id} para profesional {user_id}")
+
+        if postgres_db and postgres_db.is_connected():
+            try:
+                # Verificar que el paciente existe y pertenece al profesional
+                check_query = """
+                    SELECT u.id, u.nombre, u.apellido, u.email
+                    FROM usuarios u
+                    WHERE u.id = %s AND u.tipo_usuario = 'paciente' AND u.activo = true
+                """
+                postgres_db.cursor.execute(check_query, (paciente_id,))
+                paciente = postgres_db.cursor.fetchone()
+
+                if not paciente:
+                    return jsonify({"error": "Paciente no encontrado"}), 404
+
+                # Verificar si hay atenciones médicas relacionadas
+                atenciones_query = """
+                    SELECT COUNT(*) as total
+                    FROM atenciones_medicas 
+                    WHERE paciente_id = %s AND profesional_id = %s
+                """
+                postgres_db.cursor.execute(atenciones_query, (paciente_id, user_id))
+                atenciones_result = postgres_db.cursor.fetchone()
+                total_atenciones = atenciones_result.get("total", 0) if atenciones_result else 0
+
+                if total_atenciones > 0:
+                    # Si hay atenciones, solo desactivar la relación (soft delete)
+                    # Por ahora, simplemente marcamos como inactivo en la tabla usuarios
+                    # En un sistema más complejo, podrías tener una tabla de relaciones profesional-paciente
+                    update_query = """
+                        UPDATE usuarios 
+                        SET activo = false 
+                        WHERE id = %s AND tipo_usuario = 'paciente'
+                    """
+                    postgres_db.cursor.execute(update_query, (paciente_id,))
+                    postgres_db.conn.commit()
+                    
+                    logger.info(f"✅ Paciente {paciente_id} desactivado (tenía {total_atenciones} atenciones)")
+                    return jsonify({
+                        "success": True,
+                        "message": f"Paciente {paciente.get('nombre', '')} {paciente.get('apellido', '')} eliminado de tu lista exitosamente"
+                    })
+                else:
+                    # Si no hay atenciones, eliminar completamente
+                    delete_query = """
+                        DELETE FROM usuarios 
+                        WHERE id = %s AND tipo_usuario = 'paciente'
+                    """
+                    postgres_db.cursor.execute(delete_query, (paciente_id,))
+                    postgres_db.conn.commit()
+                    
+                    logger.info(f"✅ Paciente {paciente_id} eliminado completamente")
+                    return jsonify({
+                        "success": True,
+                        "message": f"Paciente {paciente.get('nombre', '')} {paciente.get('apellido', '')} eliminado exitosamente"
+                    })
+
+            except Exception as e:
+                logger.error(f"❌ Error eliminando paciente: {e}")
+                postgres_db.conn.rollback()
+                return jsonify({"error": "Error al eliminar en la base de datos"}), 500
+        else:
+            return jsonify({"error": "Base de datos no disponible"}), 503
+
+    except Exception as e:
+        logger.error(f"❌ Error en delete_professional_patient: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
+
 # ==================== GESTIÓN DE AGENDA/CITAS ====================
 
 
