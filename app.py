@@ -2494,193 +2494,224 @@ def crear_paciente_desde_formulario(user_id):
 
         if postgres_db and postgres_db.is_connected():
             try:
-                # Verificar si el email ya existe
-                check_email_query = "SELECT id FROM usuarios WHERE email = %s"
-                postgres_db.cursor.execute(check_email_query, (email,))
-                existing_user = postgres_db.cursor.fetchone()
-
-                if existing_user:
-                    # Si existe, generar un email único
-                    import time
-
-                    timestamp = str(int(time.time()))
-                    nombre_clean = nombre.lower().replace(" ", "")
-                    apellido_clean = apellido.lower().replace(" ", "")
-                    email = f"{nombre_clean}.{apellido_clean}.{timestamp}@paciente.medconnect.cl"
-                    logger.info(f"📧 Email duplicado, generando nuevo: {email}")
-
-                # Generar password hash por defecto
-                import bcrypt
-                import time
-
-                timestamp = str(int(time.time()))
-                default_password = f"paciente{timestamp}"
-                password_hash = bcrypt.hashpw(
-                    default_password.encode("utf-8"), bcrypt.gensalt()
-                ).decode("utf-8")
-
-                # Preparar datos adicionales (opcional)
+                # Preparar datos del paciente
                 telefono = data.get("telefono", "").strip() or None
                 fecha_nacimiento = data.get("fecha_nacimiento", "").strip() or None
                 genero = data.get("genero", "").strip() or None
                 direccion = data.get("direccion", "").strip() or None
                 rut = data.get("rut", "").strip() or None
                 edad = data.get("edad", "").strip() or None
+                antecedentes_medicos = (
+                    data.get("antecedentes_medicos", "").strip() or None
+                )
 
-                # Primero verificar qué columnas existen en la tabla usuarios
-                check_columns_query = """
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'usuarios'
-                    ORDER BY ordinal_position;
+                # Verificar qué tablas existen para pacientes
+                check_tables_query = """
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_name IN ('pacientes', 'pacientes_profesional')
+                    ORDER BY table_name;
                 """
-                postgres_db.cursor.execute(check_columns_query)
-                columns_result = postgres_db.cursor.fetchall()
-                available_columns = [col.get("column_name") for col in columns_result]
+                postgres_db.cursor.execute(check_tables_query)
+                tablas_existentes = [row[0] for row in postgres_db.cursor.fetchall()]
 
-                logger.info(f"📋 Columnas disponibles en usuarios: {available_columns}")
+                logger.info(f"📋 Tablas de pacientes disponibles: {tablas_existentes}")
 
-                # Construir consulta dinámicamente basada en columnas existentes
-                base_columns = [
-                    "nombre",
-                    "apellido",
-                    "email",
-                    "password_hash",
-                    "tipo_usuario",
-                    "fecha_registro",
-                    "activo",
-                ]
-                base_values = [
-                    nombre,
-                    apellido,
-                    email,
-                    password_hash,
-                    "paciente",
-                    datetime.now(),
-                    True,
-                ]
+                paciente_id = None
+                nombre_completo = f"{nombre} {apellido}"
 
-                # Agregar columnas opcionales si existen
-                optional_fields = {
-                    "telefono": telefono,
-                    "fecha_nacimiento": fecha_nacimiento,
-                    "genero": genero,
-                    "direccion": direccion,
-                    "rut": rut,
-                    "edad": edad,
-                }
-
-                for field_name, field_value in optional_fields.items():
-                    if field_name in available_columns and field_value is not None:
-                        base_columns.append(field_name)
-                        base_values.append(field_value)
-                        logger.info(f"➕ Agregando campo {field_name}: {field_value}")
-
-                # Construir la consulta INSERT
-                columns_str = ", ".join(base_columns)
-                placeholders = ", ".join(["%s"] * len(base_values))
-                insert_query = f"""
-                    INSERT INTO usuarios ({columns_str})
-                    VALUES ({placeholders})
-                    RETURNING id
-                """
-
-                logger.info(f"🔍 Ejecutando INSERT con {len(base_values)} valores")
-                postgres_db.cursor.execute(insert_query, base_values)
-                result = postgres_db.cursor.fetchone()
-                postgres_db.conn.commit()
-
-                if result and result.get("id"):
-                    usuario_id = result.get("id")
-                    logger.info(
-                        f"✅ Usuario paciente creado exitosamente con ID: {usuario_id}"
-                    )
-
-                    # Ahora insertar en la tabla pacientes con los datos médicos específicos
+                # Intentar insertar en pacientes_profesional primero (si existe)
+                if "pacientes_profesional" in tablas_existentes:
                     try:
-                        # Verificar si la tabla pacientes existe
-                        check_pacientes_table = """
-                            SELECT EXISTS (
-                                SELECT FROM information_schema.tables 
-                                WHERE table_name = 'pacientes'
-                            );
+                        # Generar ID único para paciente
+                        import time
+
+                        timestamp = str(int(time.time()))
+                        paciente_id = f"PAC_{timestamp}"
+
+                        insert_paciente_profesional_query = """
+                            INSERT INTO pacientes_profesional 
+                            (paciente_id, profesional_id, nombre_completo, rut, edad, fecha_nacimiento, genero, 
+                             telefono, email, direccion, antecedentes_medicos, estado_relacion, fecha_registro)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                            RETURNING paciente_id
                         """
-                        postgres_db.cursor.execute(check_pacientes_table)
-                        tabla_pacientes_existe = postgres_db.cursor.fetchone()[0]
 
-                        if tabla_pacientes_existe:
-                            # Insertar en tabla pacientes
-                            insert_paciente_query = """
-                                INSERT INTO pacientes (usuario_id, fecha_nacimiento, genero, telefono, direccion, antecedentes_medicos)
-                                VALUES (%s, %s, %s, %s, %s, %s)
-                                RETURNING id
-                            """
-
-                            paciente_values = (
-                                usuario_id,
-                                fecha_nacimiento,
-                                genero,
-                                telefono,
-                                direccion,
-                                data.get("antecedentes_medicos", "").strip() or None,
-                            )
-
-                            postgres_db.cursor.execute(
-                                insert_paciente_query, paciente_values
-                            )
-                            paciente_result = postgres_db.cursor.fetchone()
-                            postgres_db.conn.commit()
-
-                            if paciente_result:
-                                logger.info(
-                                    f"✅ Registro en tabla pacientes creado con ID: {paciente_result[0]}"
-                                )
-                            else:
-                                logger.warning(
-                                    "⚠️ No se pudo crear registro en tabla pacientes"
-                                )
-                        else:
-                            logger.info(
-                                "ℹ️ Tabla 'pacientes' no existe, solo se creó en tabla 'usuarios'"
-                            )
-
-                    except Exception as paciente_error:
-                        logger.warning(
-                            f"⚠️ Error creando registro en tabla pacientes: {paciente_error}"
+                        paciente_profesional_values = (
+                            paciente_id,
+                            user_id,  # profesional_id
+                            nombre_completo,
+                            rut,
+                            edad,
+                            fecha_nacimiento,
+                            genero,
+                            telefono,
+                            email,
+                            direccion,
+                            antecedentes_medicos,
+                            "activo",
+                            datetime.now(),
                         )
-                        # No fallar la operación principal si falla la inserción en pacientes
-                        postgres_db.conn.rollback()
-                        # Re-hacer el commit del usuario
+
+                        postgres_db.cursor.execute(
+                            insert_paciente_profesional_query,
+                            paciente_profesional_values,
+                        )
+                        result = postgres_db.cursor.fetchone()
                         postgres_db.conn.commit()
 
-                    return jsonify(
-                        {
-                            "success": True,
-                            "message": "Paciente creado correctamente",
-                            "paciente": {
-                                "id": usuario_id,
-                                "nombre": nombre,
-                                "apellido": apellido,
-                                "email": email,
-                                "telefono": telefono,
-                                "fecha_nacimiento": fecha_nacimiento,
-                                "genero": genero,
-                                "direccion": direccion,
-                                "rut": rut,
-                                "edad": edad,
-                            },
-                        }
-                    )
+                        if result:
+                            logger.info(
+                                f"✅ Paciente creado en pacientes_profesional con ID: {paciente_id}"
+                            )
+                        else:
+                            raise Exception("No se pudo obtener ID del paciente creado")
+
+                    except Exception as e:
+                        logger.error(f"❌ Error creando en pacientes_profesional: {e}")
+                        postgres_db.conn.rollback()
+                        raise e
+
+                # Si no existe pacientes_profesional, intentar con tabla pacientes
+                elif "pacientes" in tablas_existentes:
+                    try:
+                        insert_paciente_query = """
+                            INSERT INTO pacientes (fecha_nacimiento, genero, telefono, direccion, antecedentes_medicos)
+                            VALUES (%s, %s, %s, %s, %s)
+                            RETURNING id
+                        """
+
+                        paciente_values = (
+                            fecha_nacimiento,
+                            genero,
+                            telefono,
+                            direccion,
+                            antecedentes_medicos,
+                        )
+
+                        postgres_db.cursor.execute(
+                            insert_paciente_query, paciente_values
+                        )
+                        result = postgres_db.cursor.fetchone()
+                        postgres_db.conn.commit()
+
+                        if result:
+                            paciente_id = result[0]
+                            logger.info(
+                                f"✅ Paciente creado en tabla pacientes con ID: {paciente_id}"
+                            )
+                        else:
+                            raise Exception("No se pudo obtener ID del paciente creado")
+
+                    except Exception as e:
+                        logger.error(f"❌ Error creando en tabla pacientes: {e}")
+                        postgres_db.conn.rollback()
+                        raise e
+
                 else:
-                    return (
-                        jsonify(
-                            {
-                                "success": False,
-                                "error": "Error al crear el paciente en la base de datos",
-                            }
-                        ),
-                        500,
+                    # Si no existen tablas específicas de pacientes, crear solo en usuarios
+                    logger.warning(
+                        "⚠️ No existen tablas específicas de pacientes, creando en usuarios"
                     )
+
+                    # Generar password hash por defecto
+                    import bcrypt
+                    import time
+
+                    timestamp = str(int(time.time()))
+                    default_password = f"paciente{timestamp}"
+                    password_hash = bcrypt.hashpw(
+                        default_password.encode("utf-8"), bcrypt.gensalt()
+                    ).decode("utf-8")
+
+                    # Verificar qué columnas existen en la tabla usuarios
+                    check_columns_query = """
+                        SELECT column_name 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'usuarios'
+                        ORDER BY ordinal_position;
+                    """
+                    postgres_db.cursor.execute(check_columns_query)
+                    columns_result = postgres_db.cursor.fetchall()
+                    available_columns = [
+                        col.get("column_name") for col in columns_result
+                    ]
+
+                    # Construir consulta dinámicamente basada en columnas existentes
+                    base_columns = [
+                        "nombre",
+                        "apellido",
+                        "email",
+                        "password_hash",
+                        "tipo_usuario",
+                        "fecha_registro",
+                        "activo",
+                    ]
+                    base_values = [
+                        nombre,
+                        apellido,
+                        email,
+                        password_hash,
+                        "paciente",
+                        datetime.now(),
+                        True,
+                    ]
+
+                    # Agregar columnas opcionales si existen
+                    optional_fields = {
+                        "telefono": telefono,
+                        "fecha_nacimiento": fecha_nacimiento,
+                        "genero": genero,
+                        "direccion": direccion,
+                        "rut": rut,
+                        "edad": edad,
+                    }
+
+                    for field_name, field_value in optional_fields.items():
+                        if field_name in available_columns and field_value is not None:
+                            base_columns.append(field_name)
+                            base_values.append(field_value)
+
+                    # Construir la consulta INSERT
+                    columns_str = ", ".join(base_columns)
+                    placeholders = ", ".join(["%s"] * len(base_values))
+                    insert_query = f"""
+                        INSERT INTO usuarios ({columns_str})
+                        VALUES ({placeholders})
+                        RETURNING id
+                    """
+
+                    postgres_db.cursor.execute(insert_query, base_values)
+                    result = postgres_db.cursor.fetchone()
+                    postgres_db.conn.commit()
+
+                    if result:
+                        paciente_id = result.get("id")
+                        logger.info(
+                            f"✅ Paciente creado en usuarios con ID: {paciente_id}"
+                        )
+                    else:
+                        raise Exception("No se pudo obtener ID del paciente creado")
+
+                return jsonify(
+                    {
+                        "success": True,
+                        "message": "Paciente creado correctamente",
+                        "paciente": {
+                            "id": paciente_id,
+                            "nombre": nombre,
+                            "apellido": apellido,
+                            "email": email,
+                            "telefono": telefono,
+                            "fecha_nacimiento": fecha_nacimiento,
+                            "genero": genero,
+                            "direccion": direccion,
+                            "rut": rut,
+                            "edad": edad,
+                            "antecedentes_medicos": antecedentes_medicos,
+                        },
+                    }
+                )
 
             except Exception as e:
                 logger.error(f"❌ Error creando paciente: {e}")
