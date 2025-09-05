@@ -2440,7 +2440,7 @@ def get_professional_patients():
 
 
 def crear_paciente_desde_formulario(user_id):
-    """Crear paciente desde formulario del frontend"""
+    """Crear paciente desde formulario del frontend - Solo como registro médico, no como usuario del sistema"""
     try:
         data = request.get_json() or {}
         logger.info(
@@ -2615,29 +2615,39 @@ def crear_paciente_desde_formulario(user_id):
                                 VALUES (%s, %s, %s, %s, %s, %s)
                                 RETURNING id
                             """
-                            
+
                             paciente_values = (
                                 usuario_id,
                                 fecha_nacimiento,
                                 genero,
                                 telefono,
                                 direccion,
-                                data.get("antecedentes_medicos", "").strip() or None
+                                data.get("antecedentes_medicos", "").strip() or None,
                             )
-                            
-                            postgres_db.cursor.execute(insert_paciente_query, paciente_values)
+
+                            postgres_db.cursor.execute(
+                                insert_paciente_query, paciente_values
+                            )
                             paciente_result = postgres_db.cursor.fetchone()
                             postgres_db.conn.commit()
-                            
+
                             if paciente_result:
-                                logger.info(f"✅ Registro en tabla pacientes creado con ID: {paciente_result[0]}")
+                                logger.info(
+                                    f"✅ Registro en tabla pacientes creado con ID: {paciente_result[0]}"
+                                )
                             else:
-                                logger.warning("⚠️ No se pudo crear registro en tabla pacientes")
+                                logger.warning(
+                                    "⚠️ No se pudo crear registro en tabla pacientes"
+                                )
                         else:
-                            logger.info("ℹ️ Tabla 'pacientes' no existe, solo se creó en tabla 'usuarios'")
-                            
+                            logger.info(
+                                "ℹ️ Tabla 'pacientes' no existe, solo se creó en tabla 'usuarios'"
+                            )
+
                     except Exception as paciente_error:
-                        logger.warning(f"⚠️ Error creando registro en tabla pacientes: {paciente_error}")
+                        logger.warning(
+                            f"⚠️ Error creando registro en tabla pacientes: {paciente_error}"
+                        )
                         # No fallar la operación principal si falla la inserción en pacientes
                         postgres_db.conn.rollback()
                         # Re-hacer el commit del usuario
