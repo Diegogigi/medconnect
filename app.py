@@ -2591,17 +2591,64 @@ def crear_paciente_desde_formulario(user_id):
                 postgres_db.conn.commit()
 
                 if result and result.get("id"):
-                    paciente_id = result.get("id")
+                    usuario_id = result.get("id")
                     logger.info(
-                        f"✅ Paciente creado exitosamente con ID: {paciente_id}"
+                        f"✅ Usuario paciente creado exitosamente con ID: {usuario_id}"
                     )
+
+                    # Ahora insertar en la tabla pacientes con los datos médicos específicos
+                    try:
+                        # Verificar si la tabla pacientes existe
+                        check_pacientes_table = """
+                            SELECT EXISTS (
+                                SELECT FROM information_schema.tables 
+                                WHERE table_name = 'pacientes'
+                            );
+                        """
+                        postgres_db.cursor.execute(check_pacientes_table)
+                        tabla_pacientes_existe = postgres_db.cursor.fetchone()[0]
+
+                        if tabla_pacientes_existe:
+                            # Insertar en tabla pacientes
+                            insert_paciente_query = """
+                                INSERT INTO pacientes (usuario_id, fecha_nacimiento, genero, telefono, direccion, antecedentes_medicos)
+                                VALUES (%s, %s, %s, %s, %s, %s)
+                                RETURNING id
+                            """
+                            
+                            paciente_values = (
+                                usuario_id,
+                                fecha_nacimiento,
+                                genero,
+                                telefono,
+                                direccion,
+                                data.get("antecedentes_medicos", "").strip() or None
+                            )
+                            
+                            postgres_db.cursor.execute(insert_paciente_query, paciente_values)
+                            paciente_result = postgres_db.cursor.fetchone()
+                            postgres_db.conn.commit()
+                            
+                            if paciente_result:
+                                logger.info(f"✅ Registro en tabla pacientes creado con ID: {paciente_result[0]}")
+                            else:
+                                logger.warning("⚠️ No se pudo crear registro en tabla pacientes")
+                        else:
+                            logger.info("ℹ️ Tabla 'pacientes' no existe, solo se creó en tabla 'usuarios'")
+                            
+                    except Exception as paciente_error:
+                        logger.warning(f"⚠️ Error creando registro en tabla pacientes: {paciente_error}")
+                        # No fallar la operación principal si falla la inserción en pacientes
+                        postgres_db.conn.rollback()
+                        # Re-hacer el commit del usuario
+                        postgres_db.conn.commit()
 
                     return jsonify(
                         {
                             "success": True,
                             "message": "Paciente creado correctamente",
                             "paciente": {
-                                "id": paciente_id,
+                                "id": usuario_id,
                                 "nombre": nombre,
                                 "apellido": apellido,
                                 "email": email,
@@ -2735,7 +2782,9 @@ def delete_professional_patient(paciente_id):
         if not user_id:
             return jsonify({"error": "Usuario no autenticado"}), 401
 
-        logger.info(f"[ELIMINAR] Eliminando paciente {paciente_id} para profesional {user_id}")
+        logger.info(
+            f"[ELIMINAR] Eliminando paciente {paciente_id} para profesional {user_id}"
+        )
 
         if postgres_db and postgres_db.is_connected():
             try:
@@ -2759,7 +2808,9 @@ def delete_professional_patient(paciente_id):
                 """
                 postgres_db.cursor.execute(atenciones_query, (paciente_id, user_id))
                 atenciones_result = postgres_db.cursor.fetchone()
-                total_atenciones = atenciones_result.get("total", 0) if atenciones_result else 0
+                total_atenciones = (
+                    atenciones_result.get("total", 0) if atenciones_result else 0
+                )
 
                 if total_atenciones > 0:
                     # Si hay atenciones, solo desactivar la relación (soft delete)
@@ -2772,12 +2823,16 @@ def delete_professional_patient(paciente_id):
                     """
                     postgres_db.cursor.execute(update_query, (paciente_id,))
                     postgres_db.conn.commit()
-                    
-                    logger.info(f"✅ Paciente {paciente_id} desactivado (tenía {total_atenciones} atenciones)")
-                    return jsonify({
-                        "success": True,
-                        "message": f"Paciente {paciente.get('nombre', '')} {paciente.get('apellido', '')} eliminado de tu lista exitosamente"
-                    })
+
+                    logger.info(
+                        f"✅ Paciente {paciente_id} desactivado (tenía {total_atenciones} atenciones)"
+                    )
+                    return jsonify(
+                        {
+                            "success": True,
+                            "message": f"Paciente {paciente.get('nombre', '')} {paciente.get('apellido', '')} eliminado de tu lista exitosamente",
+                        }
+                    )
                 else:
                     # Si no hay atenciones, eliminar completamente
                     delete_query = """
@@ -2786,12 +2841,14 @@ def delete_professional_patient(paciente_id):
                     """
                     postgres_db.cursor.execute(delete_query, (paciente_id,))
                     postgres_db.conn.commit()
-                    
+
                     logger.info(f"✅ Paciente {paciente_id} eliminado completamente")
-                    return jsonify({
-                        "success": True,
-                        "message": f"Paciente {paciente.get('nombre', '')} {paciente.get('apellido', '')} eliminado exitosamente"
-                    })
+                    return jsonify(
+                        {
+                            "success": True,
+                            "message": f"Paciente {paciente.get('nombre', '')} {paciente.get('apellido', '')} eliminado exitosamente",
+                        }
+                    )
 
             except Exception as e:
                 logger.error(f"❌ Error eliminando paciente: {e}")
