@@ -157,15 +157,23 @@ function mostrarConfirmacionEliminacion(titulo, pregunta, descripcion, textoBoto
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Inicializar componentes existentes
-    initMaps();
-    initAvailabilityToggle();
-    setupMobileNav();
-    initRequestInteractions();
-    handleFileUpload();
+    // Verificar autenticación al cargar la página
+    verificarAutenticacion().then(autenticado => {
+        if (!autenticado) {
+            console.log(' Usuario no autenticado, redirigiendo...');
+            return; // La redirección ya se maneja en verificarAutenticacion
+        }
 
-    // Cargar estadsticas del dashboard
-    cargarEstadisticasDashboard();
+        // Inicializar componentes existentes solo si está autenticado
+        initMaps();
+        initAvailabilityToggle();
+        setupMobileNav();
+        initRequestInteractions();
+        handleFileUpload();
+
+        // Cargar estadsticas del dashboard
+        cargarEstadisticasDashboard();
+    });
 
     // Prueba de conexin con el backend
     console.log(' Verificando conexin con el backend...');
@@ -3275,8 +3283,32 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+// Variable para controlar si ya se mostró un error de conexión
+let errorConexionMostrado = false;
+
+// Función para verificar autenticación
+function verificarAutenticacion() {
+    return fetch('/api/user/profile', {
+        method: 'GET',
+        credentials: 'include'
+    })
+        .then(response => {
+            if (response.status === 401) {
+                // Usuario no autenticado, redirigir al login
+                console.log(' Usuario no autenticado, redirigiendo al login...');
+                window.location.href = '/login';
+                return false;
+            }
+            return response.ok;
+        })
+        .catch(error => {
+            console.error(' Error verificando autenticación:', error);
+            return false;
+        });
+}
+
 // Funcin para cargar la agenda
-function cargarAgenda(fecha = null) {
+function cargarAgenda(fecha = null, mostrarError = true) {
     console.log(' Cargando agenda...');
 
     if (!fecha) {
@@ -3290,18 +3322,31 @@ function cargarAgenda(fecha = null) {
     fetch(`/api/professional/schedule?fecha=${fecha}&vista=${currentView}`, {
         credentials: 'include'
     })
-        .then(response => response.json())
+        .then(response => {
+            // Verificar si es un error de autenticación
+            if (response.status === 401) {
+                console.log(' Error de autenticación detectado, redirigiendo al login...');
+                window.location.href = '/login';
+                return Promise.reject(new Error('Usuario no autenticado'));
+            }
+            return response.json();
+        })
         .then(data => {
             console.log(' Datos de agenda recibidos:', data);
+
+            // Resetear flag de error cuando la conexión es exitosa
+            errorConexionMostrado = false;
 
             if (data.success) {
                 agendaData = data;
 
                 // Actualizar la vista actual
                 if (currentView === 'diaria') {
-                    citasDelDia = data.citas || [];
+                    // El backend devuelve 'agenda', no 'citas'
+                    const citas = data.agenda || data.citas || [];
+                    citasDelDia = citas;
                     console.log(' Citas del día cargadas:', citasDelDia);
-                    actualizarVistaAgenda(data.citas, data.horarios_disponibles);
+                    actualizarVistaAgenda(citas, data.horarios_disponibles);
                 } else if (currentView === 'semanal') {
                     actualizarVistaSemanal(data.agenda_semanal, data.fecha_inicio, data.fecha_fin);
                 } else if (currentView === 'mensual') {
@@ -3311,8 +3356,9 @@ function cargarAgenda(fecha = null) {
                 // Actualizar estadísticas y recordatorios
                 actualizarEstadisticasAgenda(data.estadisticas);
 
-                if (data.citas) {
-                    actualizarRecordatorios(data.citas);
+                const citas = data.agenda || data.citas || [];
+                if (citas && citas.length > 0) {
+                    actualizarRecordatorios(citas);
                 }
 
                 // Si se acaba de agendar una cita, mostrar notificación adicional
@@ -3322,14 +3368,22 @@ function cargarAgenda(fecha = null) {
                 }
             } else {
                 console.error(' Error cargando agenda:', data.message);
-                showNotification('Error al cargar la agenda: ' + data.message, 'error');
+                if (mostrarError) {
+                    showNotification('Error al cargar la agenda: ' + data.message, 'error');
+                }
                 // Inicializar array vacío en caso de error
                 citasDelDia = [];
             }
         })
         .catch(error => {
             console.error(' Error de red:', error);
-            showNotification('Error de conexin al cargar la agenda', 'error');
+
+            // Solo mostrar el error de conexión si no se ha mostrado ya
+            if (mostrarError && !errorConexionMostrado) {
+                showNotification('Error de conexin al cargar la agenda', 'error');
+                errorConexionMostrado = true;
+            }
+
             // Inicializar array vacío en caso de error de red
             citasDelDia = [];
         });
@@ -3359,6 +3413,12 @@ function actualizarVistaAgenda(citas, horariosDisponibles) {
 
     // Limpiar timeline
     scheduleTimeline.innerHTML = '';
+
+    // Validar que citas sea un array válido
+    if (!citas || !Array.isArray(citas)) {
+        console.warn('⚠️ Citas no es un array válido:', citas);
+        citas = [];
+    }
 
     // Generar horarios de 8:00 a 18:00 cada 30 minutos
     const horarios = [];
@@ -4559,14 +4619,15 @@ function recargarAgendaCompleta() {
     // Obtener la fecha actual de la agenda
     const fechaActual = fechaActualAgenda.toISOString().split('T')[0];
 
-    // Recargar la vista actual inmediatamente
-    cargarAgenda(fechaActual);
+    // Recargar la vista actual inmediatamente (mostrar errores)
+    cargarAgenda(fechaActual, true);
 
     // Programar una recarga adicional después de un breve delay
     // para asegurar que los datos se hayan actualizado en el servidor
+    // Esta segunda llamada NO mostrará errores para evitar duplicación
     setTimeout(() => {
         console.log(' Recarga adicional para sincronización...');
-        cargarAgenda(fechaActual);
+        cargarAgenda(fechaActual, false);
     }, 1000);
 
     console.log(' Agenda completa recargada exitosamente');

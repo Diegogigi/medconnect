@@ -1,0 +1,27 @@
+# Variables de entorno para desarrollo local
+# Estas variables permiten que la aplicación funcione localmente usando la base de datos de Railway
+
+# Base de datos PostgreSQL de Railway (para desarrollo local)
+DATABASE_URL=postgresql://postgres:SBbyfurhbJUJsFbelYJCcOvkSpXDCNZd@hopper.proxy.rlwy.net:51396/railway
+
+# Configuración de Flask
+SECRET_KEY=medconnect-secret-key-2025-railway-production
+FLASK_ENV=development
+DEBUG=True
+
+# Puerto para desarrollo local
+PORT=8000
+
+# API Key de OpenRouter (para funcionalidades de IA)
+OPENROUTER_API_KEY=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
+
+# Configuración de CORS para desarrollo local
+CORS_ORIGINS=http://localhost:8000,http://127.0.0.1:8000,http://localhost:3000,http://127.0.0.1:3000
+
+# Telegram Bot (opcional para desarrollo local)
+TELEGRAM_BOT_TOKEN=
+
+# Configuración de cookies para desarrollo local (HTTP en lugar de HTTPS)
+SESSION_COOKIE_SECURE=False
+SESSION_COOKIE_HTTPONLY=True
+SESSION_COOKIE_SAMESITE=Lax

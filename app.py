@@ -36,17 +36,18 @@ try:
     print(
         f"[INFO] PostgreSQLDBManager inicializado: {'Conectado' if postgres_db.is_connected() else 'Modo fallback'}"
     )
-    
+
     # Ejecutar migración de base de datos si está conectado
     if postgres_db and postgres_db.is_connected():
         try:
             from migrate_database import migrate_database
+
             print("[INFO] Ejecutando migración de base de datos...")
             migrate_database()
             print("[INFO] Migración de base de datos completada")
         except Exception as e:
             print(f"[WARN] Error en migración de base de datos: {e}")
-            
+
 except Exception as e:
     print(f"[WARN] PostgreSQLDBManager no disponible: {e}")
 
@@ -92,8 +93,16 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 CORS(app, origins=app.config["CORS_ORIGINS"])
 
 # Configuración de cookies de sesión (seguridad)
+# Detectar si estamos en desarrollo local (puerto 8000 o localhost)
+is_local_development = (
+    app.config.get("PORT") == 8000
+    or "localhost" in os.environ.get("HOST", "")
+    or "127.0.0.1" in os.environ.get("HOST", "")
+    or app.config.get("FLASK_ENV") == "development"
+)
+
 app.config.update(
-    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SECURE=not is_local_development,  # False para desarrollo local, True para producción
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
 )

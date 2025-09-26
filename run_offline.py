@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Script para ejecutar MedConnect en modo desarrollo local
+Script para ejecutar MedConnect en modo OFFLINE
+Ideal para desarrollo local sin conexión a la base de datos de Railway
 """
 
 import os
@@ -8,53 +9,55 @@ import sys
 import subprocess
 
 
-def run_local():
-    """Ejecuta la aplicación en modo desarrollo local"""
+def run_offline():
+    """Ejecuta la aplicación en modo offline"""
 
-    print("🚀 Iniciando MedConnect en modo desarrollo local...")
+    print("🚀 Iniciando MedConnect en modo OFFLINE...")
     print("=" * 60)
 
-    # 1. Configurar entorno
-    print("🔧 Configurando entorno de desarrollo...")
+    # 1. Configurar entorno offline
+    print("🔧 Configurando entorno offline...")
     try:
-        from setup_desarrollo_local import setup_local_development
+        from config_desarrollo_offline import configurar_desarrollo_offline
 
-        setup_local_development()
+        configurar_desarrollo_offline()
     except ImportError:
         print(
-            "⚠️ No se pudo importar setup_desarrollo_local, usando configuración manual..."
+            "⚠️ No se pudo importar config_desarrollo_offline, usando configuración manual..."
         )
-        # Configuración manual básica
-        os.environ["DATABASE_URL"] = (
-            "postgresql://postgres:SBbyfurhbJUJsFbelYJCcOvkSpXDCNZd@hopper.proxy.rlwy.net:51396/railway"
-        )
-        os.environ["SECRET_KEY"] = "medconnect-secret-key-2025-railway-production"
+        # Configuración manual offline
+        os.environ["DATABASE_URL"] = ""
+        os.environ["SECRET_KEY"] = "dev-secret-key-local-offline-12345"
         os.environ["FLASK_ENV"] = "development"
         os.environ["DEBUG"] = "True"
         os.environ["PORT"] = "8000"
         os.environ["SESSION_COOKIE_SECURE"] = "False"
+        os.environ["CORS_ORIGINS"] = "http://localhost:8000,http://127.0.0.1:8000"
 
-    # 2. Verificar dependencias
-    print("\n📦 Verificando dependencias...")
+    # 2. Verificar dependencias básicas
+    print("\n📦 Verificando dependencias básicas...")
     try:
         import flask
-        import psycopg2
         from dotenv import load_dotenv
 
-        print("✅ Dependencias principales disponibles")
+        print("✅ Dependencias básicas disponibles")
     except ImportError as e:
         print(f"❌ Dependencia faltante: {e}")
-        print("💡 Ejecuta: pip install -r requirements.txt")
+        print("💡 Ejecuta: pip install flask python-dotenv")
         return False
 
     # 3. Ejecutar aplicación
-    print("\n🚀 Iniciando aplicación...")
+    print("\n🚀 Iniciando aplicación en modo offline...")
     print("🌐 La aplicación estará disponible en: http://localhost:8000")
     print("🔐 Login: http://localhost:8000/login")
     print("❤️ Health Check: http://localhost:8000/health")
-    print("\n👤 Credenciales de prueba:")
+    print("\n👤 Credenciales de prueba (datos simulados):")
     print("  📧 diego.castro.lagos@gmail.com / password123")
     print("  📧 rodrigoandressilvabreve@gmail.com / password123")
+    print("\n📋 Modo OFFLINE activado:")
+    print("  ✅ Sin conexión a base de datos externa")
+    print("  ✅ Datos simulados para desarrollo")
+    print("  ✅ Todas las funcionalidades disponibles")
     print("\n" + "=" * 60)
     print("🛑 Presiona Ctrl+C para detener la aplicación")
     print("=" * 60)
@@ -77,7 +80,7 @@ def run_local():
 def main():
     """Función principal"""
     try:
-        success = run_local()
+        success = run_offline()
         if not success:
             sys.exit(1)
     except Exception as e:
