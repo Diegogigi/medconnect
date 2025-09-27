@@ -2249,73 +2249,87 @@ def get_professional_patients():
 
         if postgres_db and postgres_db.is_connected():
             try:
-                # Primero verificar qué columnas tiene realmente la tabla usuarios
-                check_columns_query = """
-                    SELECT column_name, data_type 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'usuarios'
-                    ORDER BY ordinal_position;
+                # Verificar si existe la tabla pacientes_profesional
+                check_table_query = """
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = 'pacientes_profesional'
+                    );
                 """
-                postgres_db.cursor.execute(check_columns_query)
-                columns_result = postgres_db.cursor.fetchall()
-                logger.info(
-                    f"📋 Columnas disponibles en tabla usuarios: {columns_result}"
-                )
-
-                # Construir consulta dinámicamente basada en las columnas existentes
-                available_columns = [col.get("column_name") for col in columns_result]
-
-                # Columnas básicas que siempre deberían existir
-                basic_columns = ["id", "nombre", "apellido", "email"]
-                select_columns = []
-
-                for col in basic_columns:
-                    if col in available_columns:
-                        select_columns.append(f"u.{col}")
-                    else:
-                        select_columns.append(f"NULL as {col}")
-
-                # Agregar columnas opcionales si existen
-                optional_columns = [
-                    "telefono",
-                    "fecha_nacimiento",
-                    "genero",
-                    "direccion",
-                    "ciudad",
-                    "estado",
-                ]
-                for col in optional_columns:
-                    if col in available_columns:
-                        select_columns.append(f"u.{col}")
-                    else:
-                        select_columns.append(f"NULL as {col}")
-
-                # Construir la consulta final
-                query = f"""
-                    SELECT DISTINCT {', '.join(select_columns)},
-                           COUNT(a.id) as total_atenciones,
-                           MAX(a.fecha_atencion) as ultima_atencion
-                    FROM usuarios u
-                    LEFT JOIN atenciones_medicas a ON u.id = a.paciente_id AND a.profesional_id = %s
-                    WHERE u.tipo_usuario = 'paciente' AND u.activo = true
-                    GROUP BY {', '.join([f"u.{col}" for col in basic_columns if col in available_columns])}
-                    ORDER BY u.apellido, u.nombre
-                """
-
-                logger.info(f"🔍 Consulta construida dinámicamente: {query}")
-
-                postgres_db.cursor.execute(query, (user_id,))
-                result = postgres_db.cursor.fetchall()
+                postgres_db.cursor.execute(check_table_query)
+                table_exists = postgres_db.cursor.fetchone()[0]
+                
+                if table_exists:
+                    logger.info("📋 Usando tabla pacientes_profesional para filtrar pacientes")
+                    
+                    # Consulta usando la tabla de relación pacientes_profesional
+                    # Nota: La tabla tiene paciente_id como TEXT, no INTEGER
+                    query = """
+                        SELECT DISTINCT 
+                            pp.paciente_id as id,
+                            pp.nombre_completo,
+                            pp.email,
+                            pp.telefono,
+                            pp.fecha_nacimiento,
+                            pp.genero,
+                            pp.direccion,
+                            pp.fecha_primera_consulta as fecha_primera_atencion,
+                            pp.ultima_consulta as ultima_atencion,
+                            pp.notas as notas_generales,
+                            pp.estado_relacion
+                        FROM pacientes_profesional pp
+                        WHERE pp.profesional_id = %s 
+                        AND pp.estado_relacion = 'activo'
+                        ORDER BY pp.nombre_completo
+                    """
+                    
+                    postgres_db.cursor.execute(query, (user_id,))
+                    result = postgres_db.cursor.fetchall()
+                    
+                else:
+                    logger.info("📋 Tabla pacientes_profesional no existe, usando consulta básica")
+                    
+                    # Fallback: consulta básica sin relación (solo para desarrollo)
+                    query = """
+                        SELECT DISTINCT 
+                            u.id,
+                            u.nombre,
+                            u.apellido,
+                            u.email,
+                            u.telefono,
+                            u.fecha_nacimiento,
+                            u.genero,
+                            u.direccion,
+                            NULL as fecha_primera_atencion,
+                            0 as total_atenciones,
+                            NULL as ultima_atencion,
+                            NULL as notas_generales,
+                            'activo' as estado_relacion
+                        FROM usuarios u
+                        WHERE u.tipo_usuario = 'paciente' 
+                        AND u.activo = true
+                        ORDER BY u.apellido, u.nombre
+                    """
+                    
+                    postgres_db.cursor.execute(query)
+                    result = postgres_db.cursor.fetchall()
 
                 pacientes = []
                 if result:
                     for row in result:
+                        # Separar nombre completo en nombre y apellido
+                        nombre_completo = row.get("nombre_completo", "")
+                        partes_nombre = nombre_completo.split(" ", 1)
+                        nombre = partes_nombre[0] if partes_nombre else ""
+                        apellido = partes_nombre[1] if len(partes_nombre) > 1 else ""
+                        
                         paciente = {
                             "id": row.get("id"),
-                            "nombre": row.get("nombre"),
-                            "apellido": row.get("apellido"),
+                            "nombre": nombre,
+                            "apellido": apellido,
                             "email": row.get("email"),
-                            "telefono": row.get("telefono"),
+                            "telefono": str(row.get("telefono")) if row.get("telefono") else None,
                             "fecha_nacimiento": (
                                 str(row.get("fecha_nacimiento"))
                                 if row.get("fecha_nacimiento")
@@ -2323,95 +2337,26 @@ def get_professional_patients():
                             ),
                             "genero": row.get("genero"),
                             "direccion": row.get("direccion"),
-                            "ciudad": row.get("ciudad"),
-                            "estado": row.get("estado"),
-                            "total_atenciones": row.get("total_atenciones", 0),
+                            "fecha_primera_atencion": (
+                                str(row.get("fecha_primera_atencion"))
+                                if row.get("fecha_primera_atencion")
+                                else None
+                            ),
+                            "total_atenciones": 0,  # No disponible en la estructura actual
                             "ultima_atencion": (
                                 str(row.get("ultima_atencion"))
                                 if row.get("ultima_atencion")
                                 else None
                             ),
+                            "notas_generales": row.get("notas_generales"),
+                            "estado_relacion": row.get("estado_relacion", "activo"),
                         }
                         pacientes.append(paciente)
 
-                # Si no hay pacientes, crear algunos de prueba
+                # Si no hay pacientes, el profesional puede agregar nuevos pacientes
                 if len(pacientes) == 0:
-                    logger.info("🔄 No hay pacientes, creando algunos de prueba...")
-                    pacientes_prueba = [
-                        {"nombre": "María", "apellido": "González Pérez"},
-                        {"nombre": "Carlos", "apellido": "López Silva"},
-                        {"nombre": "Ana", "apellido": "Martínez Rojas"},
-                        {"nombre": "Roberto", "apellido": "Silva Castro"},
-                        {"nombre": "Carmen", "apellido": "Rodríguez López"},
-                    ]
-
-                    for paciente_data in pacientes_prueba:
-                        try:
-                            # Generar datos únicos
-                            import time
-
-                            timestamp = str(
-                                int(time.time() * 1000)
-                            )  # Usar microsegundos para mayor unicidad
-                            nombre_clean = paciente_data["nombre"].lower()
-                            apellido_clean = (
-                                paciente_data["apellido"].lower().replace(" ", "")
-                            )
-                            email = f"{nombre_clean}.{apellido_clean}.{timestamp}@prueba.medconnect.cl"
-
-                            # Generar password hash
-                            import bcrypt
-
-                            default_password = f"prueba{timestamp}"
-                            password_hash = bcrypt.hashpw(
-                                default_password.encode("utf-8"), bcrypt.gensalt()
-                            ).decode("utf-8")
-
-                            # Insertar paciente de prueba
-                            insert_query = """
-                                INSERT INTO usuarios (nombre, apellido, email, password_hash, tipo_usuario, fecha_registro, activo)
-                                VALUES (%s, %s, %s, %s, 'paciente', %s, true)
-                                RETURNING id
-                            """
-
-                            insert_values = (
-                                paciente_data["nombre"],
-                                paciente_data["apellido"],
-                                email,
-                                password_hash,
-                                datetime.now(),
-                            )
-
-                            postgres_db.cursor.execute(insert_query, insert_values)
-                            result = postgres_db.cursor.fetchone()
-
-                            if result and result.get("id"):
-                                paciente_id = result.get("id")
-                                # Agregar a la lista de pacientes
-                                paciente = {
-                                    "id": paciente_id,
-                                    "nombre": paciente_data["nombre"],
-                                    "apellido": paciente_data["apellido"],
-                                    "email": email,
-                                    "telefono": None,
-                                    "fecha_nacimiento": None,
-                                    "genero": None,
-                                    "direccion": None,
-                                    "ciudad": None,
-                                    "estado": None,
-                                    "total_atenciones": 0,
-                                    "ultima_atencion": None,
-                                }
-                                pacientes.append(paciente)
-                                time.sleep(0.01)  # Pequeña pausa para evitar duplicados
-
-                        except Exception as e:
-                            logger.error(f"❌ Error creando paciente de prueba: {e}")
-                            continue
-
-                    # Confirmar transacción
-                    postgres_db.conn.commit()
-                    logger.info(f"✅ {len(pacientes)} pacientes de prueba creados")
+                    logger.info("📋 No hay pacientes asociados a este profesional")
+                    logger.info("💡 El profesional puede agregar nuevos pacientes desde el formulario")
 
                 logger.info(
                     f"✅ {len(pacientes)} pacientes encontrados para profesional {user_id}"
