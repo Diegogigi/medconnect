@@ -2285,12 +2285,18 @@ def get_professional_patients():
                             pp.estado_relacion
                         FROM pacientes_profesional pp
                         WHERE pp.profesional_id = %s 
-                        AND pp.estado_relacion = 'activo'
+                        AND (pp.estado_relacion = 'activo' OR pp.estado_relacion IS NULL)
                         ORDER BY pp.nombre_completo
                     """
 
+                    logger.info(
+                        f"🔍 Ejecutando consulta para profesional_id: {user_id}"
+                    )
                     postgres_db.cursor.execute(query, (user_id,))
                     result = postgres_db.cursor.fetchall()
+                    logger.info(
+                        f"📊 Resultados encontrados: {len(result) if result else 0}"
+                    )
 
                 else:
                     logger.info(
