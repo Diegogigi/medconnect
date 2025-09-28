@@ -2244,7 +2244,7 @@ def get_professional_patients_new():
         user_id = user_data.get("id") or session.get("user_id")
         if not user_id:
             return jsonify({"error": "Usuario no autenticado"}), 401
-        
+
         logger.info(f"🔍 User ID obtenido: {user_id}")
 
         # Si es POST, crear nuevo paciente
@@ -2275,10 +2275,10 @@ def get_professional_patients_new():
                     AND (pp.estado_relacion = 'activo' OR pp.estado_relacion IS NULL)
                     ORDER BY pp.nombre_completo
                 """
-                
+
                 postgres_db.cursor.execute(query, (user_id,))
                 result = postgres_db.cursor.fetchall()
-                
+
                 pacientes = []
                 if result:
                     for row in result:
@@ -2293,24 +2293,50 @@ def get_professional_patients_new():
                             "nombre": nombre,
                             "apellido": apellido,
                             "email": row.get("email"),
-                            "telefono": str(row.get("telefono")) if row.get("telefono") else None,
-                            "fecha_nacimiento": str(row.get("fecha_nacimiento")) if row.get("fecha_nacimiento") else None,
+                            "telefono": (
+                                str(row.get("telefono"))
+                                if row.get("telefono")
+                                else None
+                            ),
+                            "fecha_nacimiento": (
+                                str(row.get("fecha_nacimiento"))
+                                if row.get("fecha_nacimiento")
+                                else None
+                            ),
                             "genero": row.get("genero"),
                             "direccion": row.get("direccion"),
-                            "fecha_primera_atencion": str(row.get("fecha_primera_atencion")) if row.get("fecha_primera_atencion") else None,
+                            "fecha_primera_atencion": (
+                                str(row.get("fecha_primera_atencion"))
+                                if row.get("fecha_primera_atencion")
+                                else None
+                            ),
                             "total_atenciones": 0,
-                            "ultima_atencion": str(row.get("ultima_atencion")) if row.get("ultima_atencion") else None,
+                            "ultima_atencion": (
+                                str(row.get("ultima_atencion"))
+                                if row.get("ultima_atencion")
+                                else None
+                            ),
                             "notas_generales": row.get("notas_generales"),
                             "estado_relacion": row.get("estado_relacion", "activo"),
                         }
                         pacientes.append(paciente)
 
-                logger.info(f"✅ {len(pacientes)} pacientes encontrados para profesional {user_id}")
+                logger.info(
+                    f"✅ {len(pacientes)} pacientes encontrados para profesional {user_id}"
+                )
                 return jsonify({"success": True, "pacientes": pacientes})
 
             except Exception as e:
                 logger.error(f"❌ Error obteniendo pacientes: {e}")
-                return jsonify({"success": False, "error": "Error al consultar la base de datos"}), 500
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Error al consultar la base de datos",
+                        }
+                    ),
+                    500,
+                )
         else:
             return jsonify({"success": True, "pacientes": []})
 
@@ -2320,6 +2346,7 @@ def get_professional_patients_new():
 
 
 # ==================== ENDPOINT SIMPLIFICADO Y FUNCIONAL ====================
+
 
 @app.route("/api/professional/patients-simple", methods=["GET"])
 @login_required
@@ -2331,7 +2358,7 @@ def get_professional_patients_simple():
         user_id = user_data.get("id") or session.get("user_id")
         if not user_id:
             return jsonify({"error": "Usuario no autenticado"}), 401
-        
+
         logger.info(f"🔍 User ID obtenido: {user_id}")
 
         # Consulta directa y simple
@@ -2355,10 +2382,10 @@ def get_professional_patients_simple():
                     AND (pp.estado_relacion = 'activo' OR pp.estado_relacion IS NULL)
                     ORDER BY pp.nombre_completo
                 """
-                
+
                 postgres_db.cursor.execute(query, (user_id,))
                 result = postgres_db.cursor.fetchall()
-                
+
                 pacientes = []
                 if result:
                     for row in result:
@@ -2373,24 +2400,50 @@ def get_professional_patients_simple():
                             "nombre": nombre,
                             "apellido": apellido,
                             "email": row.get("email"),
-                            "telefono": str(row.get("telefono")) if row.get("telefono") else None,
-                            "fecha_nacimiento": str(row.get("fecha_nacimiento")) if row.get("fecha_nacimiento") else None,
+                            "telefono": (
+                                str(row.get("telefono"))
+                                if row.get("telefono")
+                                else None
+                            ),
+                            "fecha_nacimiento": (
+                                str(row.get("fecha_nacimiento"))
+                                if row.get("fecha_nacimiento")
+                                else None
+                            ),
                             "genero": row.get("genero"),
                             "direccion": row.get("direccion"),
-                            "fecha_primera_atencion": str(row.get("fecha_primera_atencion")) if row.get("fecha_primera_atencion") else None,
+                            "fecha_primera_atencion": (
+                                str(row.get("fecha_primera_atencion"))
+                                if row.get("fecha_primera_atencion")
+                                else None
+                            ),
                             "total_atenciones": 0,
-                            "ultima_atencion": str(row.get("ultima_atencion")) if row.get("ultima_atencion") else None,
+                            "ultima_atencion": (
+                                str(row.get("ultima_atencion"))
+                                if row.get("ultima_atencion")
+                                else None
+                            ),
                             "notas_generales": row.get("notas_generales"),
                             "estado_relacion": row.get("estado_relacion", "activo"),
                         }
                         pacientes.append(paciente)
 
-                logger.info(f"✅ {len(pacientes)} pacientes encontrados para profesional {user_id}")
+                logger.info(
+                    f"✅ {len(pacientes)} pacientes encontrados para profesional {user_id}"
+                )
                 return jsonify({"success": True, "pacientes": pacientes})
 
             except Exception as e:
                 logger.error(f"❌ Error obteniendo pacientes: {e}")
-                return jsonify({"success": False, "error": "Error al consultar la base de datos"}), 500
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Error al consultar la base de datos",
+                        }
+                    ),
+                    500,
+                )
         else:
             return jsonify({"success": True, "pacientes": []})
 
@@ -2406,20 +2459,24 @@ def crear_paciente_desde_formulario(user_id):
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No se recibieron datos"}), 400
-        
+
         # Validar datos requeridos
         required_fields = ["nombre", "apellido", "email", "telefono"]
         for field in required_fields:
             if not data.get(field):
-                return jsonify({"success": False, "error": f"Campo {field} es requerido"}), 400
-        
+                return (
+                    jsonify({"success": False, "error": f"Campo {field} es requerido"}),
+                    400,
+                )
+
         # Crear paciente en la base de datos
         if postgres_db and postgres_db.is_connected():
             try:
                 # Generar ID único para el paciente
                 import uuid
+
                 paciente_id = f"PAC_{uuid.uuid4().hex[:8].upper()}"
-                
+
                 # Insertar paciente en la tabla pacientes_profesional
                 query = """
                     INSERT INTO pacientes_profesional (
@@ -2427,36 +2484,47 @@ def crear_paciente_desde_formulario(user_id):
                         fecha_nacimiento, genero, direccion, estado_relacion, fecha_registro
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
-                
+
                 nombre_completo = f"{data['nombre']} {data['apellido']}"
-                postgres_db.cursor.execute(query, (
-                    paciente_id,
-                    user_id,
-                    nombre_completo,
-                    data['email'],
-                    data['telefono'],
-                    data.get('fecha_nacimiento'),
-                    data.get('genero'),
-                    data.get('direccion'),
-                    'activo',
-                    'now()'
-                ))
-                
+                postgres_db.cursor.execute(
+                    query,
+                    (
+                        paciente_id,
+                        user_id,
+                        nombre_completo,
+                        data["email"],
+                        data["telefono"],
+                        data.get("fecha_nacimiento"),
+                        data.get("genero"),
+                        data.get("direccion"),
+                        "activo",
+                        "now()",
+                    ),
+                )
+
                 postgres_db.conn.commit()
-                
+
                 logger.info(f"✅ Paciente creado: {nombre_completo} ({data['email']})")
-                return jsonify({
-                    "success": True, 
-                    "message": "Paciente creado exitosamente",
-                    "paciente_id": paciente_id
-                })
-                
+                return jsonify(
+                    {
+                        "success": True,
+                        "message": "Paciente creado exitosamente",
+                        "paciente_id": paciente_id,
+                    }
+                )
+
             except Exception as e:
                 logger.error(f"❌ Error creando paciente: {e}")
-                return jsonify({"success": False, "error": "Error al crear paciente"}), 500
+                return (
+                    jsonify({"success": False, "error": "Error al crear paciente"}),
+                    500,
+                )
         else:
-            return jsonify({"success": False, "error": "Base de datos no disponible"}), 500
-            
+            return (
+                jsonify({"success": False, "error": "Base de datos no disponible"}),
+                500,
+            )
+
     except Exception as e:
         logger.error(f"❌ Error en crear_paciente_desde_formulario: {e}")
         return jsonify({"success": False, "error": "Error interno del servidor"}), 500
@@ -2475,13 +2543,13 @@ def get_professional_schedule():
         user_id = user_data.get("id") or session.get("user_id")
         if not user_id:
             return jsonify({"error": "Usuario no autenticado"}), 401
-        
+
         logger.info(f"🔍 User ID obtenido: {user_id}")
 
         # Obtener parámetros de la consulta
-        fecha = request.args.get('fecha')
-        vista = request.args.get('vista', 'semana')
-        
+        fecha = request.args.get("fecha")
+        vista = request.args.get("vista", "semana")
+
         # Crear agenda simulada para demostración
         agenda_simulada = [
             {
@@ -2498,7 +2566,7 @@ def get_professional_schedule():
                 "profesional_id": user_id,
                 "duracion": 60,
                 "notas": "Primera consulta",
-                "fecha_creacion": "2025-09-28T08:00:00Z"
+                "fecha_creacion": "2025-09-28T08:00:00Z",
             },
             {
                 "cita_id": "CITA_20250928_110000",
@@ -2514,7 +2582,7 @@ def get_professional_schedule():
                 "profesional_id": user_id,
                 "duracion": 60,
                 "notas": "Continuar con terapia",
-                "fecha_creacion": "2025-09-28T10:00:00Z"
+                "fecha_creacion": "2025-09-28T10:00:00Z",
             },
             {
                 "cita_id": "CITA_20250928_150000",
@@ -2530,18 +2598,22 @@ def get_professional_schedule():
                 "profesional_id": user_id,
                 "duracion": 60,
                 "notas": "Nueva paciente",
-                "fecha_creacion": "2025-09-28T14:00:00Z"
-            }
+                "fecha_creacion": "2025-09-28T14:00:00Z",
+            },
         ]
-        
-        logger.info(f"✅ {len(agenda_simulada)} citas encontradas para profesional {user_id}")
-        return jsonify({
-            "success": True,
-            "agenda": agenda_simulada,
-            "fecha": fecha,
-            "vista": vista,
-            "mensaje": f"Agenda simulada - {len(agenda_simulada)} citas"
-        })
+
+        logger.info(
+            f"✅ {len(agenda_simulada)} citas encontradas para profesional {user_id}"
+        )
+        return jsonify(
+            {
+                "success": True,
+                "agenda": agenda_simulada,
+                "fecha": fecha,
+                "vista": vista,
+                "mensaje": f"Agenda simulada - {len(agenda_simulada)} citas",
+            }
+        )
 
     except Exception as e:
         logger.error(f"❌ Error en get_professional_schedule: {e}")
@@ -2549,6 +2621,7 @@ def get_professional_schedule():
 
 
 # ==================== GESTIÓN DE PACIENTES ====================
+
 
 @app.route("/api/professional/patients/<paciente_id>", methods=["DELETE"])
 @login_required
@@ -2560,7 +2633,7 @@ def delete_professional_patient(paciente_id):
         user_id = user_data.get("id") or session.get("user_id")
         if not user_id:
             return jsonify({"error": "Usuario no autenticado"}), 401
-        
+
         logger.info(f"🗑️ Eliminando paciente {paciente_id} para profesional {user_id}")
 
         if postgres_db and postgres_db.is_connected():
@@ -2585,18 +2658,22 @@ def delete_professional_patient(paciente_id):
                 postgres_db.cursor.execute(delete_query, (paciente_id, user_id))
                 postgres_db.conn.commit()
 
-                logger.info(f"✅ Paciente {paciente_id} eliminado de la lista del profesional {user_id}")
-                return jsonify({
-                    "success": True,
-                    "message": "Paciente eliminado de tu lista exitosamente"
-                })
+                logger.info(
+                    f"✅ Paciente {paciente_id} eliminado de la lista del profesional {user_id}"
+                )
+                return jsonify(
+                    {
+                        "success": True,
+                        "message": "Paciente eliminado de tu lista exitosamente",
+                    }
+                )
 
             except Exception as e:
                 logger.error(f"❌ Error eliminando paciente: {e}")
                 return jsonify({"error": "Error al eliminar paciente"}), 500
         else:
             return jsonify({"error": "Base de datos no disponible"}), 500
-            
+
     except Exception as e:
         logger.error(f"❌ Error en delete_professional_patient: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500
