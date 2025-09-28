@@ -2266,7 +2266,8 @@ def get_professional_patients():
                     );
                 """
                 postgres_db.cursor.execute(check_table_query)
-                table_exists = postgres_db.cursor.fetchone()[0]
+                result = postgres_db.cursor.fetchone()
+                table_exists = result[0] if result and result[0] is not None else False
 
                 if table_exists:
                     logger.info(
