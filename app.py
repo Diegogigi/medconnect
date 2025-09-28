@@ -2196,6 +2196,7 @@ def health():
         logger.error(f"health error: {e}")
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
 
+
 @app.route("/api/user/profile")
 @login_required
 def get_user_profile():
@@ -2203,46 +2204,51 @@ def get_user_profile():
     try:
         user_data = session.get("user_data", {})
         user_id = user_data.get("id") or session.get("user_id")
-        
+
         if not user_id:
             return jsonify({"error": "Usuario no autenticado"}), 401
-        
+
         if postgres_db and postgres_db.is_connected():
             query = "SELECT id, nombre, apellido, email, telefono, especialidad FROM usuarios WHERE id = %s"
             postgres_db.cursor.execute(query, (user_id,))
             user = postgres_db.cursor.fetchone()
-            
+
             if user:
-                return jsonify({
-                    "success": True,
-                    "user": {
-                        "id": user[0],
-                        "nombre": user[1],
-                        "apellido": user[2],
-                        "email": user[3],
-                        "telefono": user[4],
-                        "especialidad": user[5]
+                return jsonify(
+                    {
+                        "success": True,
+                        "user": {
+                            "id": user[0],
+                            "nombre": user[1],
+                            "apellido": user[2],
+                            "email": user[3],
+                            "telefono": user[4],
+                            "especialidad": user[5],
+                        },
                     }
-                })
+                )
             else:
                 return jsonify({"error": "Usuario no encontrado"}), 404
         else:
             return jsonify({"error": "Base de datos no disponible"}), 500
-            
+
     except Exception as e:
         logger.error(f"Error obteniendo perfil: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500
+
 
 @app.route("/api/test-atencion")
 @login_required
 def test_atencion():
     """Endpoint de prueba para el sistema de atenciones"""
     try:
-        return jsonify({
-            "success": True,
-            "message": "Sistema de atenciones funcionando correctamente",
-            "timestamp": datetime.now().isoformat()
-        })
+        return jsonify(
+            {
+                "success": True,
+                "message": "Sistema de atenciones funcionando correctamente",
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
     except Exception as e:
         logger.error(f"Error en test-atencion: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500
@@ -2612,97 +2618,123 @@ def get_professional_schedule():
                     FROM citas_agenda 
                     WHERE profesional_id = %s
                 """
-                
+
                 # Manejar diferentes vistas
-                if vista == 'diaria' and fecha:
+                if vista == "diaria" and fecha:
                     # Vista diaria: solo citas del día específico
                     query += " AND fecha = %s"
                     postgres_db.cursor.execute(query, (user_id, fecha))
-                elif vista == 'semanal' and fecha:
+                elif vista == "semanal" and fecha:
                     # Vista semanal: citas de la semana que contiene la fecha
                     from datetime import datetime, timedelta
-                    fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+
+                    fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
                     inicio_semana = fecha_obj - timedelta(days=fecha_obj.weekday())
                     fin_semana = inicio_semana + timedelta(days=6)
                     query += " AND fecha >= %s AND fecha <= %s"
-                    postgres_db.cursor.execute(query, (user_id, inicio_semana, fin_semana))
-                elif vista == 'mensual' and fecha:
+                    postgres_db.cursor.execute(
+                        query, (user_id, inicio_semana, fin_semana)
+                    )
+                elif vista == "mensual" and fecha:
                     # Vista mensual: citas del mes que contiene la fecha
                     from datetime import datetime
-                    fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+
+                    fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
                     inicio_mes = fecha_obj.replace(day=1)
                     if fecha_obj.month == 12:
-                        fin_mes = fecha_obj.replace(year=fecha_obj.year + 1, month=1, day=1) - timedelta(days=1)
+                        fin_mes = fecha_obj.replace(
+                            year=fecha_obj.year + 1, month=1, day=1
+                        ) - timedelta(days=1)
                     else:
-                        fin_mes = fecha_obj.replace(month=fecha_obj.month + 1, day=1) - timedelta(days=1)
+                        fin_mes = fecha_obj.replace(
+                            month=fecha_obj.month + 1, day=1
+                        ) - timedelta(days=1)
                     query += " AND fecha >= %s AND fecha <= %s"
                     postgres_db.cursor.execute(query, (user_id, inicio_mes, fin_mes))
                 else:
                     # Sin filtro de fecha
                     postgres_db.cursor.execute(query, (user_id,))
-                
+
                 citas_db = postgres_db.cursor.fetchall()
-                
+
                 # Convertir resultados a formato JSON
                 agenda_real = []
                 for cita in citas_db:
-                    agenda_real.append({
-                        "cita_id": cita[0],
-                        "fecha": str(cita[1]) if cita[1] else fecha or "2025-09-28",
-                        "hora_inicio": str(cita[2]) if cita[2] else "09:00",
-                        "hora_fin": str(cita[2]) if cita[2] else "10:00",  # Asumir 1 hora de duración
-                        "paciente_id": cita[3],
-                        "paciente_nombre": cita[4],
-                        "paciente_rut": cita[5],
-                        "tipo_atencion": cita[6] or "consulta",
-                        "motivo": cita[8] or "Sin motivo especificado",
-                        "estado": cita[7] or "pendiente",
-                        "profesional_id": user_id,
-                        "duracion": 60,
-                        "notas": f"Cita creada el {cita[9]}" if cita[9] else "",
-                        "fecha_creacion": str(cita[9]) if cita[9] else "2025-09-28T08:00:00Z"
-                    })
-                
-                logger.info(f"✅ {len(agenda_real)} citas reales encontradas para profesional {user_id}")
-                
+                    agenda_real.append(
+                        {
+                            "cita_id": cita[0],
+                            "fecha": str(cita[1]) if cita[1] else fecha or "2025-09-28",
+                            "hora_inicio": str(cita[2]) if cita[2] else "09:00",
+                            "hora_fin": (
+                                str(cita[2]) if cita[2] else "10:00"
+                            ),  # Asumir 1 hora de duración
+                            "paciente_id": cita[3],
+                            "paciente_nombre": cita[4],
+                            "paciente_rut": cita[5],
+                            "tipo_atencion": cita[6] or "consulta",
+                            "motivo": cita[8] or "Sin motivo especificado",
+                            "estado": cita[7] or "pendiente",
+                            "profesional_id": user_id,
+                            "duracion": 60,
+                            "notas": f"Cita creada el {cita[9]}" if cita[9] else "",
+                            "fecha_creacion": (
+                                str(cita[9]) if cita[9] else "2025-09-28T08:00:00Z"
+                            ),
+                        }
+                    )
+
+                logger.info(
+                    f"✅ {len(agenda_real)} citas reales encontradas para profesional {user_id}"
+                )
+
                 # Preparar respuesta según la vista
                 response_data = {
                     "success": True,
                     "agenda": agenda_real,
                     "fecha": fecha,
                     "vista": vista,
-                    "mensaje": f"Agenda real - {len(agenda_real)} citas"
+                    "mensaje": f"Agenda real - {len(agenda_real)} citas",
                 }
-                
+
                 # Agregar datos específicos para cada vista
-                if vista == 'semanal':
+                if vista == "semanal":
                     from datetime import datetime, timedelta
+
                     if fecha:
-                        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+                        fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
                         inicio_semana = fecha_obj - timedelta(days=fecha_obj.weekday())
                         fin_semana = inicio_semana + timedelta(days=6)
-                        response_data.update({
-                            "agenda_semanal": agenda_real,
-                            "fecha_inicio": str(inicio_semana),
-                            "fecha_fin": str(fin_semana)
-                        })
-                elif vista == 'mensual':
+                        response_data.update(
+                            {
+                                "agenda_semanal": agenda_real,
+                                "fecha_inicio": str(inicio_semana),
+                                "fecha_fin": str(fin_semana),
+                            }
+                        )
+                elif vista == "mensual":
                     from datetime import datetime
+
                     if fecha:
-                        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+                        fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
                         inicio_mes = fecha_obj.replace(day=1)
                         if fecha_obj.month == 12:
-                            fin_mes = fecha_obj.replace(year=fecha_obj.year + 1, month=1, day=1) - timedelta(days=1)
+                            fin_mes = fecha_obj.replace(
+                                year=fecha_obj.year + 1, month=1, day=1
+                            ) - timedelta(days=1)
                         else:
-                            fin_mes = fecha_obj.replace(month=fecha_obj.month + 1, day=1) - timedelta(days=1)
-                        response_data.update({
-                            "agenda_mensual": agenda_real,
-                            "fecha_inicio": str(inicio_mes),
-                            "fecha_fin": str(fin_mes)
-                        })
-                
+                            fin_mes = fecha_obj.replace(
+                                month=fecha_obj.month + 1, day=1
+                            ) - timedelta(days=1)
+                        response_data.update(
+                            {
+                                "agenda_mensual": agenda_real,
+                                "fecha_inicio": str(inicio_mes),
+                                "fecha_fin": str(fin_mes),
+                            }
+                        )
+
                 return jsonify(response_data)
-                
+
             except Exception as e:
                 logger.error(f"❌ Error obteniendo citas de la base de datos: {e}")
                 # Fallback a agenda simulada si hay error
@@ -2721,23 +2753,26 @@ def get_professional_schedule():
                         "profesional_id": user_id,
                         "duracion": 60,
                         "notas": "Primera consulta",
-                        "fecha_creacion": "2025-09-28T08:00:00Z"
+                        "fecha_creacion": "2025-09-28T08:00:00Z",
                     }
                 ]
-                
-                return jsonify({
-                    "success": True,
-                    "agenda": agenda_simulada,
-                    "fecha": fecha,
-                    "vista": vista,
-                    "mensaje": f"Agenda simulada (fallback) - {len(agenda_simulada)} citas"
-                })
+
+                return jsonify(
+                    {
+                        "success": True,
+                        "agenda": agenda_simulada,
+                        "fecha": fecha,
+                        "vista": vista,
+                        "mensaje": f"Agenda simulada (fallback) - {len(agenda_simulada)} citas",
+                    }
+                )
         else:
             return jsonify({"error": "Base de datos no disponible"}), 500
 
     except Exception as e:
         logger.error(f"❌ Error en get_professional_schedule: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500
+
 
 @app.route("/api/professional/schedule", methods=["POST"])
 @login_required
@@ -2761,7 +2796,7 @@ def create_appointment():
 
         # Generar ID único para la cita
         cita_id = f"CITA_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        
+
         if postgres_db and postgres_db.is_connected():
             try:
                 # Insertar nueva cita
@@ -2771,44 +2806,51 @@ def create_appointment():
                                             fecha_creacion)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
-                
+
                 # Obtener datos del paciente
                 paciente_query = "SELECT nombre, apellido, rut FROM pacientes_profesional WHERE paciente_id = %s AND profesional_id = %s"
-                postgres_db.cursor.execute(paciente_query, (data["paciente_id"], user_id))
+                postgres_db.cursor.execute(
+                    paciente_query, (data["paciente_id"], user_id)
+                )
                 paciente = postgres_db.cursor.fetchone()
-                
+
                 if not paciente:
                     return jsonify({"error": "Paciente no encontrado en tu lista"}), 404
-                
-                postgres_db.cursor.execute(insert_query, (
-                    cita_id,
-                    data["fecha"],
-                    data["hora"],
-                    data["paciente_id"],
-                    f"{paciente[0]} {paciente[1]}",
-                    paciente[2],
-                    data["tipo_atencion"],
-                    "pendiente",
-                    data["motivo"],
-                    user_id,
-                    datetime.now()
-                ))
-                
+
+                postgres_db.cursor.execute(
+                    insert_query,
+                    (
+                        cita_id,
+                        data["fecha"],
+                        data["hora"],
+                        data["paciente_id"],
+                        f"{paciente[0]} {paciente[1]}",
+                        paciente[2],
+                        data["tipo_atencion"],
+                        "pendiente",
+                        data["motivo"],
+                        user_id,
+                        datetime.now(),
+                    ),
+                )
+
                 postgres_db.conn.commit()
-                
+
                 logger.info(f"✅ Cita {cita_id} creada exitosamente")
-                return jsonify({
-                    "success": True,
-                    "message": "Cita creada exitosamente",
-                    "cita_id": cita_id
-                })
-                
+                return jsonify(
+                    {
+                        "success": True,
+                        "message": "Cita creada exitosamente",
+                        "cita_id": cita_id,
+                    }
+                )
+
             except Exception as e:
                 logger.error(f"❌ Error creando cita: {e}")
                 return jsonify({"error": "Error al crear cita"}), 500
         else:
             return jsonify({"error": "Base de datos no disponible"}), 500
-            
+
     except Exception as e:
         logger.error(f"❌ Error en create_appointment: {e}")
         return jsonify({"error": "Error interno del servidor"}), 500
