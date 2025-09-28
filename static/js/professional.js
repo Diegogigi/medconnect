@@ -1292,15 +1292,32 @@ function viewPatientHistory(pacienteId) {
 
 // Funciones para el manejo de citas
 function agregarCita(hora = null) {
-    const modalElement = document.getElementById('citaModal');
-    const form = document.getElementById('citaForm');
-    form.reset();
-
-    if (hora) {
-        form.querySelector('[name="hora"]').value = hora;
+    const modalElement = document.getElementById('scheduleModal');
+    const form = document.getElementById('scheduleForm');
+    
+    if (!modalElement) {
+        console.error('Modal scheduleModal no encontrado');
+        showNotification('Modal de cita no encontrado', 'error');
+        return;
+    }
+    
+    if (form) {
+        form.reset();
+    } else {
+        console.warn('Formulario scheduleForm no encontrado, continuando sin reset');
     }
 
-    document.getElementById('citaModalLabel').textContent = 'Agendar Nueva Cita';
+    if (hora && form) {
+        const horaInput = form.querySelector('[name="hora"]');
+        if (horaInput) {
+            horaInput.value = hora;
+        }
+    }
+
+    const modalLabel = document.getElementById('scheduleModalLabel');
+    if (modalLabel) {
+        modalLabel.textContent = 'Agendar Nueva Cita';
+    }
 
     // Mostrar modal con verificación de Bootstrap
     try {
@@ -3406,7 +3423,7 @@ function cargarAgenda(fecha = null, mostrarError = true) {
 
             // Solo mostrar el error de conexión si no se ha mostrado ya
             if (mostrarError && !errorConexionMostrado) {
-                showNotification('Error de conexin al cargar la agenda', 'error');
+                showNotification('Error de conexión al cargar la agenda', 'error');
                 errorConexionMostrado = true;
             }
 
@@ -10538,11 +10555,11 @@ function newConsultation(pacienteId) {
     }
 
     // Abrir modal de cita y llenar datos del paciente
-    const modalElement = document.getElementById('citaModal');
-    const form = document.getElementById('citaForm');
+    const modalElement = document.getElementById('scheduleModal');
+    const form = document.getElementById('scheduleForm');
     
     if (!modalElement) {
-        console.error('Modal citaModal no encontrado');
+        console.error('Modal scheduleModal no encontrado');
         showNotification('Modal de cita no encontrado', 'error');
         return;
     }
@@ -10550,7 +10567,7 @@ function newConsultation(pacienteId) {
     if (form) {
         form.reset();
     } else {
-        console.warn('Formulario citaForm no encontrado, continuando sin reset');
+        console.warn('Formulario scheduleForm no encontrado, continuando sin reset');
     }
 
     // Llenar datos del paciente
