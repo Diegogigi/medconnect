@@ -37,16 +37,19 @@ try:
         f"[INFO] PostgreSQLDBManager inicializado: {'Conectado' if postgres_db.is_connected() else 'Modo fallback'}"
     )
 
-    # Ejecutar migración de base de datos si está conectado
+    # Migración de base de datos deshabilitada temporalmente para evitar timeouts
+    # Se ejecutará manualmente cuando sea necesario
     if postgres_db and postgres_db.is_connected():
-        try:
-            from migrate_database import migrate_database
-
-            print("[INFO] Ejecutando migración de base de datos...")
-            migrate_database()
-            print("[INFO] Migración de base de datos completada")
-        except Exception as e:
-            print(f"[WARN] Error en migración de base de datos: {e}")
+        print(
+            "[INFO] PostgreSQL conectado - Migración deshabilitada para evitar timeouts"
+        )
+        # try:
+        #     from migrate_database import migrate_database
+        #     print("[INFO] Ejecutando migración de base de datos...")
+        #     migrate_database()
+        #     print("[INFO] Migración de base de datos completada")
+        # except Exception as e:
+        #     print(f"[WARN] Error en migración de base de datos: {e}")
 
 except Exception as e:
     print(f"[WARN] PostgreSQLDBManager no disponible: {e}")
@@ -2259,10 +2262,12 @@ def get_professional_patients():
                 """
                 postgres_db.cursor.execute(check_table_query)
                 table_exists = postgres_db.cursor.fetchone()[0]
-                
+
                 if table_exists:
-                    logger.info("📋 Usando tabla pacientes_profesional para filtrar pacientes")
-                    
+                    logger.info(
+                        "📋 Usando tabla pacientes_profesional para filtrar pacientes"
+                    )
+
                     # Consulta usando la tabla de relación pacientes_profesional
                     # Nota: La tabla tiene paciente_id como TEXT, no INTEGER
                     query = """
@@ -2283,13 +2288,15 @@ def get_professional_patients():
                         AND pp.estado_relacion = 'activo'
                         ORDER BY pp.nombre_completo
                     """
-                    
+
                     postgres_db.cursor.execute(query, (user_id,))
                     result = postgres_db.cursor.fetchall()
-                    
+
                 else:
-                    logger.info("📋 Tabla pacientes_profesional no existe, usando consulta básica")
-                    
+                    logger.info(
+                        "📋 Tabla pacientes_profesional no existe, usando consulta básica"
+                    )
+
                     # Fallback: consulta básica sin relación (solo para desarrollo)
                     query = """
                         SELECT DISTINCT 
@@ -2311,7 +2318,7 @@ def get_professional_patients():
                         AND u.activo = true
                         ORDER BY u.apellido, u.nombre
                     """
-                    
+
                     postgres_db.cursor.execute(query)
                     result = postgres_db.cursor.fetchall()
 
@@ -2323,13 +2330,17 @@ def get_professional_patients():
                         partes_nombre = nombre_completo.split(" ", 1)
                         nombre = partes_nombre[0] if partes_nombre else ""
                         apellido = partes_nombre[1] if len(partes_nombre) > 1 else ""
-                        
+
                         paciente = {
                             "id": row.get("id"),
                             "nombre": nombre,
                             "apellido": apellido,
                             "email": row.get("email"),
-                            "telefono": str(row.get("telefono")) if row.get("telefono") else None,
+                            "telefono": (
+                                str(row.get("telefono"))
+                                if row.get("telefono")
+                                else None
+                            ),
                             "fecha_nacimiento": (
                                 str(row.get("fecha_nacimiento"))
                                 if row.get("fecha_nacimiento")
@@ -2356,7 +2367,9 @@ def get_professional_patients():
                 # Si no hay pacientes, el profesional puede agregar nuevos pacientes
                 if len(pacientes) == 0:
                     logger.info("📋 No hay pacientes asociados a este profesional")
-                    logger.info("💡 El profesional puede agregar nuevos pacientes desde el formulario")
+                    logger.info(
+                        "💡 El profesional puede agregar nuevos pacientes desde el formulario"
+                    )
 
                 logger.info(
                     f"✅ {len(pacientes)} pacientes encontrados para profesional {user_id}"
