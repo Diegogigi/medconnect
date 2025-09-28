@@ -2061,7 +2061,7 @@ let pacientesList = [];
 function cargarListaPacientes() {
     console.log(' Cargando lista de pacientes...');
 
-    fetch('/api/professional/patients', {
+    fetch('/api/professional/patients-simple', {
         method: 'GET',
         credentials: 'include'
     })
@@ -3796,7 +3796,7 @@ function cargarPacientesEnReminderSelect() {
     } else {
         console.log(' No hay lista global, cargando desde API...');
         // Si no hay lista global, cargar desde API
-        fetch('/api/professional/patients', {
+        fetch('/api/professional/patients-simple', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -4497,7 +4497,7 @@ function cargarPacientesEnSelect() {
         });
     } else {
         // Si no hay lista global, cargar desde API
-        fetch('/api/professional/patients', {
+        fetch('/api/professional/patients-simple', {
             method: 'GET',
             credentials: 'include'
         })
