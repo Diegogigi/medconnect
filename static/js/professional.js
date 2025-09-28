@@ -1260,7 +1260,18 @@ function editarPaciente(pacienteId) {
 }
 
 function verHistorialPaciente(pacienteId) {
-    window.location.href = `/historial_paciente/${pacienteId}`;
+    console.log(` Viendo historial del paciente: ${pacienteId}`);
+    
+    // Buscar el paciente en la lista local
+    const paciente = window.pacientesList.find(p => p.id === pacienteId);
+    if (!paciente) {
+        console.error(' Paciente no encontrado en la lista local');
+        showNotification('Paciente no encontrado', 'error');
+        return;
+    }
+    
+    // Mostrar información del paciente en un modal
+    mostrarHistorialPaciente(paciente);
 }
 
 // Alias para compatibilidad con HTML onclick
@@ -10528,7 +10539,7 @@ function editPatient(pacienteId) {
 // Función para nueva consulta/cita
 function newConsultation(pacienteId) {
     console.log(` Agregando cita para paciente: ${pacienteId}`);
-    
+
     // Buscar el paciente en la lista local
     const paciente = window.pacientesList.find(p => p.id === pacienteId);
     if (!paciente) {
@@ -10536,16 +10547,84 @@ function newConsultation(pacienteId) {
         showNotification('Paciente no encontrado', 'error');
         return;
     }
-    
+
     // Abrir modal de cita y llenar datos del paciente
     const modal = new bootstrap.Modal(document.getElementById('citaModal'));
     const form = document.getElementById('citaForm');
     form.reset();
-    
+
     // Llenar datos del paciente
     document.getElementById('appointmentPatient').value = pacienteId;
     document.getElementById('pacienteNombre').value = `${paciente.nombre} ${paciente.apellido}`;
     document.getElementById('pacienteRut').value = paciente.rut || '';
-    
+
     modal.show();
+}
+
+// Función para mostrar historial del paciente
+function mostrarHistorialPaciente(paciente) {
+    console.log(` Mostrando historial de: ${paciente.nombre} ${paciente.apellido}`);
+    
+    // Crear modal dinámico si no existe
+    let modal = document.getElementById('historialModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'historialModal';
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Historial del Paciente</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="historialContent">
+                        <!-- Contenido del historial -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Llenar contenido del historial
+    const historialContent = document.getElementById('historialContent');
+    historialContent.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Información Personal</h6>
+                <p><strong>Nombre:</strong> ${paciente.nombre} ${paciente.apellido}</p>
+                <p><strong>Email:</strong> ${paciente.email || 'No especificado'}</p>
+                <p><strong>Teléfono:</strong> ${paciente.telefono || 'No especificado'}</p>
+                <p><strong>Género:</strong> ${paciente.genero || 'No especificado'}</p>
+            </div>
+            <div class="col-md-6">
+                <h6>Información Médica</h6>
+                <p><strong>Fecha de Nacimiento:</strong> ${paciente.fecha_nacimiento || 'No especificada'}</p>
+                <p><strong>Dirección:</strong> ${paciente.direccion || 'No especificada'}</p>
+                <p><strong>Estado:</strong> ${paciente.estado_relacion || 'Activo'}</p>
+                <p><strong>Total Atenciones:</strong> ${paciente.total_atenciones || 0}</p>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-12">
+                <h6>Última Atención</h6>
+                <p>${paciente.ultima_atencion || 'No hay registros'}</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <h6>Notas Generales</h6>
+                <p>${paciente.notas_generales || 'Sin notas adicionales'}</p>
+            </div>
+        </div>
+    `;
+    
+    // Mostrar modal
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
 }
