@@ -2386,7 +2386,7 @@ function editarPaciente(pacienteId) {
     console.log(` Editando paciente: ${pacienteId}`);
 
     // Buscar el paciente en la lista local
-    const paciente = window.pacientesList.find(p => p.paciente_id === pacienteId);
+    const paciente = window.pacientesList.find(p => p.id === pacienteId);
     if (!paciente) {
         console.error(' Paciente no encontrado en la lista local');
         showNotification('Paciente no encontrado', 'error');
@@ -3121,7 +3121,7 @@ async function cargarPacientesDropdown() {
                 // Agregar pacientes al dropdown
                 data.pacientes.forEach(paciente => {
                     const option = document.createElement('option');
-                    option.value = paciente.paciente_id;
+                    option.value = paciente.id;
                     option.textContent = `${paciente.nombre_completo} (${paciente.rut})`;
                     dropdown.appendChild(option);
                 });
@@ -3161,7 +3161,7 @@ function manejarSeleccionPaciente() {
     } else if (selectedValue && selectedValue !== '') {
         // Mostrar informacin del paciente seleccionado
         console.log(` Seleccionado paciente: ${selectedValue}`);
-        const paciente = window.pacientesDropdownList.find(p => p.paciente_id === selectedValue);
+        const paciente = window.pacientesDropdownList.find(p => p.id === selectedValue);
 
         if (paciente) {
             mostrarInfoPacienteSeleccionado(paciente);
@@ -3208,7 +3208,7 @@ function llenarCamposOcultosPaciente(paciente) {
         pacienteIdInput.name = 'pacienteId';
         document.getElementById('atencionForm').appendChild(pacienteIdInput);
     }
-    pacienteIdInput.value = paciente.paciente_id;
+    pacienteIdInput.value = paciente.id;
 }
 
 // Funcin para limpiar campos del paciente
@@ -4506,7 +4506,7 @@ function cargarPacientesEnSelect() {
                 if (data.success && data.pacientes) {
                     data.pacientes.forEach(paciente => {
                         const option = document.createElement('option');
-                        option.value = paciente.paciente_id;
+                        option.value = paciente.id;
                         option.textContent = `${paciente.nombre_completo} - ${paciente.rut}`;
                         select.appendChild(option);
                     });
@@ -10518,4 +10518,34 @@ if (typeof window !== 'undefined') {
     window.addEventListener('load', function () {
         setTimeout(inicializarMensajeBienvenida, 200);
     });
+}
+
+// Función para editar paciente (alias para editarPaciente)
+function editPatient(pacienteId) {
+    editarPaciente(pacienteId);
+}
+
+// Función para nueva consulta/cita
+function newConsultation(pacienteId) {
+    console.log(` Agregando cita para paciente: ${pacienteId}`);
+    
+    // Buscar el paciente en la lista local
+    const paciente = window.pacientesList.find(p => p.id === pacienteId);
+    if (!paciente) {
+        console.error(' Paciente no encontrado en la lista local');
+        showNotification('Paciente no encontrado', 'error');
+        return;
+    }
+    
+    // Abrir modal de cita y llenar datos del paciente
+    const modal = new bootstrap.Modal(document.getElementById('citaModal'));
+    const form = document.getElementById('citaForm');
+    form.reset();
+    
+    // Llenar datos del paciente
+    document.getElementById('appointmentPatient').value = pacienteId;
+    document.getElementById('pacienteNombre').value = `${paciente.nombre} ${paciente.apellido}`;
+    document.getElementById('pacienteRut').value = paciente.rut || '';
+    
+    modal.show();
 }
