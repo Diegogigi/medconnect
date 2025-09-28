@@ -2166,7 +2166,7 @@ function actualizarTablaPacientes(filteredList = null) {
                 const email = escapeHTML(getSafeValue(paciente.email, 'No especificado'));
                 const direccion = escapeHTML(getSafeValue(paciente.direccion, 'No especificada'));
                 const estadoRelacion = escapeHTML(getSafeValue(paciente.estado_relacion, 'Activo'));
-                const pacienteId = escapeHTML(getSafeValue(paciente.paciente_id, ''));
+                const pacienteId = escapeHTML(getSafeValue(paciente.id, ''));
 
                 console.log(` Paciente ${index + 1} procesado exitosamente`);
 
@@ -2425,8 +2425,8 @@ function eliminarPaciente(pacienteId) {
     console.log(` Eliminando paciente: ${pacienteId}`);
 
     // Buscar el paciente para mostrar su nombre en la confirmación
-    const paciente = window.pacientesList.find(p => p.paciente_id === pacienteId);
-    const nombrePaciente = paciente ? paciente.nombre_completo : 'este paciente';
+    const paciente = window.pacientesList.find(p => p.id === pacienteId);
+    const nombrePaciente = paciente ? `${paciente.nombre} ${paciente.apellido}` : 'este paciente';
 
     mostrarConfirmacionEliminacion(
         'Eliminar Paciente de la Lista',
