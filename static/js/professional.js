@@ -1237,31 +1237,11 @@ function agregarPaciente() {
     modal.show();
 }
 
-function editarPaciente(pacienteId) {
-    fetch(`/api/pacientes/${pacienteId}`)
-        .then(response => response.json())
-        .then(data => {
-            const form = document.getElementById('pacienteForm');
-            // Rellenar el formulario con los datos del paciente
-            Object.keys(data).forEach(key => {
-                const input = form.querySelector(`[name="${key}"]`);
-                if (input) input.value = data[key];
-            });
-
-            document.getElementById('pacienteModalLabel').textContent = 'Editar Paciente';
-            form.action = `/actualizar_paciente/${pacienteId}`;
-
-            const modal = new bootstrap.Modal(document.getElementById('pacienteModal'));
-            modal.show();
-        })
-        .catch(error => {
-            showNotification('Error al cargar los datos del paciente', 'error');
-        });
-}
+// Función duplicada eliminada - usar la función correcta en línea 2396
 
 function verHistorialPaciente(pacienteId) {
     console.log(` Viendo historial del paciente: ${pacienteId}`);
-    
+
     // Buscar el paciente en la lista local
     const paciente = window.pacientesList.find(p => p.id === pacienteId);
     if (!paciente) {
@@ -1269,7 +1249,7 @@ function verHistorialPaciente(pacienteId) {
         showNotification('Paciente no encontrado', 'error');
         return;
     }
-    
+
     // Mostrar información del paciente en un modal
     mostrarHistorialPaciente(paciente);
 }
@@ -2471,34 +2451,7 @@ function eliminarPaciente(pacienteId) {
     );
 }
 
-// Ver historial de un paciente especfico
-function verHistorialPaciente(pacienteId) {
-    console.log(` Viendo historial del paciente: ${pacienteId}`);
-
-    fetch(`/api/professional/patients/${pacienteId}`, {
-        method: 'GET',
-        credentials: 'include'
-    })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                // El backend solo devuelve datos del paciente, no atenciones
-                // Por ahora, mostrar solo los datos del paciente
-                mostrarModalHistorialPaciente(data.paciente, []);
-            } else {
-                showNotification('Error al obtener el historial del paciente', 'error');
-            }
-        })
-        .catch(error => {
-            console.error(' Error:', error);
-            showNotification('Error de conexin al obtener historial', 'error');
-        });
-}
+// Función duplicada eliminada - usar la función correcta en línea 1262
 
 // Mostrar modal con historial del paciente
 function mostrarModalHistorialPaciente(paciente, atenciones) {
@@ -7815,33 +7768,7 @@ async function buscarEvidenciaMejorada(motivoConsulta) {
     }
 }
 
-// Función para analizar caso completo mejorado
-async function analizarCasoCompletoMejorado(motivoConsulta, tipoAtencion, edadPaciente, antecedentes) {
-    try {
-        const response = await fetch('/api/copilot/complete-analysis', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                motivo_consulta: motivoConsulta,
-                tipo_atencion: tipoAtencion,
-                edad: edadPaciente,
-                antecedentes: antecedentes
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.analisis || { resumen: 'Análisis completo del caso finalizado' };
-    } catch (error) {
-        console.error('❌ Error en análisis completo:', error);
-        return { resumen: 'Análisis completo del caso finalizado' };
-    }
-}
+// Función duplicada eliminada - usar la función correcta en línea 7033
 
 // Función para mostrar resultados elegantes
 function mostrarResultadosElegant(analisisCompleto, evidencia, preguntas) {
@@ -10564,7 +10491,7 @@ function newConsultation(pacienteId) {
 // Función para mostrar historial del paciente
 function mostrarHistorialPaciente(paciente) {
     console.log(` Mostrando historial de: ${paciente.nombre} ${paciente.apellido}`);
-    
+
     // Crear modal dinámico si no existe
     let modal = document.getElementById('historialModal');
     if (!modal) {
@@ -10589,7 +10516,7 @@ function mostrarHistorialPaciente(paciente) {
         `;
         document.body.appendChild(modal);
     }
-    
+
     // Llenar contenido del historial
     const historialContent = document.getElementById('historialContent');
     historialContent.innerHTML = `
@@ -10624,7 +10551,35 @@ function mostrarHistorialPaciente(paciente) {
         </div>
     `;
     
-    // Mostrar modal
-    const bootstrapModal = new bootstrap.Modal(modal);
-    bootstrapModal.show();
+    // Mostrar modal con verificación de Bootstrap
+    try {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+        } else {
+            // Fallback si Bootstrap no está disponible
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            document.body.classList.add('modal-open');
+            
+            // Agregar backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.id = 'historialBackdrop';
+            document.body.appendChild(backdrop);
+            
+            // Cerrar modal al hacer clic en backdrop
+            backdrop.addEventListener('click', () => {
+                modal.style.display = 'none';
+                modal.classList.remove('show');
+                document.body.classList.remove('modal-open');
+                backdrop.remove();
+            });
+        }
+    } catch (error) {
+        console.error('Error mostrando modal:', error);
+        // Fallback simple
+        modal.style.display = 'block';
+        modal.classList.add('show');
+    }
 }
