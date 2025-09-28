@@ -2548,4 +2548,58 @@ def get_professional_schedule():
         return jsonify({"error": "Error interno del servidor"}), 500
 
 
+# ==================== GESTIÓN DE PACIENTES ====================
+
+@app.route("/api/professional/patients/<paciente_id>", methods=["DELETE"])
+@login_required
+def delete_professional_patient(paciente_id):
+    """Eliminar paciente de la lista del profesional"""
+    try:
+        # Obtener user_id de la sesión
+        user_data = session.get("user_data", {})
+        user_id = user_data.get("id") or session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Usuario no autenticado"}), 401
+        
+        logger.info(f"🗑️ Eliminando paciente {paciente_id} para profesional {user_id}")
+
+        if postgres_db and postgres_db.is_connected():
+            try:
+                # Verificar que el paciente existe en la tabla pacientes_profesional
+                check_query = """
+                    SELECT paciente_id, nombre_completo, email
+                    FROM pacientes_profesional
+                    WHERE paciente_id = %s AND profesional_id = %s
+                """
+                postgres_db.cursor.execute(check_query, (paciente_id, user_id))
+                paciente = postgres_db.cursor.fetchone()
+
+                if not paciente:
+                    return jsonify({"error": "Paciente no encontrado en tu lista"}), 404
+
+                # Eliminar la relación profesional-paciente
+                delete_query = """
+                    DELETE FROM pacientes_profesional
+                    WHERE paciente_id = %s AND profesional_id = %s
+                """
+                postgres_db.cursor.execute(delete_query, (paciente_id, user_id))
+                postgres_db.conn.commit()
+
+                logger.info(f"✅ Paciente {paciente_id} eliminado de la lista del profesional {user_id}")
+                return jsonify({
+                    "success": True,
+                    "message": "Paciente eliminado de tu lista exitosamente"
+                })
+
+            except Exception as e:
+                logger.error(f"❌ Error eliminando paciente: {e}")
+                return jsonify({"error": "Error al eliminar paciente"}), 500
+        else:
+            return jsonify({"error": "Base de datos no disponible"}), 500
+            
+    except Exception as e:
+        logger.error(f"❌ Error en delete_professional_patient: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
+
 # ==================== FIN DEL ARCHIVO ====================
