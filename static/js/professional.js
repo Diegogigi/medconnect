@@ -1981,7 +1981,7 @@ function cargarEstadisticasAtenciones() {
 
 // Cargar estadsticas de pacientes
 function cargarEstadisticasPacientes() {
-    return fetch('/api/professional/patients')
+    return fetch('/api/professional/patients-simple')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -3102,7 +3102,7 @@ async function cargarPacientesDropdown() {
     try {
         console.log(' Cargando pacientes para dropdown...');
 
-        const response = await fetch('/api/professional/patients', {
+        const response = await fetch('/api/professional/patients-simple', {
             method: 'GET',
             credentials: 'include'
         });
