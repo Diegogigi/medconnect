@@ -1231,10 +1231,41 @@ function downloadArchivo(archivoId, nombreArchivo) {
 
 // Funciones para el manejo de pacientes
 function agregarPaciente() {
-    const modal = new bootstrap.Modal(document.getElementById('pacienteModal'));
+    const modalElement = document.getElementById('pacienteModal');
     document.getElementById('pacienteForm').reset();
     document.getElementById('pacienteModalLabel').textContent = 'Agregar Nuevo Paciente';
-    modal.show();
+    
+    // Mostrar modal con verificación de Bootstrap
+    try {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else {
+            // Fallback si Bootstrap no está disponible
+            modalElement.style.display = 'block';
+            modalElement.classList.add('show');
+            document.body.classList.add('modal-open');
+            
+            // Agregar backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.id = 'pacienteBackdrop';
+            document.body.appendChild(backdrop);
+            
+            // Cerrar modal al hacer clic en backdrop
+            backdrop.addEventListener('click', () => {
+                modalElement.style.display = 'none';
+                modalElement.classList.remove('show');
+                document.body.classList.remove('modal-open');
+                backdrop.remove();
+            });
+        }
+    } catch (error) {
+        console.error('Error mostrando modal de paciente:', error);
+        // Fallback simple
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+    }
 }
 
 // Función duplicada eliminada - usar la función correcta en línea 2396
@@ -1261,7 +1292,7 @@ function viewPatientHistory(pacienteId) {
 
 // Funciones para el manejo de citas
 function agregarCita(hora = null) {
-    const modal = new bootstrap.Modal(document.getElementById('citaModal'));
+    const modalElement = document.getElementById('citaModal');
     const form = document.getElementById('citaForm');
     form.reset();
 
@@ -1270,7 +1301,38 @@ function agregarCita(hora = null) {
     }
 
     document.getElementById('citaModalLabel').textContent = 'Agendar Nueva Cita';
-    modal.show();
+    
+    // Mostrar modal con verificación de Bootstrap
+    try {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else {
+            // Fallback si Bootstrap no está disponible
+            modalElement.style.display = 'block';
+            modalElement.classList.add('show');
+            document.body.classList.add('modal-open');
+            
+            // Agregar backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.id = 'citaBackdrop';
+            document.body.appendChild(backdrop);
+            
+            // Cerrar modal al hacer clic en backdrop
+            backdrop.addEventListener('click', () => {
+                modalElement.style.display = 'none';
+                modalElement.classList.remove('show');
+                document.body.classList.remove('modal-open');
+                backdrop.remove();
+            });
+        }
+    } catch (error) {
+        console.error('Error mostrando modal de cita:', error);
+        // Fallback simple
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+    }
 }
 
 function editarCita(citaId) {
@@ -10476,7 +10538,7 @@ function newConsultation(pacienteId) {
     }
 
     // Abrir modal de cita y llenar datos del paciente
-    const modal = new bootstrap.Modal(document.getElementById('citaModal'));
+    const modalElement = document.getElementById('citaModal');
     const form = document.getElementById('citaForm');
     form.reset();
 
@@ -10485,7 +10547,37 @@ function newConsultation(pacienteId) {
     document.getElementById('pacienteNombre').value = `${paciente.nombre} ${paciente.apellido}`;
     document.getElementById('pacienteRut').value = paciente.rut || '';
 
-    modal.show();
+    // Mostrar modal con verificación de Bootstrap
+    try {
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else {
+            // Fallback si Bootstrap no está disponible
+            modalElement.style.display = 'block';
+            modalElement.classList.add('show');
+            document.body.classList.add('modal-open');
+            
+            // Agregar backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.id = 'citaBackdrop';
+            document.body.appendChild(backdrop);
+            
+            // Cerrar modal al hacer clic en backdrop
+            backdrop.addEventListener('click', () => {
+                modalElement.style.display = 'none';
+                modalElement.classList.remove('show');
+                document.body.classList.remove('modal-open');
+                backdrop.remove();
+            });
+        }
+    } catch (error) {
+        console.error('Error mostrando modal de cita:', error);
+        // Fallback simple
+        modalElement.style.display = 'block';
+        modalElement.classList.add('show');
+    }
 }
 
 // Función para mostrar historial del paciente
@@ -10550,7 +10642,7 @@ function mostrarHistorialPaciente(paciente) {
             </div>
         </div>
     `;
-    
+
     // Mostrar modal con verificación de Bootstrap
     try {
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -10561,13 +10653,13 @@ function mostrarHistorialPaciente(paciente) {
             modal.style.display = 'block';
             modal.classList.add('show');
             document.body.classList.add('modal-open');
-            
+
             // Agregar backdrop
             const backdrop = document.createElement('div');
             backdrop.className = 'modal-backdrop fade show';
             backdrop.id = 'historialBackdrop';
             document.body.appendChild(backdrop);
-            
+
             // Cerrar modal al hacer clic en backdrop
             backdrop.addEventListener('click', () => {
                 modal.style.display = 'none';
