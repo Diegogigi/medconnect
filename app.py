@@ -2196,6 +2196,57 @@ def health():
         logger.error(f"health error: {e}")
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
 
+@app.route("/api/user/profile")
+@login_required
+def get_user_profile():
+    """Obtener perfil del usuario autenticado"""
+    try:
+        user_data = session.get("user_data", {})
+        user_id = user_data.get("id") or session.get("user_id")
+        
+        if not user_id:
+            return jsonify({"error": "Usuario no autenticado"}), 401
+        
+        if postgres_db and postgres_db.is_connected():
+            query = "SELECT id, nombre, apellido, email, telefono, especialidad FROM usuarios WHERE id = %s"
+            postgres_db.cursor.execute(query, (user_id,))
+            user = postgres_db.cursor.fetchone()
+            
+            if user:
+                return jsonify({
+                    "success": True,
+                    "user": {
+                        "id": user[0],
+                        "nombre": user[1],
+                        "apellido": user[2],
+                        "email": user[3],
+                        "telefono": user[4],
+                        "especialidad": user[5]
+                    }
+                })
+            else:
+                return jsonify({"error": "Usuario no encontrado"}), 404
+        else:
+            return jsonify({"error": "Base de datos no disponible"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error obteniendo perfil: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
+@app.route("/api/test-atencion")
+@login_required
+def test_atencion():
+    """Endpoint de prueba para el sistema de atenciones"""
+    try:
+        return jsonify({
+            "success": True,
+            "message": "Sistema de atenciones funcionando correctamente",
+            "timestamp": datetime.now().isoformat()
+        })
+    except Exception as e:
+        logger.error(f"Error en test-atencion: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+
 
 @app.route("/debug-static")
 def debug_static():

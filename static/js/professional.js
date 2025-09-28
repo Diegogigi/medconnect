@@ -1234,7 +1234,7 @@ function agregarPaciente() {
     const modalElement = document.getElementById('pacienteModal');
     document.getElementById('pacienteForm').reset();
     document.getElementById('pacienteModalLabel').textContent = 'Agregar Nuevo Paciente';
-    
+
     // Mostrar modal con verificación de Bootstrap
     try {
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -1245,13 +1245,13 @@ function agregarPaciente() {
             modalElement.style.display = 'block';
             modalElement.classList.add('show');
             document.body.classList.add('modal-open');
-            
+
             // Agregar backdrop
             const backdrop = document.createElement('div');
             backdrop.className = 'modal-backdrop fade show';
             backdrop.id = 'pacienteBackdrop';
             document.body.appendChild(backdrop);
-            
+
             // Cerrar modal al hacer clic en backdrop
             backdrop.addEventListener('click', () => {
                 modalElement.style.display = 'none';
@@ -1301,7 +1301,7 @@ function agregarCita(hora = null) {
     }
 
     document.getElementById('citaModalLabel').textContent = 'Agendar Nueva Cita';
-    
+
     // Mostrar modal con verificación de Bootstrap
     try {
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -1312,13 +1312,13 @@ function agregarCita(hora = null) {
             modalElement.style.display = 'block';
             modalElement.classList.add('show');
             document.body.classList.add('modal-open');
-            
+
             // Agregar backdrop
             const backdrop = document.createElement('div');
             backdrop.className = 'modal-backdrop fade show';
             backdrop.id = 'citaBackdrop';
             document.body.appendChild(backdrop);
-            
+
             // Cerrar modal al hacer clic en backdrop
             backdrop.addEventListener('click', () => {
                 modalElement.style.display = 'none';
@@ -10540,12 +10540,27 @@ function newConsultation(pacienteId) {
     // Abrir modal de cita y llenar datos del paciente
     const modalElement = document.getElementById('citaModal');
     const form = document.getElementById('citaForm');
-    form.reset();
+    
+    if (!modalElement) {
+        console.error('Modal citaModal no encontrado');
+        showNotification('Modal de cita no encontrado', 'error');
+        return;
+    }
+    
+    if (form) {
+        form.reset();
+    } else {
+        console.warn('Formulario citaForm no encontrado, continuando sin reset');
+    }
 
     // Llenar datos del paciente
-    document.getElementById('appointmentPatient').value = pacienteId;
-    document.getElementById('pacienteNombre').value = `${paciente.nombre} ${paciente.apellido}`;
-    document.getElementById('pacienteRut').value = paciente.rut || '';
+    const appointmentPatient = document.getElementById('appointmentPatient');
+    const pacienteNombre = document.getElementById('pacienteNombre');
+    const pacienteRut = document.getElementById('pacienteRut');
+    
+    if (appointmentPatient) appointmentPatient.value = pacienteId;
+    if (pacienteNombre) pacienteNombre.value = `${paciente.nombre} ${paciente.apellido}`;
+    if (pacienteRut) pacienteRut.value = paciente.rut || '';
 
     // Mostrar modal con verificación de Bootstrap
     try {
@@ -10557,13 +10572,13 @@ function newConsultation(pacienteId) {
             modalElement.style.display = 'block';
             modalElement.classList.add('show');
             document.body.classList.add('modal-open');
-            
+
             // Agregar backdrop
             const backdrop = document.createElement('div');
             backdrop.className = 'modal-backdrop fade show';
             backdrop.id = 'citaBackdrop';
             document.body.appendChild(backdrop);
-            
+
             // Cerrar modal al hacer clic en backdrop
             backdrop.addEventListener('click', () => {
                 modalElement.style.display = 'none';
