@@ -2239,9 +2239,14 @@ def internal_error(e):
 def get_professional_patients():
     """Obtener lista de pacientes del profesional o crear nuevo paciente"""
     try:
-        user_id = session.get("user_id")
+        # Obtener user_id de la sesión
+        user_data = session.get("user_data", {})
+        user_id = user_data.get("id") or session.get("user_id")
         if not user_id:
+            logger.error("❌ No se pudo obtener user_id de la sesión")
             return jsonify({"error": "Usuario no autenticado"}), 401
+        
+        logger.info(f"🔍 User ID obtenido: {user_id}")
 
         # Si es POST, crear nuevo paciente
         if request.method == "POST":
