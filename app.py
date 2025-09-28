@@ -2400,34 +2400,72 @@ def get_professional_patients_simple():
 
 
 def crear_paciente_desde_formulario(user_id):
-                    SELECT EXISTS (
-                        SELECT FROM information_schema.tables 
-                        WHERE table_schema = 'public' 
-                        AND table_name = 'pacientes_profesional'
-                    );
+    """Crear paciente desde formulario del frontend - Solo como registro médico, no como usuario del sistema"""
+    try:
+        # Obtener datos del formulario
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No se recibieron datos"}), 400
+        
+        # Validar datos requeridos
+        required_fields = ["nombre", "apellido", "email", "telefono"]
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"success": False, "error": f"Campo {field} es requerido"}), 400
+        
+        # Crear paciente en la base de datos
+        if postgres_db and postgres_db.is_connected():
+            try:
+                # Generar ID único para el paciente
+                import uuid
+                paciente_id = f"PAC_{uuid.uuid4().hex[:8].upper()}"
+                
+                # Insertar paciente en la tabla pacientes_profesional
+                query = """
+                    INSERT INTO pacientes_profesional (
+                        paciente_id, profesional_id, nombre_completo, email, telefono,
+                        fecha_nacimiento, genero, direccion, estado_relacion, fecha_registro
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
-                postgres_db.cursor.execute(check_table_query)
-                result = postgres_db.cursor.fetchone()
-                table_exists = result[0] if result and result[0] is not None else False
+                
+                nombre_completo = f"{data['nombre']} {data['apellido']}"
+                postgres_db.cursor.execute(query, (
+                    paciente_id,
+                    user_id,
+                    nombre_completo,
+                    data['email'],
+                    data['telefono'],
+                    data.get('fecha_nacimiento'),
+                    data.get('genero'),
+                    data.get('direccion'),
+                    'activo',
+                    'now()'
+                ))
+                
+                postgres_db.conn.commit()
+                
+                logger.info(f"✅ Paciente creado: {nombre_completo} ({data['email']})")
+                return jsonify({
+                    "success": True, 
+                    "message": "Paciente creado exitosamente",
+                    "paciente_id": paciente_id
+                })
+                
+            except Exception as e:
+                logger.error(f"❌ Error creando paciente: {e}")
+                return jsonify({"success": False, "error": "Error al crear paciente"}), 500
+        else:
+            return jsonify({"success": False, "error": "Base de datos no disponible"}), 500
+            
+    except Exception as e:
+        logger.error(f"❌ Error en crear_paciente_desde_formulario: {e}")
+        return jsonify({"success": False, "error": "Error interno del servidor"}), 500
 
-                if table_exists:
-                    logger.info(
-                        "📋 Usando tabla pacientes_profesional para filtrar pacientes"
-                    )
 
-                    # Consulta usando la tabla de relación pacientes_profesional
-                    # Nota: La tabla tiene paciente_id como TEXT, no INTEGER
-                    query = """
-                        SELECT DISTINCT 
-                            pp.paciente_id as id,
-                            pp.nombre_completo,
-                            pp.email,
-                            pp.telefono,
-                            pp.fecha_nacimiento,
-                            pp.genero,
-                            pp.direccion,
-                            pp.fecha_primera_consulta as fecha_primera_atencion,
-                            pp.ultima_consulta as ultima_atencion,
+# ==================== GESTIÓN DE AGENDA/CITAS ====================
+
+
+@app.route("/api/professional/schedule", methods=["GET"])
                             pp.notas as notas_generales,
                             pp.estado_relacion
                         FROM pacientes_profesional pp
