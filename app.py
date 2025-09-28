@@ -2613,11 +2613,32 @@ def get_professional_schedule():
                     WHERE profesional_id = %s
                 """
                 
-                # Si se especifica una fecha, filtrar por esa fecha
-                if fecha:
+                # Manejar diferentes vistas
+                if vista == 'diaria' and fecha:
+                    # Vista diaria: solo citas del día específico
                     query += " AND fecha = %s"
                     postgres_db.cursor.execute(query, (user_id, fecha))
+                elif vista == 'semanal' and fecha:
+                    # Vista semanal: citas de la semana que contiene la fecha
+                    from datetime import datetime, timedelta
+                    fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+                    inicio_semana = fecha_obj - timedelta(days=fecha_obj.weekday())
+                    fin_semana = inicio_semana + timedelta(days=6)
+                    query += " AND fecha >= %s AND fecha <= %s"
+                    postgres_db.cursor.execute(query, (user_id, inicio_semana, fin_semana))
+                elif vista == 'mensual' and fecha:
+                    # Vista mensual: citas del mes que contiene la fecha
+                    from datetime import datetime
+                    fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+                    inicio_mes = fecha_obj.replace(day=1)
+                    if fecha_obj.month == 12:
+                        fin_mes = fecha_obj.replace(year=fecha_obj.year + 1, month=1, day=1) - timedelta(days=1)
+                    else:
+                        fin_mes = fecha_obj.replace(month=fecha_obj.month + 1, day=1) - timedelta(days=1)
+                    query += " AND fecha >= %s AND fecha <= %s"
+                    postgres_db.cursor.execute(query, (user_id, inicio_mes, fin_mes))
                 else:
+                    # Sin filtro de fecha
                     postgres_db.cursor.execute(query, (user_id,))
                 
                 citas_db = postgres_db.cursor.fetchall()
@@ -2644,13 +2665,43 @@ def get_professional_schedule():
                 
                 logger.info(f"✅ {len(agenda_real)} citas reales encontradas para profesional {user_id}")
                 
-                return jsonify({
+                # Preparar respuesta según la vista
+                response_data = {
                     "success": True,
                     "agenda": agenda_real,
                     "fecha": fecha,
                     "vista": vista,
                     "mensaje": f"Agenda real - {len(agenda_real)} citas"
-                })
+                }
+                
+                # Agregar datos específicos para cada vista
+                if vista == 'semanal':
+                    from datetime import datetime, timedelta
+                    if fecha:
+                        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+                        inicio_semana = fecha_obj - timedelta(days=fecha_obj.weekday())
+                        fin_semana = inicio_semana + timedelta(days=6)
+                        response_data.update({
+                            "agenda_semanal": agenda_real,
+                            "fecha_inicio": str(inicio_semana),
+                            "fecha_fin": str(fin_semana)
+                        })
+                elif vista == 'mensual':
+                    from datetime import datetime
+                    if fecha:
+                        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+                        inicio_mes = fecha_obj.replace(day=1)
+                        if fecha_obj.month == 12:
+                            fin_mes = fecha_obj.replace(year=fecha_obj.year + 1, month=1, day=1) - timedelta(days=1)
+                        else:
+                            fin_mes = fecha_obj.replace(month=fecha_obj.month + 1, day=1) - timedelta(days=1)
+                        response_data.update({
+                            "agenda_mensual": agenda_real,
+                            "fecha_inicio": str(inicio_mes),
+                            "fecha_fin": str(fin_mes)
+                        })
+                
+                return jsonify(response_data)
                 
             except Exception as e:
                 logger.error(f"❌ Error obteniendo citas de la base de datos: {e}")
