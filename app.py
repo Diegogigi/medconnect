@@ -2236,8 +2236,8 @@ def internal_error(e):
 
 @app.route("/api/professional/patients", methods=["GET", "POST"])
 @login_required
-def get_professional_patients():
-    """Obtener lista de pacientes del profesional o crear nuevo paciente"""
+def get_professional_patients_new():
+    """Obtener lista de pacientes del profesional - VERSIÓN SIMPLIFICADA Y FUNCIONAL"""
     try:
         # Obtener user_id de la sesión
         user_data = session.get("user_data", {})
@@ -2255,6 +2255,7 @@ def get_professional_patients():
         # Si es GET, obtener lista de pacientes
         logger.info(f"[PACIENTES] Obteniendo pacientes para profesional {user_id}")
 
+        # VERSIÓN SIMPLIFICADA - Usar datos de la base de datos directamente
         if postgres_db and postgres_db.is_connected():
             try:
                 # Verificar si existe la tabla pacientes_profesional
@@ -2426,6 +2427,86 @@ def get_professional_patients():
 
     except Exception as e:
         logger.error(f"❌ Error en get_professional_patients: {e}")
+        return jsonify({"success": False, "error": "Error interno del servidor"}), 500
+
+
+# ==================== ENDPOINT SIMPLIFICADO Y FUNCIONAL ====================
+
+@app.route("/api/professional/patients-simple", methods=["GET"])
+@login_required
+def get_professional_patients_simple():
+    """Endpoint simplificado y funcional para obtener pacientes"""
+    try:
+        # Obtener user_id de la sesión
+        user_data = session.get("user_data", {})
+        user_id = user_data.get("id") or session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Usuario no autenticado"}), 401
+        
+        logger.info(f"🔍 User ID obtenido: {user_id}")
+
+        # Consulta directa y simple
+        if postgres_db and postgres_db.is_connected():
+            try:
+                query = """
+                    SELECT DISTINCT 
+                        pp.paciente_id as id,
+                        pp.nombre_completo,
+                        pp.email,
+                        pp.telefono,
+                        pp.fecha_nacimiento,
+                        pp.genero,
+                        pp.direccion,
+                        pp.fecha_primera_consulta as fecha_primera_atencion,
+                        pp.ultima_consulta as ultima_atencion,
+                        pp.notas as notas_generales,
+                        pp.estado_relacion
+                    FROM pacientes_profesional pp
+                    WHERE pp.profesional_id = %s 
+                    AND (pp.estado_relacion = 'activo' OR pp.estado_relacion IS NULL)
+                    ORDER BY pp.nombre_completo
+                """
+                
+                postgres_db.cursor.execute(query, (user_id,))
+                result = postgres_db.cursor.fetchall()
+                
+                pacientes = []
+                if result:
+                    for row in result:
+                        # Separar nombre completo en nombre y apellido
+                        nombre_completo = row.get("nombre_completo", "")
+                        partes_nombre = nombre_completo.split(" ", 1)
+                        nombre = partes_nombre[0] if partes_nombre else ""
+                        apellido = partes_nombre[1] if len(partes_nombre) > 1 else ""
+
+                        paciente = {
+                            "id": row.get("id"),
+                            "nombre": nombre,
+                            "apellido": apellido,
+                            "email": row.get("email"),
+                            "telefono": str(row.get("telefono")) if row.get("telefono") else None,
+                            "fecha_nacimiento": str(row.get("fecha_nacimiento")) if row.get("fecha_nacimiento") else None,
+                            "genero": row.get("genero"),
+                            "direccion": row.get("direccion"),
+                            "fecha_primera_atencion": str(row.get("fecha_primera_atencion")) if row.get("fecha_primera_atencion") else None,
+                            "total_atenciones": 0,
+                            "ultima_atencion": str(row.get("ultima_atencion")) if row.get("ultima_atencion") else None,
+                            "notas_generales": row.get("notas_generales"),
+                            "estado_relacion": row.get("estado_relacion", "activo"),
+                        }
+                        pacientes.append(paciente)
+
+                logger.info(f"✅ {len(pacientes)} pacientes encontrados para profesional {user_id}")
+                return jsonify({"success": True, "pacientes": pacientes})
+
+            except Exception as e:
+                logger.error(f"❌ Error obteniendo pacientes: {e}")
+                return jsonify({"success": False, "error": "Error al consultar la base de datos"}), 500
+        else:
+            return jsonify({"success": True, "pacientes": []})
+
+    except Exception as e:
+        logger.error(f"❌ Error en get_professional_patients_simple: {e}")
         return jsonify({"success": False, "error": "Error interno del servidor"}), 500
 
 
