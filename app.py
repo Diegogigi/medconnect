@@ -2599,13 +2599,13 @@ def get_professional_schedule():
         # Obtener citas reales de la base de datos
         if postgres_db and postgres_db.is_connected():
             try:
-                # Consulta para obtener citas del profesional
+                # Consulta para obtener citas del profesional usando la estructura correcta
                 query = """
-                    SELECT cita_id, fecha, hora, paciente_id, paciente_nombre, 
-                           paciente_rut, tipo_atencion, estado, motivo, 
-                           fecha_creacion
+                    SELECT cita_id, fecha, hora, "Identificación del paciente" as paciente_id, 
+                           Paciente_nombre as paciente_nombre, paciente_rut, tipo_atención as tipo_atencion, 
+                           estado, motivo, fecha_creacion
                     FROM citas_agenda 
-                    WHERE profesional_id = %s
+                    WHERE id_profesional = %s
                 """
 
                 # Manejar diferentes vistas
@@ -2867,42 +2867,10 @@ def create_appointment():
             try:
                 logger.info(f"📅 Creando cita para profesional {user_id}, paciente {data['paciente_id']}")
                 
-                # Verificar si la tabla citas_agenda existe
-                table_check_query = """
-                    SELECT EXISTS (
-                        SELECT FROM information_schema.tables 
-                        WHERE table_name = 'citas_agenda'
-                    );
-                """
-                postgres_db.cursor.execute(table_check_query)
-                table_exists = postgres_db.cursor.fetchone()[0]
-                
-                if not table_exists:
-                    logger.warning("⚠️ Tabla citas_agenda no existe, creándola...")
-                    create_table_query = """
-                        CREATE TABLE IF NOT EXISTS citas_agenda (
-                            id SERIAL PRIMARY KEY,
-                            cita_id VARCHAR(50) UNIQUE NOT NULL,
-                            fecha DATE NOT NULL,
-                            hora TIME NOT NULL,
-                            paciente_id VARCHAR(50) NOT NULL,
-                            paciente_nombre VARCHAR(255) NOT NULL,
-                            paciente_rut VARCHAR(20),
-                            tipo_atencion VARCHAR(100) NOT NULL,
-                            estado VARCHAR(50) DEFAULT 'pendiente',
-                            motivo TEXT,
-                            profesional_id INTEGER NOT NULL,
-                            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        );
-                    """
-                    postgres_db.cursor.execute(create_table_query)
-                    postgres_db.conn.commit()
-                    logger.info("✅ Tabla citas_agenda creada exitosamente")
-                
                 # Verificar si ya existe una cita en ese horario
                 check_query = """
                     SELECT cita_id FROM citas_agenda 
-                    WHERE profesional_id = %s AND fecha = %s AND hora = %s
+                    WHERE id_profesional = %s AND fecha = %s AND hora = %s
                 """
                 postgres_db.cursor.execute(check_query, (user_id, data["fecha"], data["hora"]))
                 existing_cita = postgres_db.cursor.fetchone()
@@ -2928,12 +2896,12 @@ def create_appointment():
                         "message": "Paciente no encontrado en tu lista de pacientes"
                     }), 404
 
-                # Insertar nueva cita
+                # Insertar nueva cita usando la estructura correcta de la tabla
                 insert_query = """
-                    INSERT INTO citas_agenda (cita_id, fecha, hora, paciente_id, paciente_nombre, 
-                                            paciente_rut, tipo_atencion, estado, motivo, profesional_id, 
-                                            fecha_creacion)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO citas_agenda (cita_id, fecha, hora, "Identificación del paciente", 
+                                            Paciente_nombre, paciente_rut, tipo_atención, estado, 
+                                            motivo, id_profesional, fecha_creacion, fecha_modificación)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
 
                 postgres_db.cursor.execute(
@@ -2942,14 +2910,15 @@ def create_appointment():
                         cita_id,
                         data["fecha"],
                         data["hora"],
-                        data["paciente_id"],
-                        f"{paciente[0]} {paciente[1]}",
-                        paciente[2],
-                        data["tipo_atencion"],
-                        "pendiente",
-                        data["motivo"],
-                        user_id,
-                        datetime.now(),
+                        data["paciente_id"],  # Identificación del paciente
+                        f"{paciente[0]} {paciente[1]}",  # Paciente_nombre
+                        paciente[2],  # paciente_rut
+                        data["tipo_atencion"],  # tipo_atención
+                        "pendiente",  # estado
+                        data["motivo"],  # motivo
+                        user_id,  # id_profesional
+                        datetime.now(),  # fecha_creacion
+                        datetime.now(),  # fecha_modificación
                     ),
                 )
 
