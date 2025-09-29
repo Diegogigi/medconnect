@@ -3073,29 +3073,39 @@ function saveAppointment() {
         fecha: document.getElementById('appointmentDate').value,
         hora: document.getElementById('appointmentTime').value,
         tipo_atencion: document.getElementById('appointmentType').value,
-        notas: document.getElementById('appointmentNotes').value
+        motivo: document.getElementById('appointmentNotes').value
     };
 
     console.log(' Datos de la cita:', appointmentData);
 
     // Validar campos requeridos
     if (!appointmentData.paciente_id) {
+        console.error('❌ Campo paciente_id faltante');
         showNotification('Debe seleccionar un paciente', 'error');
         return;
     }
 
     if (!appointmentData.fecha) {
+        console.error('❌ Campo fecha faltante');
         showNotification('Debe seleccionar una fecha', 'error');
         return;
     }
 
     if (!appointmentData.hora) {
+        console.error('❌ Campo hora faltante');
         showNotification('Debe seleccionar una hora', 'error');
         return;
     }
 
     if (!appointmentData.tipo_atencion) {
+        console.error('❌ Campo tipo_atencion faltante');
         showNotification('Debe seleccionar un tipo de atencin', 'error');
+        return;
+    }
+
+    if (!appointmentData.motivo) {
+        console.error('❌ Campo motivo faltante');
+        showNotification('Debe agregar un motivo para la cita', 'error');
         return;
     }
 

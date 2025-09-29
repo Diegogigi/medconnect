@@ -2847,13 +2847,17 @@ def create_appointment():
             return jsonify({"error": "Usuario no autenticado"}), 401
 
         data = request.get_json()
+        logger.info(f"📋 Datos recibidos: {data}")
+        
         if not data:
+            logger.error("❌ No se recibieron datos JSON")
             return jsonify({"error": "Datos de cita requeridos"}), 400
 
         # Validar campos requeridos
         required_fields = ["paciente_id", "fecha", "hora", "tipo_atencion", "motivo"]
         for field in required_fields:
             if not data.get(field):
+                logger.error(f"❌ Campo {field} faltante en los datos")
                 return jsonify({"error": f"Campo {field} es requerido"}), 400
 
         # Generar ID único para la cita
