@@ -1294,13 +1294,13 @@ function viewPatientHistory(pacienteId) {
 function agregarCita(hora = null) {
     const modalElement = document.getElementById('scheduleModal');
     const form = document.getElementById('scheduleForm');
-    
+
     if (!modalElement) {
         console.error('Modal scheduleModal no encontrado');
         showNotification('Modal de cita no encontrado', 'error');
         return;
     }
-    
+
     if (form) {
         form.reset();
     } else {
@@ -2176,7 +2176,7 @@ function cargarListaPacientes() {
             console.error(' Error completo:', error);
             console.error(' Stack trace:', error.stack);
             console.error(' Error message:', error.message);
-            showNotification(`Error de conexin: ${error.message}`, 'error');
+            showNotification(`Error de conexión: ${error.message}`, 'error');
         });
 }
 
@@ -2447,7 +2447,7 @@ function savePatient() {
         })
         .catch(error => {
             console.error(' Error:', error);
-            showNotification('Error de conexin al guardar paciente', 'error');
+            showNotification('Error de conexión al guardar paciente', 'error');
         });
 }
 
@@ -3129,7 +3129,7 @@ function saveAppointment() {
         })
         .catch(error => {
             console.error(' Error:', error);
-            showNotification('Error de conexin al agendar la cita', 'error');
+            showNotification('Error de conexión al agendar la cita', 'error');
         });
 }
 
@@ -3377,10 +3377,9 @@ function cargarAgenda(fecha = null, mostrarError = true) {
         .then(data => {
             console.log(' Datos de agenda recibidos:', data);
 
-            // Resetear flag de error cuando la conexión es exitosa
-            errorConexionMostrado = false;
-
             if (data.success) {
+                // Resetear flag de error solo cuando la conexión es exitosa
+                errorConexionMostrado = false;
                 agendaData = data;
 
                 // Actualizar la vista actual
@@ -4644,7 +4643,7 @@ function saveAppointment() {
         })
         .catch(error => {
             console.error(' Error:', error);
-            showNotification('Error de conexin al agendar la cita', 'error');
+            showNotification('Error de conexión al agendar la cita', 'error');
         });
 }
 
@@ -4670,6 +4669,7 @@ function recargarAgendaCompleta() {
     // Esta segunda llamada NO mostrará errores para evitar duplicación
     setTimeout(() => {
         console.log(' Recarga adicional para sincronización...');
+        // No mostrar errores en la segunda llamada para evitar duplicación
         cargarAgenda(fechaActual, false);
     }, 1000);
 
@@ -4747,7 +4747,7 @@ function actualizarEstadoCita(citaId, nuevoEstado) {
         })
         .catch(error => {
             console.error(' Error:', error);
-            showNotification('Error de conexin al actualizar la cita', 'error');
+            showNotification('Error de conexión al actualizar la cita', 'error');
         });
 }
 
@@ -4954,7 +4954,7 @@ function guardarHorarios() {
         })
         .catch(error => {
             console.error(' Error:', error);
-            showNotification('Error de conexin al guardar horarios', 'error');
+            showNotification('Error de conexión al guardar horarios', 'error');
         });
 }
 
@@ -5293,7 +5293,7 @@ async function analizarMotivoEnTiempoReal() {
 
         } catch (error) {
             console.error(' Error en anlisis de IA:', error);
-            mostrarErrorAnalisis('Error de conexin con el servidor');
+            mostrarErrorAnalisis('Error de conexión con el servidor');
         } finally {
             ocultarIndicadorAnalisis();
         }
@@ -5985,7 +5985,7 @@ async function realizarAnalisisCompletoIA() {
 
     } catch (error) {
         console.error(' Error en anlisis completo:', error);
-        showNotification('Error de conexin con el servidor', 'error');
+        showNotification('Error de conexión con el servidor', 'error');
     }
 }
 
@@ -6044,7 +6044,7 @@ async function generarPlanificacionCompletaIA() {
 
     } catch (error) {
         console.error(' Error en planificacin completa:', error);
-        showNotification('Error de conexin con el servidor', 'error');
+        showNotification('Error de conexión con el servidor', 'error');
     }
 }
 
@@ -10557,13 +10557,13 @@ function newConsultation(pacienteId) {
     // Abrir modal de cita y llenar datos del paciente
     const modalElement = document.getElementById('scheduleModal');
     const form = document.getElementById('scheduleForm');
-    
+
     if (!modalElement) {
         console.error('Modal scheduleModal no encontrado');
         showNotification('Modal de cita no encontrado', 'error');
         return;
     }
-    
+
     if (form) {
         form.reset();
     } else {
@@ -10574,7 +10574,7 @@ function newConsultation(pacienteId) {
     const appointmentPatient = document.getElementById('appointmentPatient');
     const pacienteNombre = document.getElementById('pacienteNombre');
     const pacienteRut = document.getElementById('pacienteRut');
-    
+
     if (appointmentPatient) appointmentPatient.value = pacienteId;
     if (pacienteNombre) pacienteNombre.value = `${paciente.nombre} ${paciente.apellido}`;
     if (pacienteRut) pacienteRut.value = paciente.rut || '';
