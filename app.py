@@ -2867,6 +2867,38 @@ def create_appointment():
             try:
                 logger.info(f"📅 Creando cita para profesional {user_id}, paciente {data['paciente_id']}")
                 
+                # Verificar si la tabla citas_agenda existe
+                table_check_query = """
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'citas_agenda'
+                    );
+                """
+                postgres_db.cursor.execute(table_check_query)
+                table_exists = postgres_db.cursor.fetchone()[0]
+                
+                if not table_exists:
+                    logger.warning("⚠️ Tabla citas_agenda no existe, creándola...")
+                    create_table_query = """
+                        CREATE TABLE IF NOT EXISTS citas_agenda (
+                            id SERIAL PRIMARY KEY,
+                            cita_id VARCHAR(50) UNIQUE NOT NULL,
+                            fecha DATE NOT NULL,
+                            hora TIME NOT NULL,
+                            paciente_id VARCHAR(50) NOT NULL,
+                            paciente_nombre VARCHAR(255) NOT NULL,
+                            paciente_rut VARCHAR(20),
+                            tipo_atencion VARCHAR(100) NOT NULL,
+                            estado VARCHAR(50) DEFAULT 'pendiente',
+                            motivo TEXT,
+                            profesional_id INTEGER NOT NULL,
+                            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        );
+                    """
+                    postgres_db.cursor.execute(create_table_query)
+                    postgres_db.conn.commit()
+                    logger.info("✅ Tabla citas_agenda creada exitosamente")
+                
                 # Verificar si ya existe una cita en ese horario
                 check_query = """
                     SELECT cita_id FROM citas_agenda 
@@ -2934,6 +2966,7 @@ def create_appointment():
 
             except Exception as e:
                 logger.error(f"❌ Error creando cita: {e}")
+                logger.error(f"❌ Tipo de error: {type(e).__name__}")
                 postgres_db.conn.rollback()
                 return jsonify({
                     "success": False,
