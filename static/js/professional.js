@@ -3559,6 +3559,17 @@ function capitalizeFirst(str) {
 function actualizarEstadisticasAgenda(estadisticas) {
     console.log(' Actualizando estadsticas de agenda:', estadisticas);
 
+    // Verificar que estadisticas existe y es un objeto
+    if (!estadisticas || typeof estadisticas !== 'object') {
+        console.warn('⚠️ Estadísticas no disponibles, usando valores por defecto');
+        estadisticas = {
+            total_citas: 0,
+            confirmadas: 0,
+            pendientes: 0,
+            disponibles: 0
+        };
+    }
+
     const elementos = {
         totalCitas: document.getElementById('totalCitas'),
         confirmadas: document.getElementById('confirmadas'),

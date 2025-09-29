@@ -2679,6 +2679,12 @@ def get_professional_schedule():
                     "fecha": fecha,
                     "vista": vista,
                     "mensaje": f"Agenda real - {len(agenda_real)} citas",
+                    "estadisticas": {
+                        "total_citas": len(agenda_real),
+                        "confirmadas": len([c for c in agenda_real if c.get("estado") == "confirmada"]),
+                        "pendientes": len([c for c in agenda_real if c.get("estado") == "pendiente"]),
+                        "disponibles": 8 - len(agenda_real)  # Asumiendo 8 slots por día
+                    }
                 }
 
                 # Agregar datos específicos para cada vista
@@ -2745,6 +2751,12 @@ def get_professional_schedule():
                         "fecha": fecha,
                         "vista": vista,
                         "mensaje": f"Agenda simulada (fallback) - {len(agenda_simulada)} citas",
+                        "estadisticas": {
+                            "total_citas": len(agenda_simulada),
+                            "confirmadas": len([c for c in agenda_simulada if c.get("estado") == "confirmada"]),
+                            "pendientes": len([c for c in agenda_simulada if c.get("estado") == "pendiente"]),
+                            "disponibles": 8 - len(agenda_simulada)
+                        }
                     }
                 )
         else:
@@ -2776,6 +2788,12 @@ def get_professional_schedule():
                     "fecha": fecha,
                     "vista": vista,
                     "mensaje": f"Agenda simulada (BD no disponible) - {len(agenda_simulada)} citas",
+                    "estadisticas": {
+                        "total_citas": len(agenda_simulada),
+                        "confirmadas": len([c for c in agenda_simulada if c.get("estado") == "confirmada"]),
+                        "pendientes": len([c for c in agenda_simulada if c.get("estado") == "pendiente"]),
+                        "disponibles": 8 - len(agenda_simulada)
+                    }
                 }
             )
 
@@ -2808,6 +2826,12 @@ def get_professional_schedule():
                 "fecha": fecha,
                 "vista": vista,
                 "mensaje": f"Agenda simulada (error) - {len(agenda_simulada)} citas",
+                "estadisticas": {
+                    "total_citas": len(agenda_simulada),
+                    "confirmadas": len([c for c in agenda_simulada if c.get("estado") == "confirmada"]),
+                    "pendientes": len([c for c in agenda_simulada if c.get("estado") == "pendiente"]),
+                    "disponibles": 8 - len(agenda_simulada)
+                }
             }
         )
 
