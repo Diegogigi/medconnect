@@ -5073,6 +5073,7 @@ function actualizarVistaSemanal(agendaSemanal, fechaInicio, fechaFin) {
 
         // Agregar celdas para cada da de la semana
         Object.keys(agendaSemanal).forEach(fecha => {
+            console.log(`📅 Procesando fecha ${fecha} para hora ${hora}`);
             const diaData = agendaSemanal[fecha];
             const celda = document.createElement('td');
 
@@ -5080,6 +5081,7 @@ function actualizarVistaSemanal(agendaSemanal, fechaInicio, fechaFin) {
             const citasHora = diaData.citas.filter(cita => cita.hora.startsWith(hora.split(':')[0]));
 
             if (citasHora.length > 0) {
+                console.log(`📋 Encontradas ${citasHora.length} citas para ${fecha} a las ${hora}`);
                 citasHora.forEach(cita => {
                     const citaDiv = document.createElement('div');
                     citaDiv.className = `cita-semanal ${cita.estado}`;
@@ -5092,10 +5094,17 @@ function actualizarVistaSemanal(agendaSemanal, fechaInicio, fechaFin) {
                 });
             } else {
                 // Slot disponible
+                console.log(`✅ Creando slot disponible para ${fecha} a las ${hora}`);
                 const slotDiv = document.createElement('div');
                 slotDiv.className = 'slot-disponible';
                 slotDiv.textContent = 'Disponible';
-                slotDiv.onclick = () => agendarCitaFecha(fecha, hora);
+                slotDiv.style.cursor = 'pointer';
+                slotDiv.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log(`🖱️ Click en slot disponible: ${fecha} a las ${hora}`);
+                    agendarCitaFecha(fecha, hora);
+                };
                 celda.appendChild(slotDiv);
             }
 
