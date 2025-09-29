@@ -4648,6 +4648,10 @@ function recargarAgendaCompleta() {
     // Obtener la fecha actual de la agenda
     const fechaActual = fechaActualAgenda.toISOString().split('T')[0];
 
+    // Limpiar datos anteriores
+    agendaData = null;
+    citasDelDia = [];
+
     // Recargar la vista actual inmediatamente (mostrar errores)
     cargarAgenda(fechaActual, true);
 
@@ -5006,9 +5010,18 @@ function actualizarVistaSemanal(agendaSemanal, fechaInicio, fechaFin) {
     console.log(' Actualizando vista semanal:', agendaSemanal);
 
     const tbody = document.getElementById('agendaSemanalBody');
-    if (!tbody) return;
+    if (!tbody) {
+        console.error('❌ Elemento agendaSemanalBody no encontrado');
+        return;
+    }
 
     tbody.innerHTML = '';
+
+    // Verificar que agendaSemanal existe y es un objeto
+    if (!agendaSemanal || typeof agendaSemanal !== 'object') {
+        console.warn('⚠️ Datos de agenda semanal no válidos, inicializando vacío');
+        agendaSemanal = {};
+    }
 
     // Actualizar fechas en los headers
     actualizarFechasSemanal(fechaInicio);
@@ -5024,14 +5037,28 @@ function actualizarVistaSemanal(agendaSemanal, fechaInicio, fechaFin) {
         const fila = document.createElement('tr');
         fila.innerHTML = `<td class="text-center fw-bold">${hora}</td>`;
 
-        // Agregar celdas para cada da de la semana
-        Object.keys(agendaSemanal).forEach(fecha => {
+        // Obtener fechas de la semana (7 días)
+        const fechasSemana = [];
+        if (fechaInicio) {
+            const fechaInicioObj = new Date(fechaInicio);
+            for (let i = 0; i < 7; i++) {
+                const fecha = new Date(fechaInicioObj);
+                fecha.setDate(fechaInicioObj.getDate() + i);
+                fechasSemana.push(fecha.toISOString().split('T')[0]);
+            }
+        } else {
+            // Si no hay fecha de inicio, usar las fechas disponibles en agendaSemanal
+            fechasSemana.push(...Object.keys(agendaSemanal));
+        }
+
+        // Agregar celdas para cada día de la semana
+        fechasSemana.forEach(fecha => {
             console.log(`📅 Procesando fecha ${fecha} para hora ${hora}`);
             const diaData = agendaSemanal[fecha];
             const celda = document.createElement('td');
 
             // Buscar citas para esta hora
-            const citasHora = diaData.citas.filter(cita => cita.hora.startsWith(hora.split(':')[0]));
+            const citasHora = (diaData && diaData.citas) ? diaData.citas.filter(cita => cita.hora.startsWith(hora.split(':')[0])) : [];
 
             if (citasHora.length > 0) {
                 console.log(`📋 Encontradas ${citasHora.length} citas para ${fecha} a las ${hora}`);

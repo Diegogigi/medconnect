@@ -2622,6 +2622,25 @@ def get_professional_schedule():
                     postgres_db.cursor.execute(
                         query, (user_id, inicio_semana, fin_semana)
                     )
+                    
+                    # Procesar citas para estructura semanal
+                    agenda_semanal = {}
+                    for i in range(7):
+                        fecha_dia = inicio_semana + timedelta(days=i)
+                        fecha_str = fecha_dia.strftime("%Y-%m-%d")
+                        agenda_semanal[fecha_str] = {"citas": []}
+                    
+                    # Agrupar citas por fecha
+                    for cita in agenda_real:
+                        fecha_cita = cita["fecha"]
+                        if fecha_cita in agenda_semanal:
+                            agenda_semanal[fecha_cita]["citas"].append(cita)
+                    
+                    response_data.update({
+                        "agenda_semanal": agenda_semanal,
+                        "fecha_inicio": str(inicio_semana),
+                        "fecha_fin": str(fin_semana)
+                    })
                 elif vista == "mensual" and fecha:
                     # Vista mensual: citas del mes que contiene la fecha
                     fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
