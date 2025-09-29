@@ -3350,16 +3350,34 @@ function verificarAutenticacion() {
         });
 }
 
+// Variable para controlar llamadas duplicadas
+let cargandoAgenda = false;
+let timeoutCargarAgenda = null;
+
 // Funcin para cargar la agenda
 function cargarAgenda(fecha = null, mostrarError = true) {
-    console.log(' Cargando agenda...');
-
-    if (!fecha) {
-        fecha = fechaActualAgenda.toISOString().split('T')[0];
+    // Evitar llamadas duplicadas
+    if (cargandoAgenda) {
+        console.log('⚠️ Ya se está cargando la agenda, ignorando llamada duplicada');
+        return;
     }
 
-    // Actualizar fecha en el header
-    actualizarFechaHeader(fecha);
+    // Cancelar timeout anterior si existe
+    if (timeoutCargarAgenda) {
+        clearTimeout(timeoutCargarAgenda);
+    }
+
+    // Debounce: esperar 100ms antes de ejecutar
+    timeoutCargarAgenda = setTimeout(() => {
+        console.log(' Cargando agenda...');
+        cargandoAgenda = true;
+
+        if (!fecha) {
+            fecha = fechaActualAgenda.toISOString().split('T')[0];
+        }
+
+        // Actualizar fecha en el header
+        actualizarFechaHeader(fecha);
 
     // Cargar citas del da con vista actual
     fetch(`/api/professional/schedule?fecha=${fecha}&vista=${currentView}`, {
@@ -3428,7 +3446,12 @@ function cargarAgenda(fecha = null, mostrarError = true) {
 
             // Inicializar array vacío en caso de error de red
             citasDelDia = [];
+        })
+        .finally(() => {
+            // Resetear flag al finalizar (exitosa o con error)
+            cargandoAgenda = false;
         });
+    }, 100); // Debounce de 100ms
 }
 
 // Funcin para actualizar la fecha en el header

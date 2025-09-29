@@ -2203,7 +2203,7 @@ def get_user_profile():
             return jsonify({"error": "Usuario no autenticado"}), 401
 
         if postgres_db and postgres_db.is_connected():
-            query = "SELECT id, nombre, apellido, email, telefono, especialidad FROM usuarios WHERE id = %s"
+            query = "SELECT id, nombre, apellido, email FROM usuarios WHERE id = %s"
             postgres_db.cursor.execute(query, (user_id,))
             user = postgres_db.cursor.fetchone()
 
@@ -2615,8 +2615,6 @@ def get_professional_schedule():
                     postgres_db.cursor.execute(query, (user_id, fecha))
                 elif vista == "semanal" and fecha:
                     # Vista semanal: citas de la semana que contiene la fecha
-                    from datetime import datetime, timedelta
-
                     fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
                     inicio_semana = fecha_obj - timedelta(days=fecha_obj.weekday())
                     fin_semana = inicio_semana + timedelta(days=6)
@@ -2626,8 +2624,6 @@ def get_professional_schedule():
                     )
                 elif vista == "mensual" and fecha:
                     # Vista mensual: citas del mes que contiene la fecha
-                    from datetime import datetime
-
                     fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
                     inicio_mes = fecha_obj.replace(day=1)
                     if fecha_obj.month == 12:
@@ -2687,8 +2683,6 @@ def get_professional_schedule():
 
                 # Agregar datos específicos para cada vista
                 if vista == "semanal":
-                    from datetime import datetime, timedelta
-
                     if fecha:
                         fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
                         inicio_semana = fecha_obj - timedelta(days=fecha_obj.weekday())
@@ -2701,8 +2695,6 @@ def get_professional_schedule():
                             }
                         )
                 elif vista == "mensual":
-                    from datetime import datetime
-
                     if fecha:
                         fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
                         inicio_mes = fecha_obj.replace(day=1)
