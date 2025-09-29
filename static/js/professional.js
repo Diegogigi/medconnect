@@ -3047,9 +3047,18 @@ function descargarPDFAtencion(atencionId) {
         });
 }
 
+// Variable para controlar envíos duplicados
+let enviandoCita = false;
+
 // Funcin para guardar nueva cita
 function saveAppointment() {
     console.log(' Guardando nueva cita...');
+
+    // Prevenir envíos duplicados
+    if (enviandoCita) {
+        console.log('⚠️ Ya se está enviando una cita, ignorando llamada duplicada');
+        return;
+    }
 
     const form = document.getElementById('scheduleForm');
     if (!form) {
@@ -3090,6 +3099,9 @@ function saveAppointment() {
         return;
     }
 
+    // Marcar como enviando
+    enviandoCita = true;
+
     // Enviar datos al servidor
     fetch('/api/professional/schedule', {
         method: 'POST',
@@ -3100,7 +3112,14 @@ function saveAppointment() {
         credentials: 'include',
         body: JSON.stringify(appointmentData)
     })
-        .then(response => response.json())
+        .then(response => {
+            console.log(' Status de respuesta:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             console.log(' Respuesta del servidor:', data);
 
@@ -3124,12 +3143,17 @@ function saveAppointment() {
                 recargarAgendaCompleta();
 
             } else {
+                console.error('❌ Error del servidor:', data.message);
                 showNotification(data.message || 'Error al agendar la cita', 'error');
             }
         })
         .catch(error => {
-            console.error(' Error:', error);
-            showNotification('Error de conexión al agendar la cita', 'error');
+            console.error('❌ Error de conexión:', error);
+            showNotification(`Error de conexión: ${error.message}`, 'error');
+        })
+        .finally(() => {
+            // Resetear flag de envío
+            enviandoCita = false;
         });
 }
 
@@ -4599,87 +4623,6 @@ function showScheduleModal() {
     agendarCita();
 }
 
-// Funcin para guardar cita (sobrescribir la existente)
-function saveAppointment() {
-    console.log(' Guardando cita...');
-
-    const form = document.getElementById('scheduleForm');
-    if (!form) {
-        console.error(' Formulario de cita no encontrado');
-        showNotification('Error: Formulario no encontrado', 'error');
-        return;
-    }
-
-    // Obtener datos del formulario
-    const citaData = {
-        paciente_id: document.getElementById('appointmentPatient').value,
-        fecha: document.getElementById('appointmentDate').value,
-        hora: document.getElementById('appointmentTime').value,
-        tipo_atencion: document.getElementById('appointmentType').value,
-        notas: document.getElementById('appointmentNotes').value
-    };
-
-    console.log(' Datos de la cita:', citaData);
-
-    // Validar campos requeridos
-    if (!citaData.paciente_id) {
-        showNotification('Debe seleccionar un paciente', 'error');
-        return;
-    }
-
-    if (!citaData.fecha) {
-        showNotification('Debe seleccionar una fecha', 'error');
-        return;
-    }
-
-    if (!citaData.hora) {
-        showNotification('Debe seleccionar una hora', 'error');
-        return;
-    }
-
-    if (!citaData.tipo_atencion) {
-        showNotification('Debe seleccionar un tipo de atencin', 'error');
-        return;
-    }
-
-    // Enviar datos al servidor
-    fetch('/api/professional/schedule', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        credentials: 'include',
-        body: JSON.stringify(citaData)
-    })
-        .then(response => response.json())
-        .then(data => {
-            console.log(' Respuesta del servidor:', data);
-
-            if (data.success) {
-                showNotification('Cita agendada exitosamente', 'success');
-
-                // Cerrar modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleModal'));
-                if (modal) {
-                    modal.hide();
-                }
-
-                // Limpiar formulario
-                form.reset();
-
-                // Recargar agenda
-                cargarAgenda();
-
-            } else {
-                showNotification(data.message || 'Error al agendar la cita', 'error');
-            }
-        })
-        .catch(error => {
-            console.error(' Error:', error);
-            showNotification('Error de conexión al agendar la cita', 'error');
-        });
-}
 
 // Funcin para recargar la agenda manualmente
 function recargarAgenda() {

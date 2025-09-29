@@ -2861,13 +2861,22 @@ def create_appointment():
 
         if postgres_db and postgres_db.is_connected():
             try:
-                # Insertar nueva cita
-                insert_query = """
-                    INSERT INTO citas_agenda (cita_id, fecha, hora, paciente_id, paciente_nombre, 
-                                            paciente_rut, tipo_atencion, estado, motivo, profesional_id, 
-                                            fecha_creacion)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                logger.info(f"📅 Creando cita para profesional {user_id}, paciente {data['paciente_id']}")
+                
+                # Verificar si ya existe una cita en ese horario
+                check_query = """
+                    SELECT cita_id FROM citas_agenda 
+                    WHERE profesional_id = %s AND fecha = %s AND hora = %s
                 """
+                postgres_db.cursor.execute(check_query, (user_id, data["fecha"], data["hora"]))
+                existing_cita = postgres_db.cursor.fetchone()
+                
+                if existing_cita:
+                    logger.warning(f"⚠️ Ya existe una cita en {data['fecha']} a las {data['hora']}")
+                    return jsonify({
+                        "success": False,
+                        "message": f"Ya tienes una cita programada para {data['fecha']} a las {data['hora']}"
+                    }), 400
 
                 # Obtener datos del paciente
                 paciente_query = "SELECT nombre, apellido, rut FROM pacientes_profesional WHERE paciente_id = %s AND profesional_id = %s"
@@ -2877,7 +2886,19 @@ def create_appointment():
                 paciente = postgres_db.cursor.fetchone()
 
                 if not paciente:
-                    return jsonify({"error": "Paciente no encontrado en tu lista"}), 404
+                    logger.error(f"❌ Paciente {data['paciente_id']} no encontrado para profesional {user_id}")
+                    return jsonify({
+                        "success": False,
+                        "message": "Paciente no encontrado en tu lista de pacientes"
+                    }), 404
+
+                # Insertar nueva cita
+                insert_query = """
+                    INSERT INTO citas_agenda (cita_id, fecha, hora, paciente_id, paciente_nombre, 
+                                            paciente_rut, tipo_atencion, estado, motivo, profesional_id, 
+                                            fecha_creacion)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
 
                 postgres_db.cursor.execute(
                     insert_query,
@@ -2909,7 +2930,11 @@ def create_appointment():
 
             except Exception as e:
                 logger.error(f"❌ Error creando cita: {e}")
-                return jsonify({"error": "Error al crear cita"}), 500
+                postgres_db.conn.rollback()
+                return jsonify({
+                    "success": False,
+                    "message": f"Error al crear la cita: {str(e)}"
+                }), 500
         else:
             return jsonify({"error": "Base de datos no disponible"}), 500
 
