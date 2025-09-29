@@ -3379,78 +3379,78 @@ function cargarAgenda(fecha = null, mostrarError = true) {
         // Actualizar fecha en el header
         actualizarFechaHeader(fecha);
 
-    // Cargar citas del da con vista actual
-    fetch(`/api/professional/schedule?fecha=${fecha}&vista=${currentView}`, {
-        credentials: 'include'
-    })
-        .then(response => {
-            // Verificar si es un error de autenticación
-            if (response.status === 401) {
-                console.log(' Error de autenticación detectado, redirigiendo al login...');
-                window.location.href = '/login';
-                return Promise.reject(new Error('Usuario no autenticado'));
-            }
-            return response.json();
+        // Cargar citas del da con vista actual
+        fetch(`/api/professional/schedule?fecha=${fecha}&vista=${currentView}`, {
+            credentials: 'include'
         })
-        .then(data => {
-            console.log(' Datos de agenda recibidos:', data);
+            .then(response => {
+                // Verificar si es un error de autenticación
+                if (response.status === 401) {
+                    console.log(' Error de autenticación detectado, redirigiendo al login...');
+                    window.location.href = '/login';
+                    return Promise.reject(new Error('Usuario no autenticado'));
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(' Datos de agenda recibidos:', data);
 
-            if (data.success) {
-                // Resetear flag de error solo cuando la conexión es exitosa
-                errorConexionMostrado = false;
-                agendaData = data;
+                if (data.success) {
+                    // Resetear flag de error solo cuando la conexión es exitosa
+                    errorConexionMostrado = false;
+                    agendaData = data;
 
-                // Actualizar la vista actual
-                if (currentView === 'diaria') {
-                    // El backend devuelve 'agenda', no 'citas'
+                    // Actualizar la vista actual
+                    if (currentView === 'diaria') {
+                        // El backend devuelve 'agenda', no 'citas'
+                        const citas = data.agenda || data.citas || [];
+                        citasDelDia = citas;
+                        console.log(' Citas del día cargadas:', citasDelDia);
+                        actualizarVistaAgenda(citas, data.horarios_disponibles);
+                    } else if (currentView === 'semanal') {
+                        actualizarVistaSemanal(data.agenda_semanal, data.fecha_inicio, data.fecha_fin);
+                    } else if (currentView === 'mensual') {
+                        actualizarVistaMensual(data.agenda_mensual, data.fecha_inicio, data.fecha_fin);
+                    }
+
+                    // Actualizar estadísticas y recordatorios
+                    actualizarEstadisticasAgenda(data.estadisticas);
+
                     const citas = data.agenda || data.citas || [];
-                    citasDelDia = citas;
-                    console.log(' Citas del día cargadas:', citasDelDia);
-                    actualizarVistaAgenda(citas, data.horarios_disponibles);
-                } else if (currentView === 'semanal') {
-                    actualizarVistaSemanal(data.agenda_semanal, data.fecha_inicio, data.fecha_fin);
-                } else if (currentView === 'mensual') {
-                    actualizarVistaMensual(data.agenda_mensual, data.fecha_inicio, data.fecha_fin);
+                    if (citas && citas.length > 0) {
+                        actualizarRecordatorios(citas);
+                    }
+
+                    // Si se acaba de agendar una cita, mostrar notificación adicional
+                    if (window.citaRecienAgendada) {
+                        showNotification('La cita se ha agregado al calendario en todas las vistas', 'success');
+                        window.citaRecienAgendada = false;
+                    }
+                } else {
+                    console.error(' Error cargando agenda:', data.message);
+                    if (mostrarError) {
+                        showNotification('Error al cargar la agenda: ' + data.message, 'error');
+                    }
+                    // Inicializar array vacío en caso de error
+                    citasDelDia = [];
+                }
+            })
+            .catch(error => {
+                console.error(' Error de red:', error);
+
+                // Solo mostrar el error de conexión si no se ha mostrado ya
+                if (mostrarError && !errorConexionMostrado) {
+                    showNotification('Error de conexión al cargar la agenda', 'error');
+                    errorConexionMostrado = true;
                 }
 
-                // Actualizar estadísticas y recordatorios
-                actualizarEstadisticasAgenda(data.estadisticas);
-
-                const citas = data.agenda || data.citas || [];
-                if (citas && citas.length > 0) {
-                    actualizarRecordatorios(citas);
-                }
-
-                // Si se acaba de agendar una cita, mostrar notificación adicional
-                if (window.citaRecienAgendada) {
-                    showNotification('La cita se ha agregado al calendario en todas las vistas', 'success');
-                    window.citaRecienAgendada = false;
-                }
-            } else {
-                console.error(' Error cargando agenda:', data.message);
-                if (mostrarError) {
-                    showNotification('Error al cargar la agenda: ' + data.message, 'error');
-                }
-                // Inicializar array vacío en caso de error
+                // Inicializar array vacío en caso de error de red
                 citasDelDia = [];
-            }
-        })
-        .catch(error => {
-            console.error(' Error de red:', error);
-
-            // Solo mostrar el error de conexión si no se ha mostrado ya
-            if (mostrarError && !errorConexionMostrado) {
-                showNotification('Error de conexión al cargar la agenda', 'error');
-                errorConexionMostrado = true;
-            }
-
-            // Inicializar array vacío en caso de error de red
-            citasDelDia = [];
-        })
-        .finally(() => {
-            // Resetear flag al finalizar (exitosa o con error)
-            cargandoAgenda = false;
-        });
+            })
+            .finally(() => {
+                // Resetear flag al finalizar (exitosa o con error)
+                cargandoAgenda = false;
+            });
     }, 100); // Debounce de 100ms
 }
 

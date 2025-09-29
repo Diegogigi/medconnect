@@ -8,9 +8,9 @@ import json
 
 
 def test_agenda_endpoint():
-    """Prueba el endpoint de agenda"""
+    """Probar el endpoint de agenda"""
 
-    print("📅 Probando endpoint de agenda...")
+    print("🧪 Probando endpoint de agenda...")
     print("=" * 60)
 
     # URL de login
@@ -29,8 +29,16 @@ def test_agenda_endpoint():
         login_data = {"email": email, "password": password}
         login_response = session.post(login_url, data=login_data, allow_redirects=False)
 
-        if login_response.status_code != 302:
+        if login_response.status_code not in [200, 302]:
             print(f"❌ Error en login: {login_response.status_code}")
+            return False
+
+        # Verificar si el login fue exitoso revisando el contenido
+        if (
+            "error" in login_response.text.lower()
+            or "invalid" in login_response.text.lower()
+        ):
+            print(f"❌ Error en credenciales: {login_response.text[:200]}")
             return False
 
         print(f"✅ Login exitoso")
@@ -53,40 +61,21 @@ def test_agenda_endpoint():
         agenda_url = "https://www.medconnect.cl/api/professional/schedule"
         agenda_response = session.get(agenda_url)
 
-        print(f"📊 Status: {agenda_response.status_code}")
-        print(f"📄 Headers: {dict(agenda_response.headers)}")
+        print(f"📊 Status agenda: {agenda_response.status_code}")
+        print(f"📊 Headers: {dict(agenda_response.headers)}")
 
         if agenda_response.status_code == 200:
             try:
-                data = agenda_response.json()
-                print(f"✅ Respuesta JSON válida")
-                print(f"📊 Success: {data.get('success', 'N/A')}")
-                print(f"📅 Agenda: {len(data.get('agenda', []))}")
-
-                if data.get("agenda"):
-                    for cita in data["agenda"]:
-                        print(
-                            f"  - {cita.get('paciente_nombre', '')} - {cita.get('fecha', '')} {cita.get('hora_inicio', '')}"
-                        )
-
+                agenda_data = agenda_response.json()
+                print(f"✅ Agenda cargada exitosamente")
+                print(f"📊 Datos recibidos: {json.dumps(agenda_data, indent=2)}")
                 return True
-
-            except json.JSONDecodeError:
-                print(f"❌ Respuesta no es JSON válido")
-                print(f"📄 Contenido: {agenda_response.text[:500]}...")
+            except json.JSONDecodeError as e:
+                print(f"❌ Error parseando JSON: {e}")
+                print(f"📊 Respuesta: {agenda_response.text[:500]}")
                 return False
-
-        elif agenda_response.status_code == 500:
-            try:
-                data = agenda_response.json()
-                print(f"❌ Error 500: {data.get('error', 'Error desconocido')}")
-            except:
-                print(f"❌ Error 500: {agenda_response.text[:200]}...")
-            return False
-
         else:
-            print(f"❌ Error inesperado: {agenda_response.status_code}")
-            print(f"📄 Respuesta: {agenda_response.text[:200]}...")
+            print(f"❌ Error en agenda: {agenda_response.text[:500]}")
             return False
 
     except Exception as e:
@@ -103,5 +92,5 @@ if __name__ == "__main__":
     if success:
         print(f"\n🎉 ¡Endpoint de agenda funciona correctamente!")
     else:
-        print(f"\n❌ Error en el endpoint de agenda")
+        print(f"\n❌ Error en endpoint de agenda")
         print(f"🔧 Revisa los logs del servidor")
