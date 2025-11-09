@@ -2313,6 +2313,8 @@ def get_professional_patients_new():
                     SELECT DISTINCT 
                         pp.paciente_id as id,
                         pp.nombre_completo,
+                        pp.rut,
+                        pp.edad,
                         pp.email,
                         pp.telefono,
                         pp.fecha_nacimiento,
@@ -2320,6 +2322,7 @@ def get_professional_patients_new():
                         pp.direccion,
                         pp.fecha_primera_consulta as fecha_primera_atencion,
                         pp.ultima_consulta as ultima_atencion,
+                        pp.num_atenciones,
                         pp.notas as notas_generales,
                         pp.estado_relacion
                     FROM pacientes_profesional pp
@@ -2331,19 +2334,29 @@ def get_professional_patients_new():
                 postgres_db.cursor.execute(query, (user_id,))
                 result = postgres_db.cursor.fetchall()
 
+                logger.info(f"📊 Resultados crudos de la consulta: {result}")
+
                 pacientes = []
                 if result:
                     for row in result:
                         # Separar nombre completo en nombre y apellido
                         nombre_completo = row.get("nombre_completo", "")
+                        logger.info(f"📝 Procesando paciente: {nombre_completo} (row: {dict(row)})")
+                        
+                        if not nombre_completo:
+                            logger.warning(f"⚠️ Paciente sin nombre_completo: {row.get('id')}")
+                            nombre_completo = "Sin nombre"
+                        
                         partes_nombre = nombre_completo.split(" ", 1)
-                        nombre = partes_nombre[0] if partes_nombre else ""
+                        nombre = partes_nombre[0] if partes_nombre else "Sin nombre"
                         apellido = partes_nombre[1] if len(partes_nombre) > 1 else ""
 
                         paciente = {
                             "id": row.get("id"),
                             "nombre": nombre,
                             "apellido": apellido,
+                            "rut": row.get("rut") or "Sin RUT",
+                            "edad": row.get("edad"),
                             "email": row.get("email"),
                             "telefono": (
                                 str(row.get("telefono"))
@@ -2362,7 +2375,7 @@ def get_professional_patients_new():
                                 if row.get("fecha_primera_atencion")
                                 else None
                             ),
-                            "total_atenciones": 0,
+                            "total_atenciones": row.get("num_atenciones") or 0,
                             "ultima_atencion": (
                                 str(row.get("ultima_atencion"))
                                 if row.get("ultima_atencion")
@@ -2371,6 +2384,7 @@ def get_professional_patients_new():
                             "notas_generales": row.get("notas_generales"),
                             "estado_relacion": row.get("estado_relacion", "activo"),
                         }
+                        logger.info(f"✅ Paciente procesado: {paciente['nombre']} {paciente['apellido']}")
                         pacientes.append(paciente)
 
                 logger.info(
@@ -2415,6 +2429,8 @@ def get_professional_patients_simple():
                     SELECT DISTINCT 
                         pp.paciente_id as id,
                         pp.nombre_completo,
+                        pp.rut,
+                        pp.edad,
                         pp.email,
                         pp.telefono,
                         pp.fecha_nacimiento,
@@ -2422,6 +2438,7 @@ def get_professional_patients_simple():
                         pp.direccion,
                         pp.fecha_primera_consulta as fecha_primera_atencion,
                         pp.ultima_consulta as ultima_atencion,
+                        pp.num_atenciones,
                         pp.notas as notas_generales,
                         pp.estado_relacion
                     FROM pacientes_profesional pp
@@ -2438,14 +2455,20 @@ def get_professional_patients_simple():
                     for row in result:
                         # Separar nombre completo en nombre y apellido
                         nombre_completo = row.get("nombre_completo", "")
+                        if not nombre_completo:
+                            logger.warning(f"⚠️ Paciente sin nombre_completo: {row.get('id')}")
+                            nombre_completo = "Sin nombre"
+                        
                         partes_nombre = nombre_completo.split(" ", 1)
-                        nombre = partes_nombre[0] if partes_nombre else ""
+                        nombre = partes_nombre[0] if partes_nombre else "Sin nombre"
                         apellido = partes_nombre[1] if len(partes_nombre) > 1 else ""
 
                         paciente = {
                             "id": row.get("id"),
                             "nombre": nombre,
                             "apellido": apellido,
+                            "rut": row.get("rut") or "Sin RUT",
+                            "edad": row.get("edad"),
                             "email": row.get("email"),
                             "telefono": (
                                 str(row.get("telefono"))
@@ -2464,7 +2487,7 @@ def get_professional_patients_simple():
                                 if row.get("fecha_primera_atencion")
                                 else None
                             ),
-                            "total_atenciones": 0,
+                            "total_atenciones": row.get("num_atenciones") or 0,
                             "ultima_atencion": (
                                 str(row.get("ultima_atencion"))
                                 if row.get("ultima_atencion")
