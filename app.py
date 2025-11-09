@@ -1526,23 +1526,30 @@ def register_atencion():
 
                 # Buscar paciente - puede venir como nombre o como ID
                 paciente_nombre_o_id = data.get("paciente_nombre")
-                paciente_id_directo = data.get("paciente_id")  # Por si el frontend envía el ID directamente
-                
+                paciente_id_directo = data.get(
+                    "paciente_id"
+                )  # Por si el frontend envía el ID directamente
+
                 logger.info(f"🔍 Buscando paciente...")
                 logger.info(f"   - paciente_nombre_o_id: {paciente_nombre_o_id}")
                 logger.info(f"   - paciente_id_directo: {paciente_id_directo}")
-                
+
                 if not paciente_nombre_o_id and not paciente_id_directo:
                     logger.error(f"❌ Identificación del paciente es requerida")
-                    return jsonify({"error": "Nombre o ID del paciente es requerido"}), 400
+                    return (
+                        jsonify({"error": "Nombre o ID del paciente es requerido"}),
+                        400,
+                    )
 
                 paciente_id = None
 
                 # Opción 1: Si se envió el ID directamente, usarlo
                 if paciente_id_directo:
-                    logger.info(f"✅ Usando ID de paciente directo: {paciente_id_directo}")
+                    logger.info(
+                        f"✅ Usando ID de paciente directo: {paciente_id_directo}"
+                    )
                     paciente_id = paciente_id_directo
-                
+
                 # Opción 2: Si viene como nombre, buscar el ID
                 elif paciente_nombre_o_id:
                     # Primero verificar si lo que se envió parece un ID (empieza con "PAC_")
@@ -1552,7 +1559,7 @@ def register_atencion():
                     else:
                         # Buscar por nombre
                         logger.info(f"🔍 Buscando por nombre: {paciente_nombre_o_id}")
-                        
+
                         # Buscar en pacientes_profesional (búsqueda por nombre completo)
                         paciente_query_prof = """
                             SELECT paciente_id, nombre_completo
@@ -1570,10 +1577,14 @@ def register_atencion():
                                 f"✅ Paciente encontrado en pacientes_profesional:"
                             )
                             logger.info(f"   - ID: {paciente_id}")
-                            logger.info(f"   - Nombre: {paciente_result.get('nombre_completo')}")
+                            logger.info(
+                                f"   - Nombre: {paciente_result.get('nombre_completo')}"
+                            )
                         else:
                             # Si no se encuentra, buscar en usuarios
-                            logger.info(f"🔍 No encontrado en pacientes_profesional, buscando en usuarios...")
+                            logger.info(
+                                f"🔍 No encontrado en pacientes_profesional, buscando en usuarios..."
+                            )
                             paciente_query_usuarios = """
                                 SELECT id FROM usuarios 
                                 WHERE CONCAT(nombre, ' ', apellido) = %s AND tipo_usuario = 'paciente'
@@ -1593,7 +1604,7 @@ def register_atencion():
                     logger.error(
                         f"❌ Paciente con nombre/ID '{paciente_nombre_o_id}' no encontrado"
                     )
-                    
+
                     # Listar pacientes disponibles
                     check_pacientes_query = """
                         SELECT paciente_id, nombre_completo
@@ -1603,12 +1614,14 @@ def register_atencion():
                     """
                     postgres_db.cursor.execute(check_pacientes_query, (user_id,))
                     pacientes_disponibles = postgres_db.cursor.fetchall()
-                    
+
                     pacientes_nombres = [
                         f"{p.get('nombre_completo', 'Sin nombre')} (ID: {p.get('paciente_id')})"
                         for p in pacientes_disponibles
                     ]
-                    logger.error(f"❌ Pacientes disponibles para profesional {user_id}:")
+                    logger.error(
+                        f"❌ Pacientes disponibles para profesional {user_id}:"
+                    )
                     for nombre in pacientes_nombres:
                         logger.error(f"   - {nombre}")
 
@@ -2219,31 +2232,49 @@ def get_user_profile():
             return jsonify({"error": "Usuario no autenticado"}), 401
 
         if postgres_db and postgres_db.is_connected():
-            query = "SELECT id, nombre, apellido, email FROM usuarios WHERE id = %s"
+            query = "SELECT id, nombre, apellido, email, telefono, especialidad FROM usuarios WHERE id = %s"
             postgres_db.cursor.execute(query, (user_id,))
             user = postgres_db.cursor.fetchone()
 
             if user:
-                return jsonify(
-                    {
-                        "success": True,
-                        "user": {
-                            "id": user[0],
-                            "nombre": user[1],
-                            "apellido": user[2],
-                            "email": user[3],
-                            "telefono": user[4],
-                            "especialidad": user[5],
-                        },
-                    }
-                )
+                # Usar dict() para acceder por nombre de columna (RealDictCursor)
+                if isinstance(user, dict):
+                    return jsonify(
+                        {
+                            "success": True,
+                            "user": {
+                                "id": user.get("id"),
+                                "nombre": user.get("nombre"),
+                                "apellido": user.get("apellido"),
+                                "email": user.get("email"),
+                                "telefono": user.get("telefono"),
+                                "especialidad": user.get("especialidad"),
+                            },
+                        }
+                    )
+                else:
+                    # Fallback para tupla
+                    return jsonify(
+                        {
+                            "success": True,
+                            "user": {
+                                "id": user[0] if len(user) > 0 else None,
+                                "nombre": user[1] if len(user) > 1 else None,
+                                "apellido": user[2] if len(user) > 2 else None,
+                                "email": user[3] if len(user) > 3 else None,
+                                "telefono": user[4] if len(user) > 4 else None,
+                                "especialidad": user[5] if len(user) > 5 else None,
+                            },
+                        }
+                    )
             else:
                 return jsonify({"error": "Usuario no encontrado"}), 404
         else:
             return jsonify({"error": "Base de datos no disponible"}), 500
 
     except Exception as e:
-        logger.error(f"Error obteniendo perfil: {e}")
+        logger.error(f"❌ Error obteniendo perfil de usuario: {e}")
+        logger.error(f"❌ Traceback: ", exc_info=True)
         return jsonify({"error": "Error interno del servidor"}), 500
 
 
