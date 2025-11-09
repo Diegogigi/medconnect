@@ -1462,9 +1462,16 @@ def register_atencion():
             return jsonify({"error": "Usuario no autenticado"}), 401
 
         data = request.get_json() or {}
-        logger.info(
-            f"[ATENCION] Registrando atención para usuario {user_id}: {json.dumps(data)[:200]}"
-        )
+        logger.info("=" * 70)
+        logger.info(f"[ATENCION] 📝 Datos recibidos del frontend:")
+        logger.info(f"   - paciente_nombre: {data.get('paciente_nombre')}")
+        logger.info(f"   - tipo_atencion: {data.get('tipo_atencion')}")
+        logger.info(f"   - motivo_consulta: {data.get('motivo_consulta')}")
+        logger.info(f"   - diagnostico: {data.get('diagnostico')}")
+        logger.info(f"   - tratamiento: {data.get('tratamiento')}")
+        logger.info(f"   - fecha_hora: {data.get('fecha_hora')}")
+        logger.info(f"   - Datos completos: {json.dumps(data, indent=2)}")
+        logger.info("=" * 70)
 
         # Mapear campos del formulario a la estructura de la base de datos
         # El formulario envía: paciente_nombre, paciente_email, tipo_atencion, motivo_consulta, etc.
@@ -1517,90 +1524,98 @@ def register_atencion():
                 columns_result = postgres_db.cursor.fetchall()
                 logger.info(f"📋 Columnas de la tabla: {columns_result}")
 
-                # Buscar paciente por nombre (primero en pacientes_profesional, luego en usuarios)
-                # El formulario envía: paciente_nombre, paciente_rut, tipo_atencion, motivo_consulta, etc.
-                paciente_nombre = data.get("paciente_nombre")
-                if not paciente_nombre:
-                    logger.error(f"❌ Nombre del paciente es requerido")
-                    return jsonify({"error": "Nombre del paciente es requerido"}), 400
-
-                # Primero, verificar qué pacientes existen en la tabla pacientes_profesional
-                check_pacientes_query = """
-                    SELECT paciente_id, nombre_completo, email
-                    FROM pacientes_profesional 
-                    WHERE profesional_id = %s AND (estado_relacion = 'activo' OR estado_relacion IS NULL)
-                    ORDER BY nombre_completo
-                """
-                postgres_db.cursor.execute(check_pacientes_query, (user_id,))
-                pacientes_prof_existentes = postgres_db.cursor.fetchall()
-                logger.info(
-                    f"📋 Pacientes existentes en tabla pacientes_profesional: {pacientes_prof_existentes}"
-                )
-
-                # También verificar en tabla usuarios
-                check_usuarios_query = """
-                    SELECT id, nombre, apellido, email, tipo_usuario 
-                    FROM usuarios 
-                    WHERE tipo_usuario = 'paciente'
-                    ORDER BY nombre, apellido
-                """
-                postgres_db.cursor.execute(check_usuarios_query)
-                pacientes_usuarios_existentes = postgres_db.cursor.fetchall()
-                logger.info(
-                    f"📋 Pacientes existentes en tabla usuarios: {pacientes_usuarios_existentes}"
-                )
+                # Buscar paciente - puede venir como nombre o como ID
+                paciente_nombre_o_id = data.get("paciente_nombre")
+                paciente_id_directo = data.get("paciente_id")  # Por si el frontend envía el ID directamente
+                
+                logger.info(f"🔍 Buscando paciente...")
+                logger.info(f"   - paciente_nombre_o_id: {paciente_nombre_o_id}")
+                logger.info(f"   - paciente_id_directo: {paciente_id_directo}")
+                
+                if not paciente_nombre_o_id and not paciente_id_directo:
+                    logger.error(f"❌ Identificación del paciente es requerida")
+                    return jsonify({"error": "Nombre o ID del paciente es requerido"}), 400
 
                 paciente_id = None
 
-                # Buscar primero en pacientes_profesional (búsqueda por nombre completo)
-                paciente_query_prof = """
-                    SELECT paciente_id 
-                    FROM pacientes_profesional 
-                    WHERE nombre_completo = %s AND profesional_id = %s
-                """
-                postgres_db.cursor.execute(
-                    paciente_query_prof, (paciente_nombre, user_id)
-                )
-                paciente_result = postgres_db.cursor.fetchone()
-
-                if paciente_result:
-                    paciente_id = paciente_result.get("paciente_id")
-                    logger.info(
-                        f"✅ Paciente encontrado en pacientes_profesional con ID: {paciente_id}"
-                    )
-                else:
-                    # Si no se encuentra, buscar en usuarios
-                    paciente_query_usuarios = """
-                        SELECT id FROM usuarios 
-                        WHERE CONCAT(nombre, ' ', apellido) = %s AND tipo_usuario = 'paciente'
-                    """
-                    postgres_db.cursor.execute(
-                        paciente_query_usuarios, (paciente_nombre,)
-                    )
-                    paciente_result = postgres_db.cursor.fetchone()
-
-                    if paciente_result:
-                        paciente_id = str(paciente_result.get("id"))
-                        logger.info(
-                            f"✅ Paciente encontrado en usuarios con ID: {paciente_id}"
+                # Opción 1: Si se envió el ID directamente, usarlo
+                if paciente_id_directo:
+                    logger.info(f"✅ Usando ID de paciente directo: {paciente_id_directo}")
+                    paciente_id = paciente_id_directo
+                
+                # Opción 2: Si viene como nombre, buscar el ID
+                elif paciente_nombre_o_id:
+                    # Primero verificar si lo que se envió parece un ID (empieza con "PAC_")
+                    if str(paciente_nombre_o_id).startswith("PAC_"):
+                        logger.info(f"✅ El valor parece un ID: {paciente_nombre_o_id}")
+                        paciente_id = paciente_nombre_o_id
+                    else:
+                        # Buscar por nombre
+                        logger.info(f"🔍 Buscando por nombre: {paciente_nombre_o_id}")
+                        
+                        # Buscar en pacientes_profesional (búsqueda por nombre completo)
+                        paciente_query_prof = """
+                            SELECT paciente_id, nombre_completo
+                            FROM pacientes_profesional 
+                            WHERE nombre_completo = %s AND profesional_id = %s
+                        """
+                        postgres_db.cursor.execute(
+                            paciente_query_prof, (paciente_nombre_o_id, user_id)
                         )
+                        paciente_result = postgres_db.cursor.fetchone()
+
+                        if paciente_result:
+                            paciente_id = paciente_result.get("paciente_id")
+                            logger.info(
+                                f"✅ Paciente encontrado en pacientes_profesional:"
+                            )
+                            logger.info(f"   - ID: {paciente_id}")
+                            logger.info(f"   - Nombre: {paciente_result.get('nombre_completo')}")
+                        else:
+                            # Si no se encuentra, buscar en usuarios
+                            logger.info(f"🔍 No encontrado en pacientes_profesional, buscando en usuarios...")
+                            paciente_query_usuarios = """
+                                SELECT id FROM usuarios 
+                                WHERE CONCAT(nombre, ' ', apellido) = %s AND tipo_usuario = 'paciente'
+                            """
+                            postgres_db.cursor.execute(
+                                paciente_query_usuarios, (paciente_nombre_o_id,)
+                            )
+                            paciente_result = postgres_db.cursor.fetchone()
+
+                            if paciente_result:
+                                paciente_id = str(paciente_result.get("id"))
+                                logger.info(
+                                    f"✅ Paciente encontrado en usuarios con ID: {paciente_id}"
+                                )
 
                 if not paciente_id:
                     logger.error(
-                        f"❌ Paciente con nombre '{paciente_nombre}' no encontrado"
+                        f"❌ Paciente con nombre/ID '{paciente_nombre_o_id}' no encontrado"
                     )
+                    
+                    # Listar pacientes disponibles
+                    check_pacientes_query = """
+                        SELECT paciente_id, nombre_completo
+                        FROM pacientes_profesional 
+                        WHERE profesional_id = %s AND (estado_relacion = 'activo' OR estado_relacion IS NULL)
+                        ORDER BY nombre_completo
+                    """
+                    postgres_db.cursor.execute(check_pacientes_query, (user_id,))
+                    pacientes_disponibles = postgres_db.cursor.fetchall()
+                    
                     pacientes_nombres = [
-                        p.get("nombre_completo", "") for p in pacientes_prof_existentes
-                    ] + [
-                        f"{p.get('nombre', '')} {p.get('apellido', '')}"
-                        for p in pacientes_usuarios_existentes
+                        f"{p.get('nombre_completo', 'Sin nombre')} (ID: {p.get('paciente_id')})"
+                        for p in pacientes_disponibles
                     ]
-                    logger.error(f"❌ Pacientes disponibles: {pacientes_nombres}")
+                    logger.error(f"❌ Pacientes disponibles para profesional {user_id}:")
+                    for nombre in pacientes_nombres:
+                        logger.error(f"   - {nombre}")
 
                     return (
                         jsonify(
                             {
-                                "error": f"Paciente con nombre '{paciente_nombre}' no encontrado",
+                                "error": f"Paciente '{paciente_nombre_o_id}' no encontrado. Verifica que el paciente exista y esté activo.",
                                 "pacientes_disponibles": pacientes_nombres,
                             }
                         ),
@@ -2351,7 +2366,11 @@ def get_professional_patients_new():
                             )
                             nombre_completo = "Sin nombre"
 
-                        partes_nombre = nombre_completo.split(" ", 1) if nombre_completo != "Sin nombre" else []
+                        partes_nombre = (
+                            nombre_completo.split(" ", 1)
+                            if nombre_completo != "Sin nombre"
+                            else []
+                        )
                         nombre = partes_nombre[0] if partes_nombre else "Sin nombre"
                         apellido = partes_nombre[1] if len(partes_nombre) > 1 else ""
 
@@ -2468,7 +2487,11 @@ def get_professional_patients_simple():
                             )
                             nombre_completo = "Sin nombre"
 
-                        partes_nombre = nombre_completo.split(" ", 1) if nombre_completo != "Sin nombre" else []
+                        partes_nombre = (
+                            nombre_completo.split(" ", 1)
+                            if nombre_completo != "Sin nombre"
+                            else []
+                        )
                         nombre = partes_nombre[0] if partes_nombre else "Sin nombre"
                         apellido = partes_nombre[1] if len(partes_nombre) > 1 else ""
 
@@ -3281,8 +3304,16 @@ def create_appointment():
                         data["fecha"],
                         data["hora"],
                         data["paciente_id"],  # Identificación del paciente
-                        paciente.get("nombre_completo") if isinstance(paciente, dict) else paciente[0],  # Paciente_nombre
-                        paciente.get("rut") if isinstance(paciente, dict) else paciente[1],  # paciente_rut
+                        (
+                            paciente.get("nombre_completo")
+                            if isinstance(paciente, dict)
+                            else paciente[0]
+                        ),  # Paciente_nombre
+                        (
+                            paciente.get("rut")
+                            if isinstance(paciente, dict)
+                            else paciente[1]
+                        ),  # paciente_rut
                         data["tipo_atencion"],  # tipo_atención
                         "pendiente",  # estado
                         data["motivo"],  # motivo
