@@ -2295,6 +2295,84 @@ def test_atencion():
         return jsonify({"error": "Error interno del servidor"}), 500
 
 
+@app.route("/api/diagnostico-sistema")
+@login_required
+def diagnostico_sistema():
+    """Diagnóstico completo del sistema para identificar errores"""
+    diagnostico = {
+        "timestamp": datetime.now().isoformat(),
+        "tests": {}
+    }
+    
+    try:
+        # Test 1: Verificar sesión
+        user_id = session.get("user_id")
+        user_data = session.get("user_data", {})
+        diagnostico["tests"]["sesion"] = {
+            "status": "ok" if user_id else "error",
+            "user_id": user_id,
+            "user_data_keys": list(user_data.keys())
+        }
+        
+        # Test 2: Verificar conexión a BD
+        diagnostico["tests"]["base_datos"] = {
+            "status": "ok" if (postgres_db and postgres_db.is_connected()) else "error",
+            "conectado": postgres_db.is_connected() if postgres_db else False
+        }
+        
+        if postgres_db and postgres_db.is_connected():
+            # Test 3: Verificar tabla usuarios y sus columnas
+            try:
+                postgres_db.cursor.execute("""
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'usuarios'
+                    ORDER BY ordinal_position
+                """)
+                columnas_usuarios = postgres_db.cursor.fetchall()
+                columnas_list = [c.get("column_name") if isinstance(c, dict) else str(c) for c in columnas_usuarios]
+                diagnostico["tests"]["tabla_usuarios"] = {
+                    "status": "ok",
+                    "columnas_existentes": columnas_list
+                }
+            except Exception as e:
+                diagnostico["tests"]["tabla_usuarios"] = {
+                    "status": "error",
+                    "error": str(e)
+                }
+            
+            # Test 4: Verificar que el usuario actual existe
+            try:
+                postgres_db.cursor.execute("SELECT * FROM usuarios WHERE id = %s", (user_id,))
+                usuario = postgres_db.cursor.fetchone()
+                if usuario:
+                    usuario_dict = dict(usuario) if isinstance(usuario, dict) else {"encontrado": True, "tipo": str(type(usuario))}
+                diagnostico["tests"]["usuario_actual"] = {
+                    "status": "ok" if usuario else "error",
+                    "encontrado": bool(usuario),
+                    "columnas_devueltas": list(usuario_dict.keys()) if usuario and isinstance(usuario, dict) else []
+                }
+            except Exception as e:
+                diagnostico["tests"]["usuario_actual"] = {
+                    "status": "error",
+                    "error": str(e)
+                }
+        
+        diagnostico["resumen"] = {
+            "total_tests": len(diagnostico["tests"]),
+            "exitosos": sum(1 for t in diagnostico["tests"].values() if t.get("status") == "ok"),
+            "fallidos": sum(1 for t in diagnostico["tests"].values() if t.get("status") == "error")
+        }
+        
+        return jsonify(diagnostico)
+        
+    except Exception as e:
+        logger.error(f"❌ Error en diagnóstico: {e}")
+        logger.error(f"❌ Traceback: ", exc_info=True)
+        diagnostico["error_general"] = str(e)
+        return jsonify(diagnostico), 500
+
+
 @app.route("/debug-static")
 def debug_static():
     static_dir = app.static_folder
