@@ -2341,12 +2341,16 @@ def get_professional_patients_new():
                     for row in result:
                         # Separar nombre completo en nombre y apellido
                         nombre_completo = row.get("nombre_completo", "")
-                        logger.info(f"📝 Procesando paciente: {nombre_completo} (row: {dict(row)})")
-                        
+                        logger.info(
+                            f"📝 Procesando paciente: {nombre_completo} (row: {dict(row)})"
+                        )
+
                         if not nombre_completo:
-                            logger.warning(f"⚠️ Paciente sin nombre_completo: {row.get('id')}")
+                            logger.warning(
+                                f"⚠️ Paciente sin nombre_completo: {row.get('id')}"
+                            )
                             nombre_completo = "Sin nombre"
-                        
+
                         partes_nombre = nombre_completo.split(" ", 1)
                         nombre = partes_nombre[0] if partes_nombre else "Sin nombre"
                         apellido = partes_nombre[1] if len(partes_nombre) > 1 else ""
@@ -2384,7 +2388,9 @@ def get_professional_patients_new():
                             "notas_generales": row.get("notas_generales"),
                             "estado_relacion": row.get("estado_relacion", "activo"),
                         }
-                        logger.info(f"✅ Paciente procesado: {paciente['nombre']} {paciente['apellido']}")
+                        logger.info(
+                            f"✅ Paciente procesado: {paciente['nombre']} {paciente['apellido']}"
+                        )
                         pacientes.append(paciente)
 
                 logger.info(
@@ -2456,9 +2462,11 @@ def get_professional_patients_simple():
                         # Separar nombre completo en nombre y apellido
                         nombre_completo = row.get("nombre_completo", "")
                         if not nombre_completo:
-                            logger.warning(f"⚠️ Paciente sin nombre_completo: {row.get('id')}")
+                            logger.warning(
+                                f"⚠️ Paciente sin nombre_completo: {row.get('id')}"
+                            )
                             nombre_completo = "Sin nombre"
-                        
+
                         partes_nombre = nombre_completo.split(" ", 1)
                         nombre = partes_nombre[0] if partes_nombre else "Sin nombre"
                         apellido = partes_nombre[1] if len(partes_nombre) > 1 else ""
@@ -2530,8 +2538,10 @@ def crear_paciente_desde_formulario(user_id):
         if not data:
             return jsonify({"success": False, "error": "No se recibieron datos"}), 400
 
+        logger.info(f"📝 Datos recibidos para crear paciente: {data}")
+
         # Validar datos requeridos
-        required_fields = ["nombre", "apellido", "email", "telefono"]
+        required_fields = ["nombre", "apellido"]
         for field in required_fields:
             if not data.get(field):
                 return (
@@ -2544,37 +2554,49 @@ def crear_paciente_desde_formulario(user_id):
             try:
                 # Generar ID único para el paciente
                 import uuid
+                from datetime import datetime
 
                 paciente_id = f"PAC_{uuid.uuid4().hex[:8].upper()}"
+                nombre_completo = f"{data['nombre']} {data['apellido']}"
 
-                # Insertar paciente en la tabla pacientes_profesional
+                # Calcular edad si hay fecha de nacimiento
+                edad = None
+                if data.get("fecha_nacimiento"):
+                    try:
+                        fecha_nac = datetime.strptime(data["fecha_nacimiento"], "%Y-%m-%d")
+                        edad = (datetime.now() - fecha_nac).days // 365
+                    except:
+                        logger.warning(f"⚠️ No se pudo calcular la edad")
+
+                # Insertar paciente en la tabla pacientes_profesional con TODOS los campos
                 query = """
                     INSERT INTO pacientes_profesional (
-                        paciente_id, profesional_id, nombre_completo, email, telefono,
-                        fecha_nacimiento, genero, direccion, estado_relacion, fecha_registro
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        paciente_id, profesional_id, nombre_completo, rut, edad,
+                        fecha_nacimiento, genero, telefono, email, direccion,
+                        antecedentes_medicos, estado_relacion, fecha_registro
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
                 """
 
-                nombre_completo = f"{data['nombre']} {data['apellido']}"
-                postgres_db.cursor.execute(
-                    query,
-                    (
-                        paciente_id,
-                        user_id,
-                        nombre_completo,
-                        data["email"],
-                        data["telefono"],
-                        data.get("fecha_nacimiento"),
-                        data.get("genero"),
-                        data.get("direccion"),
-                        "activo",
-                        "now()",
-                    ),
+                valores = (
+                    paciente_id,
+                    user_id,
+                    nombre_completo,
+                    data.get("rut"),
+                    edad,
+                    data.get("fecha_nacimiento"),
+                    data.get("genero"),
+                    data.get("telefono"),
+                    data.get("email"),
+                    data.get("direccion"),
+                    data.get("antecedentes_medicos"),
+                    "activo",
                 )
 
+                logger.info(f"🔍 Ejecutando INSERT con valores: {valores}")
+                postgres_db.cursor.execute(query, valores)
                 postgres_db.conn.commit()
 
-                logger.info(f"✅ Paciente creado: {nombre_completo} ({data['email']})")
+                logger.info(f"✅ Paciente creado: {nombre_completo} (ID: {paciente_id})")
                 return jsonify(
                     {
                         "success": True,
@@ -2585,11 +2607,14 @@ def crear_paciente_desde_formulario(user_id):
 
             except Exception as e:
                 logger.error(f"❌ Error creando paciente: {e}")
+                logger.error(f"❌ Traceback: ", exc_info=True)
+                postgres_db.conn.rollback()
                 return (
-                    jsonify({"success": False, "error": "Error al crear paciente"}),
+                    jsonify({"success": False, "error": f"Error al crear paciente: {str(e)}"}),
                     500,
                 )
         else:
+            logger.error("❌ Base de datos no disponible")
             return (
                 jsonify({"success": False, "error": "Base de datos no disponible"}),
                 500,
@@ -2597,6 +2622,221 @@ def crear_paciente_desde_formulario(user_id):
 
     except Exception as e:
         logger.error(f"❌ Error en crear_paciente_desde_formulario: {e}")
+        logger.error(f"❌ Traceback: ", exc_info=True)
+        return jsonify({"success": False, "error": "Error interno del servidor"}), 500
+
+
+# ==================== OBTENER UN PACIENTE ====================
+
+
+@app.route("/api/professional/patients/<paciente_id>", methods=["GET"])
+@login_required
+def get_professional_patient(paciente_id):
+    """Obtener datos de un paciente específico"""
+    try:
+        # Obtener user_id de la sesión
+        user_data = session.get("user_data", {})
+        user_id = user_data.get("id") or session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Usuario no autenticado"}), 401
+
+        logger.info(f"🔍 Obteniendo datos del paciente {paciente_id}")
+
+        if postgres_db and postgres_db.is_connected():
+            try:
+                query = """
+                    SELECT 
+                        paciente_id as id,
+                        nombre_completo,
+                        rut,
+                        edad,
+                        fecha_nacimiento,
+                        genero,
+                        telefono,
+                        email,
+                        direccion,
+                        antecedentes_medicos,
+                        fecha_primera_consulta,
+                        ultima_consulta,
+                        num_atenciones,
+                        estado_relacion,
+                        notas
+                    FROM pacientes_profesional
+                    WHERE paciente_id = %s AND profesional_id = %s
+                """
+
+                postgres_db.cursor.execute(query, (paciente_id, user_id))
+                result = postgres_db.cursor.fetchone()
+
+                if not result:
+                    return jsonify({
+                        "success": False,
+                        "error": "Paciente no encontrado"
+                    }), 404
+
+                # Convertir a dict y separar nombre completo
+                paciente = dict(result)
+                nombre_completo = paciente.get("nombre_completo", "")
+                if nombre_completo:
+                    partes = nombre_completo.split(" ", 1)
+                    paciente["nombre"] = partes[0] if partes else ""
+                    paciente["apellido"] = partes[1] if len(partes) > 1 else ""
+                else:
+                    paciente["nombre"] = ""
+                    paciente["apellido"] = ""
+
+                # Convertir fechas a string
+                if paciente.get("fecha_nacimiento"):
+                    paciente["fecha_nacimiento"] = str(paciente["fecha_nacimiento"])
+                if paciente.get("fecha_primera_consulta"):
+                    paciente["fecha_primera_consulta"] = str(paciente["fecha_primera_consulta"])
+                if paciente.get("ultima_consulta"):
+                    paciente["ultima_consulta"] = str(paciente["ultima_consulta"])
+
+                logger.info(f"✅ Paciente encontrado: {nombre_completo}")
+                return jsonify({
+                    "success": True,
+                    "paciente": paciente
+                })
+
+            except Exception as e:
+                logger.error(f"❌ Error obteniendo paciente: {e}")
+                logger.error(f"❌ Traceback: ", exc_info=True)
+                return jsonify({
+                    "success": False,
+                    "error": f"Error al obtener paciente: {str(e)}"
+                }), 500
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Base de datos no disponible"
+            }), 500
+
+    except Exception as e:
+        logger.error(f"❌ Error en get_professional_patient: {e}")
+        logger.error(f"❌ Traceback: ", exc_info=True)
+        return jsonify({"success": False, "error": "Error interno del servidor"}), 500
+
+
+# ==================== ACTUALIZAR PACIENTE ====================
+
+
+@app.route("/api/professional/patients/<paciente_id>", methods=["PUT", "PATCH"])
+@login_required
+def update_professional_patient(paciente_id):
+    """Actualizar datos de un paciente existente"""
+    try:
+        # Obtener user_id de la sesión
+        user_data = session.get("user_data", {})
+        user_id = user_data.get("id") or session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Usuario no autenticado"}), 401
+
+        # Obtener datos del formulario
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No se recibieron datos"}), 400
+
+        logger.info(f"📝 Actualizando paciente {paciente_id} con datos: {data}")
+
+        if postgres_db and postgres_db.is_connected():
+            try:
+                from datetime import datetime
+
+                # Verificar que el paciente pertenece al profesional
+                check_query = """
+                    SELECT paciente_id FROM pacientes_profesional 
+                    WHERE paciente_id = %s AND profesional_id = %s
+                """
+                postgres_db.cursor.execute(check_query, (paciente_id, user_id))
+                existe = postgres_db.cursor.fetchone()
+
+                if not existe:
+                    return jsonify({
+                        "success": False,
+                        "error": "Paciente no encontrado o no pertenece a este profesional"
+                    }), 404
+
+                # Construir nombre completo si viene separado
+                nombre_completo = None
+                if data.get("nombre") and data.get("apellido"):
+                    nombre_completo = f"{data['nombre']} {data['apellido']}"
+                elif data.get("nombre_completo"):
+                    nombre_completo = data["nombre_completo"]
+
+                # Calcular edad si hay fecha de nacimiento
+                edad = data.get("edad")
+                if data.get("fecha_nacimiento") and not edad:
+                    try:
+                        fecha_nac = datetime.strptime(data["fecha_nacimiento"], "%Y-%m-%d")
+                        edad = (datetime.now() - fecha_nac).days // 365
+                    except:
+                        logger.warning(f"⚠️ No se pudo calcular la edad")
+
+                # Actualizar paciente
+                query = """
+                    UPDATE pacientes_profesional 
+                    SET nombre_completo = COALESCE(%s, nombre_completo),
+                        rut = COALESCE(%s, rut),
+                        edad = COALESCE(%s, edad),
+                        fecha_nacimiento = COALESCE(%s, fecha_nacimiento),
+                        genero = COALESCE(%s, genero),
+                        telefono = COALESCE(%s, telefono),
+                        email = COALESCE(%s, email),
+                        direccion = COALESCE(%s, direccion),
+                        antecedentes_medicos = COALESCE(%s, antecedentes_medicos)
+                    WHERE paciente_id = %s AND profesional_id = %s
+                """
+
+                valores = (
+                    nombre_completo,
+                    data.get("rut"),
+                    edad,
+                    data.get("fecha_nacimiento"),
+                    data.get("genero"),
+                    data.get("telefono"),
+                    data.get("email"),
+                    data.get("direccion"),
+                    data.get("antecedentes_medicos"),
+                    paciente_id,
+                    user_id,
+                )
+
+                logger.info(f"🔍 Ejecutando UPDATE con valores: {valores}")
+                postgres_db.cursor.execute(query, valores)
+                postgres_db.conn.commit()
+
+                if postgres_db.cursor.rowcount > 0:
+                    logger.info(f"✅ Paciente {paciente_id} actualizado exitosamente")
+                    return jsonify({
+                        "success": True,
+                        "message": "Paciente actualizado exitosamente"
+                    })
+                else:
+                    logger.warning(f"⚠️ No se actualizó ningún registro")
+                    return jsonify({
+                        "success": False,
+                        "error": "No se pudo actualizar el paciente"
+                    }), 400
+
+            except Exception as e:
+                logger.error(f"❌ Error actualizando paciente: {e}")
+                logger.error(f"❌ Traceback: ", exc_info=True)
+                postgres_db.conn.rollback()
+                return jsonify({
+                    "success": False,
+                    "error": f"Error al actualizar paciente: {str(e)}"
+                }), 500
+        else:
+            logger.error("❌ Base de datos no disponible")
+            return jsonify({
+                "success": False,
+                "error": "Base de datos no disponible"
+            }), 500
+
+    except Exception as e:
+        logger.error(f"❌ Error en update_professional_patient: {e}")
+        logger.error(f"❌ Traceback: ", exc_info=True)
         return jsonify({"success": False, "error": "Error interno del servidor"}), 500
 
 
