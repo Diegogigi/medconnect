@@ -98,10 +98,12 @@ class PostgreSQLDBManager:
             if profesional_id:
                 query = """
                 SELECT a.*, 
-                       p.nombre as paciente_nombre, p.apellido as paciente_apellido,
+                       COALESCE(p.nombre, pp.nombre_completo) as paciente_nombre, 
+                       COALESCE(p.apellido, '') as paciente_apellido,
                        pr.nombre as profesional_nombre, pr.apellido as profesional_apellido
                 FROM atenciones_medicas a
-                LEFT JOIN usuarios p ON a.paciente_id = p.id
+                LEFT JOIN usuarios p ON a.paciente_id = CAST(p.id AS TEXT)
+                LEFT JOIN pacientes_profesional pp ON a.paciente_id = pp.paciente_id
                 LEFT JOIN usuarios pr ON a.profesional_id = pr.id
                 WHERE a.profesional_id = %s
                 ORDER BY a.fecha_atencion DESC, a.hora_inicio DESC
@@ -110,10 +112,12 @@ class PostgreSQLDBManager:
             else:
                 query = """
                 SELECT a.*, 
-                       p.nombre as paciente_nombre, p.apellido as paciente_apellido,
+                       COALESCE(p.nombre, pp.nombre_completo) as paciente_nombre, 
+                       COALESCE(p.apellido, '') as paciente_apellido,
                        pr.nombre as profesional_nombre, pr.apellido as profesional_apellido
                 FROM atenciones_medicas a
-                LEFT JOIN usuarios p ON a.paciente_id = p.id
+                LEFT JOIN usuarios p ON a.paciente_id = CAST(p.id AS TEXT)
+                LEFT JOIN pacientes_profesional pp ON a.paciente_id = pp.paciente_id
                 LEFT JOIN usuarios pr ON a.profesional_id = pr.id
                 ORDER BY a.fecha_atencion DESC, a.hora_inicio DESC
                 """

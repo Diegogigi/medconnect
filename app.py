@@ -1517,94 +1517,95 @@ def register_atencion():
                 columns_result = postgres_db.cursor.fetchall()
                 logger.info(f"📋 Columnas de la tabla: {columns_result}")
 
-                # Buscar paciente por nombre en la tabla usuarios (ya que el formulario envía paciente_nombre)
+                # Buscar paciente por nombre (primero en pacientes_profesional, luego en usuarios)
                 # El formulario envía: paciente_nombre, paciente_rut, tipo_atencion, motivo_consulta, etc.
                 paciente_nombre = data.get("paciente_nombre")
                 if not paciente_nombre:
                     logger.error(f"❌ Nombre del paciente es requerido")
                     return jsonify({"error": "Nombre del paciente es requerido"}), 400
 
-                # Primero, verificar qué pacientes existen en la tabla usuarios
+                # Primero, verificar qué pacientes existen en la tabla pacientes_profesional
                 check_pacientes_query = """
+                    SELECT paciente_id, nombre_completo, email
+                    FROM pacientes_profesional 
+                    WHERE profesional_id = %s AND (estado_relacion = 'activo' OR estado_relacion IS NULL)
+                    ORDER BY nombre_completo
+                """
+                postgres_db.cursor.execute(check_pacientes_query, (user_id,))
+                pacientes_prof_existentes = postgres_db.cursor.fetchall()
+                logger.info(
+                    f"📋 Pacientes existentes en tabla pacientes_profesional: {pacientes_prof_existentes}"
+                )
+
+                # También verificar en tabla usuarios
+                check_usuarios_query = """
                     SELECT id, nombre, apellido, email, tipo_usuario 
                     FROM usuarios 
                     WHERE tipo_usuario = 'paciente'
                     ORDER BY nombre, apellido
                 """
-                postgres_db.cursor.execute(check_pacientes_query)
-                pacientes_existentes = postgres_db.cursor.fetchall()
+                postgres_db.cursor.execute(check_usuarios_query)
+                pacientes_usuarios_existentes = postgres_db.cursor.fetchall()
                 logger.info(
-                    f"📋 Pacientes existentes en tabla usuarios: {pacientes_existentes}"
+                    f"📋 Pacientes existentes en tabla usuarios: {pacientes_usuarios_existentes}"
                 )
 
-                if not pacientes_existentes:
-                    logger.error(
-                        f"❌ No hay pacientes registrados en la tabla usuarios"
-                    )
-                    return (
-                        jsonify(
-                            {"error": "No hay pacientes registrados en el sistema"}
-                        ),
-                        404,
-                    )
+                paciente_id = None
 
-                # Buscar paciente por nombre con búsqueda más flexible
-                # Opción 1: Búsqueda exacta por nombre completo
-                paciente_query_exacta = """
-                    SELECT id FROM usuarios 
-                    WHERE CONCAT(nombre, ' ', apellido) = %s AND tipo_usuario = 'paciente'
+                # Buscar primero en pacientes_profesional (búsqueda por nombre completo)
+                paciente_query_prof = """
+                    SELECT paciente_id 
+                    FROM pacientes_profesional 
+                    WHERE nombre_completo = %s AND profesional_id = %s
                 """
-                postgres_db.cursor.execute(paciente_query_exacta, (paciente_nombre,))
+                postgres_db.cursor.execute(
+                    paciente_query_prof, (paciente_nombre, user_id)
+                )
                 paciente_result = postgres_db.cursor.fetchone()
 
-                if not paciente_result:
+                if paciente_result:
+                    paciente_id = paciente_result.get("paciente_id")
+                    logger.info(
+                        f"✅ Paciente encontrado en pacientes_profesional con ID: {paciente_id}"
+                    )
+                else:
+                    # Si no se encuentra, buscar en usuarios
+                    paciente_query_usuarios = """
+                        SELECT id FROM usuarios 
+                        WHERE CONCAT(nombre, ' ', apellido) = %s AND tipo_usuario = 'paciente'
+                    """
+                    postgres_db.cursor.execute(
+                        paciente_query_usuarios, (paciente_nombre,)
+                    )
+                    paciente_result = postgres_db.cursor.fetchone()
+
+                    if paciente_result:
+                        paciente_id = str(paciente_result.get("id"))
+                        logger.info(
+                            f"✅ Paciente encontrado en usuarios con ID: {paciente_id}"
+                        )
+
+                if not paciente_id:
                     logger.error(
                         f"❌ Paciente con nombre '{paciente_nombre}' no encontrado"
                     )
                     pacientes_nombres = [
+                        p.get("nombre_completo", "") for p in pacientes_prof_existentes
+                    ] + [
                         f"{p.get('nombre', '')} {p.get('apellido', '')}"
-                        for p in pacientes_existentes
+                        for p in pacientes_usuarios_existentes
                     ]
                     logger.error(f"❌ Pacientes disponibles: {pacientes_nombres}")
 
-                    # Ofrecer crear el paciente automáticamente si no existe
-                    if len(pacientes_existentes) == 0 or paciente_nombre not in [
-                        f"{p.get('nombre', '')} {p.get('apellido', '')}"
-                        for p in pacientes_existentes
-                    ]:
-                        logger.info(
-                            f"🔄 Intentando crear paciente automáticamente: {paciente_nombre}"
-                        )
-                        paciente_creado = crear_paciente_automatico(paciente_nombre)
-                        if paciente_creado:
-                            paciente_id = paciente_creado
-                            logger.info(
-                                f"✅ Paciente creado automáticamente con ID: {paciente_id}"
-                            )
-                        else:
-                            return (
-                                jsonify(
-                                    {
-                                        "error": f"Paciente con nombre '{paciente_nombre}' no encontrado",
-                                        "pacientes_disponibles": pacientes_nombres,
-                                        "sugerencia": "El paciente será creado automáticamente",
-                                    }
-                                ),
-                                404,
-                            )
-                    else:
-                        return (
-                            jsonify(
-                                {
-                                    "error": f"Paciente con nombre '{paciente_nombre}' no encontrado",
-                                    "pacientes_disponibles": pacientes_nombres,
-                                }
-                            ),
-                            404,
-                        )
-                else:
-                    paciente_id = paciente_result.get("id")
-                    logger.info(f"✅ Paciente encontrado con ID: {paciente_id}")
+                    return (
+                        jsonify(
+                            {
+                                "error": f"Paciente con nombre '{paciente_nombre}' no encontrado",
+                                "pacientes_disponibles": pacientes_nombres,
+                            }
+                        ),
+                        404,
+                    )
 
                 # Preparar consulta de inserción usando la estructura real de la tabla
                 insert_query = """
@@ -2622,25 +2623,27 @@ def get_professional_schedule():
                     postgres_db.cursor.execute(
                         query, (user_id, inicio_semana, fin_semana)
                     )
-                    
+
                     # Procesar citas para estructura semanal
                     agenda_semanal = {}
                     for i in range(7):
                         fecha_dia = inicio_semana + timedelta(days=i)
                         fecha_str = fecha_dia.strftime("%Y-%m-%d")
                         agenda_semanal[fecha_str] = {"citas": []}
-                    
+
                     # Agrupar citas por fecha
                     for cita in agenda_real:
                         fecha_cita = cita["fecha"]
                         if fecha_cita in agenda_semanal:
                             agenda_semanal[fecha_cita]["citas"].append(cita)
-                    
-                    response_data.update({
-                        "agenda_semanal": agenda_semanal,
-                        "fecha_inicio": str(inicio_semana),
-                        "fecha_fin": str(fin_semana)
-                    })
+
+                    response_data.update(
+                        {
+                            "agenda_semanal": agenda_semanal,
+                            "fecha_inicio": str(inicio_semana),
+                            "fecha_fin": str(fin_semana),
+                        }
+                    )
                 elif vista == "mensual" and fecha:
                     # Vista mensual: citas del mes que contiene la fecha
                     fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
@@ -2700,10 +2703,15 @@ def get_professional_schedule():
                     "mensaje": f"Agenda real - {len(agenda_real)} citas",
                     "estadisticas": {
                         "total_citas": len(agenda_real),
-                        "confirmadas": len([c for c in agenda_real if c.get("estado") == "confirmada"]),
-                        "pendientes": len([c for c in agenda_real if c.get("estado") == "pendiente"]),
-                        "disponibles": 8 - len(agenda_real)  # Asumiendo 8 slots por día
-                    }
+                        "confirmadas": len(
+                            [c for c in agenda_real if c.get("estado") == "confirmada"]
+                        ),
+                        "pendientes": len(
+                            [c for c in agenda_real if c.get("estado") == "pendiente"]
+                        ),
+                        "disponibles": 8
+                        - len(agenda_real),  # Asumiendo 8 slots por día
+                    },
                 }
 
                 # Agregar datos específicos para cada vista
@@ -2772,10 +2780,22 @@ def get_professional_schedule():
                         "mensaje": f"Agenda simulada (fallback) - {len(agenda_simulada)} citas",
                         "estadisticas": {
                             "total_citas": len(agenda_simulada),
-                            "confirmadas": len([c for c in agenda_simulada if c.get("estado") == "confirmada"]),
-                            "pendientes": len([c for c in agenda_simulada if c.get("estado") == "pendiente"]),
-                            "disponibles": 8 - len(agenda_simulada)
-                        }
+                            "confirmadas": len(
+                                [
+                                    c
+                                    for c in agenda_simulada
+                                    if c.get("estado") == "confirmada"
+                                ]
+                            ),
+                            "pendientes": len(
+                                [
+                                    c
+                                    for c in agenda_simulada
+                                    if c.get("estado") == "pendiente"
+                                ]
+                            ),
+                            "disponibles": 8 - len(agenda_simulada),
+                        },
                     }
                 )
         else:
@@ -2809,10 +2829,22 @@ def get_professional_schedule():
                     "mensaje": f"Agenda simulada (BD no disponible) - {len(agenda_simulada)} citas",
                     "estadisticas": {
                         "total_citas": len(agenda_simulada),
-                        "confirmadas": len([c for c in agenda_simulada if c.get("estado") == "confirmada"]),
-                        "pendientes": len([c for c in agenda_simulada if c.get("estado") == "pendiente"]),
-                        "disponibles": 8 - len(agenda_simulada)
-                    }
+                        "confirmadas": len(
+                            [
+                                c
+                                for c in agenda_simulada
+                                if c.get("estado") == "confirmada"
+                            ]
+                        ),
+                        "pendientes": len(
+                            [
+                                c
+                                for c in agenda_simulada
+                                if c.get("estado") == "pendiente"
+                            ]
+                        ),
+                        "disponibles": 8 - len(agenda_simulada),
+                    },
                 }
             )
 
@@ -2847,10 +2879,14 @@ def get_professional_schedule():
                 "mensaje": f"Agenda simulada (error) - {len(agenda_simulada)} citas",
                 "estadisticas": {
                     "total_citas": len(agenda_simulada),
-                    "confirmadas": len([c for c in agenda_simulada if c.get("estado") == "confirmada"]),
-                    "pendientes": len([c for c in agenda_simulada if c.get("estado") == "pendiente"]),
-                    "disponibles": 8 - len(agenda_simulada)
-                }
+                    "confirmadas": len(
+                        [c for c in agenda_simulada if c.get("estado") == "confirmada"]
+                    ),
+                    "pendientes": len(
+                        [c for c in agenda_simulada if c.get("estado") == "pendiente"]
+                    ),
+                    "disponibles": 8 - len(agenda_simulada),
+                },
             }
         )
 
@@ -2867,7 +2903,7 @@ def create_appointment():
 
         data = request.get_json()
         logger.info(f"📋 Datos recibidos: {data}")
-        
+
         if not data:
             logger.error("❌ No se recibieron datos JSON")
             return jsonify({"error": "Datos de cita requeridos"}), 400
@@ -2884,22 +2920,33 @@ def create_appointment():
 
         if postgres_db and postgres_db.is_connected():
             try:
-                logger.info(f"📅 Creando cita para profesional {user_id}, paciente {data['paciente_id']}")
-                
+                logger.info(
+                    f"📅 Creando cita para profesional {user_id}, paciente {data['paciente_id']}"
+                )
+
                 # Verificar si ya existe una cita en ese horario
                 check_query = """
                     SELECT cita_id FROM citas_agenda 
                     WHERE id_profesional = %s AND fecha = %s AND hora = %s
                 """
-                postgres_db.cursor.execute(check_query, (user_id, data["fecha"], data["hora"]))
+                postgres_db.cursor.execute(
+                    check_query, (user_id, data["fecha"], data["hora"])
+                )
                 existing_cita = postgres_db.cursor.fetchone()
-                
+
                 if existing_cita:
-                    logger.warning(f"⚠️ Ya existe una cita en {data['fecha']} a las {data['hora']}")
-                    return jsonify({
-                        "success": False,
-                        "message": f"Ya tienes una cita programada para {data['fecha']} a las {data['hora']}"
-                    }), 400
+                    logger.warning(
+                        f"⚠️ Ya existe una cita en {data['fecha']} a las {data['hora']}"
+                    )
+                    return (
+                        jsonify(
+                            {
+                                "success": False,
+                                "message": f"Ya tienes una cita programada para {data['fecha']} a las {data['hora']}",
+                            }
+                        ),
+                        400,
+                    )
 
                 # Obtener datos del paciente
                 paciente_query = "SELECT nombre, apellido, rut FROM pacientes_profesional WHERE paciente_id = %s AND profesional_id = %s"
@@ -2909,11 +2956,18 @@ def create_appointment():
                 paciente = postgres_db.cursor.fetchone()
 
                 if not paciente:
-                    logger.error(f"❌ Paciente {data['paciente_id']} no encontrado para profesional {user_id}")
-                    return jsonify({
-                        "success": False,
-                        "message": "Paciente no encontrado en tu lista de pacientes"
-                    }), 404
+                    logger.error(
+                        f"❌ Paciente {data['paciente_id']} no encontrado para profesional {user_id}"
+                    )
+                    return (
+                        jsonify(
+                            {
+                                "success": False,
+                                "message": "Paciente no encontrado en tu lista de pacientes",
+                            }
+                        ),
+                        404,
+                    )
 
                 # Insertar nueva cita usando la estructura correcta de la tabla
                 insert_query = """
@@ -2956,10 +3010,15 @@ def create_appointment():
                 logger.error(f"❌ Error creando cita: {e}")
                 logger.error(f"❌ Tipo de error: {type(e).__name__}")
                 postgres_db.conn.rollback()
-                return jsonify({
-                    "success": False,
-                    "message": f"Error al crear la cita: {str(e)}"
-                }), 500
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "message": f"Error al crear la cita: {str(e)}",
+                        }
+                    ),
+                    500,
+                )
         else:
             return jsonify({"error": "Base de datos no disponible"}), 500
 
